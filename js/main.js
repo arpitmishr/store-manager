@@ -7,10 +7,10 @@ import { db } from './firebase-config.js';
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // --- GLOBAL VARIABLES ---
-let globalInventory = [];
+let globalInventory =[];
 let globalTransactions =[];
 let selectedYear = "All"; 
-let currentCart =[]; // Holds items currently in the POS Cart
+let currentCart =[]; 
 
 // --- 1. NAVIGATION LOGIC ---
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -40,10 +40,9 @@ setupAuth((user) => {
         globalInventory = items;
         updateDashboard();
         updateInventoryTable();
-        updateSalesDropdown();
     });
 
-    // Load Transactions (For Dashboard Year Filter)
+    // Load Transactions
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         const years = new Set();
@@ -54,7 +53,6 @@ setupAuth((user) => {
             if(data.year) years.add(data.year.toString());
         });
         
-        // Update Year Dropdown dynamically
         const select = document.getElementById('year-filter');
         if(select) {
             select.innerHTML = '<option value="All">All Time</option>';
@@ -70,7 +68,6 @@ setupAuth((user) => {
     });
 
 }, () => {
-    console.log("Logged out");
     globalInventory = []; 
     globalTransactions =[];
 });
@@ -106,12 +103,16 @@ function updateInventoryTable() {
     });
 }
 
-// --- 4. SALES CART LOGIC ---
+// --- 4. SALES CART & SEARCH LOGIC ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
 const divCosmetic = document.getElementById('cosmetic-name-div');
-const selectItem = document.getElementById('sale-item-select');
+
+// Search Bar Elements
+const searchItemInput = document.getElementById('sale-item-search');
+const hiddenItemId = document.getElementById('sale-item-id');
+const suggestionsBox = document.getElementById('sale-item-suggestions');
 const inputCosmetic = document.getElementById('cosmetic-name');
 
 function toggleSaleType() {
@@ -119,14 +120,16 @@ function toggleSaleType() {
     if(radioInventory.checked) {
         divInventory.classList.remove('hidden');
         divCosmetic.classList.add('hidden');
-        selectItem.required = true;
+        searchItemInput.required = true;
         inputCosmetic.required = false;
         inputCosmetic.value = '';
     } else {
         divInventory.classList.add('hidden');
         divCosmetic.classList.remove('hidden');
-        selectItem.required = false;
-        selectItem.value = '';
+        searchItemInput.required = false;
+        searchItemInput.value = '';
+        hiddenItemId.value = '';
+        suggestionsBox.classList.add('hidden');
         document.getElementById('sale-cost-rate').value = '';
         document.getElementById('sale-sales-rate').value = '';
     }
@@ -135,27 +138,50 @@ function toggleSaleType() {
 if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
 if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
 
-function updateSalesDropdown() {
-    if(!selectItem) return;
-    selectItem.innerHTML = '<option value="">-- Choose Item --</option>';
-    
-    globalInventory.forEach(item => {
-        if(item.quantity > 0) {
-            const opt = document.createElement('option');
-            opt.value = item.id;
-            opt.textContent = `${item.name} (Stock: ${item.quantity})`;
-            selectItem.appendChild(opt);
+// --- SEARCH AUTOCOMPLETE LOGIC ---
+if (searchItemInput) {
+    searchItemInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        suggestionsBox.innerHTML = ''; // Clear old suggestions
+        hiddenItemId.value = ''; // Reset ID if user types something new
+        
+        if (!query) {
+            suggestionsBox.classList.add('hidden');
+            return;
+        }
+
+        // Filter items that match the text AND have stock > 0
+        const matches = globalInventory.filter(item => 
+            item.name.toLowerCase().includes(query) && item.quantity > 0
+        );
+
+        if (matches.length > 0) {
+            suggestionsBox.classList.remove('hidden');
+            matches.forEach(item => {
+                const li = document.createElement('li');
+                li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
+                li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Stock: ${item.quantity}</span>`;
+                
+                // When an item is clicked
+                li.addEventListener('click', () => {
+                    searchItemInput.value = item.name;
+                    hiddenItemId.value = item.id;
+                    document.getElementById('sale-cost-rate').value = item.price; 
+                    document.getElementById('sale-sales-rate').value = item.price;
+                    suggestionsBox.classList.add('hidden'); // Hide list
+                });
+                suggestionsBox.appendChild(li);
+            });
+        } else {
+            suggestionsBox.classList.remove('hidden');
+            suggestionsBox.innerHTML = '<li class="p-3 text-red-500 text-sm font-bold">No items found / Out of Stock</li>';
         }
     });
-}
 
-if (selectItem) {
-    selectItem.addEventListener('change', (e) => {
-        const itemId = e.target.value;
-        const item = globalInventory.find(i => i.id === itemId);
-        if(item) {
-            document.getElementById('sale-cost-rate').value = item.price; 
-            document.getElementById('sale-sales-rate').value = item.price; 
+    // Hide suggestions when clicking somewhere else on the page
+    document.addEventListener('click', (e) => {
+        if (!searchItemInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.classList.add('hidden');
         }
     });
 }
@@ -170,8 +196,14 @@ if (addToSaleForm) {
         let name = "";
         
         if(type === 'inventory') {
-            id = selectItem.value;
-            name = selectItem.options[selectItem.selectedIndex].text.split(' (Stock')[0];
+            id = hiddenItemId.value;
+            name = searchItemInput.value;
+            
+            // Security check: Make sure they actually clicked an item from the list
+            if (!id) {
+                alert("Please select a valid item from the search dropdown.");
+                return;
+            }
         } else {
             name = "(Cosmetic) " + inputCosmetic.value;
         }
@@ -184,6 +216,9 @@ if (addToSaleForm) {
         
         renderCart();
         e.target.reset();
+        searchItemInput.value = ''; // Clear search bar
+        hiddenItemId.value = ''; // Clear hidden ID
+        
         if(radioInventory) radioInventory.checked = true; 
         toggleSaleType();
     });
@@ -228,13 +263,11 @@ function renderCart() {
     grandTotalEl.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
 }
 
-// Function to remove an item from cart
 window.removeFromCart = (index) => {
     currentCart.splice(index, 1);
     renderCart();
 };
 
-// Handle Complete Sale Button
 const recordSaleBtn = document.getElementById('record-sale-btn');
 if (recordSaleBtn) {
     recordSaleBtn.addEventListener('click', async () => {
@@ -246,14 +279,13 @@ if (recordSaleBtn) {
         recordSaleBtn.textContent = "Processing...";
         msgEl.textContent = "";
         
-        // Ensure processCartSale is imported from sales.js at the top!
         const result = await processCartSale(currentCart);
         
         msgEl.textContent = result.message;
         msgEl.className = result.success ? "mt-3 font-bold text-green-600 text-center" : "mt-3 font-bold text-red-600 text-center";
         
         if(result.success) {
-            currentCart =[]; // Empty the cart
+            currentCart =[]; 
             renderCart();
             setTimeout(() => { msgEl.textContent = ''; }, 4000);
         }
@@ -293,6 +325,7 @@ function updateDashboard() {
 }
 
 // --- 6. JSON IMPORT LOGIC ---
+import { processJSONUpload } from './import.js';
 let selectedFile = null;
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
@@ -306,7 +339,7 @@ if(uploadInput && importBtn) {
     importBtn.addEventListener('click', () => {
         if(selectedFile) {
             const statusEl = document.getElementById('import-status');
-            importBtn.classList.add('hidden'); // Prevent double clicking
+            importBtn.classList.add('hidden'); 
             processJSONUpload(selectedFile, statusEl);
         }
     });
