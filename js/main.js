@@ -1,7 +1,7 @@
-// --- ALL IMPORTS AT THE TOP ---
+// --- ALL IMPORTS STRICTLY AT THE TOP ---
 import { setupAuth } from './auth.js';
 import { listenToInventory } from './inventory.js';
-import { processCartSale } from './sales.js';
+import { processCartSale, returnTransaction } from './sales.js';
 import { processJSONUpload } from './import.js'; 
 import { db } from './firebase-config.js';
 import { collection, onSnapshot, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -31,7 +31,7 @@ navButtons.forEach(btn => {
     });
 });
 
-// --- 2. INITIALIZE AUTHENTICATION & LOAD DATA ---
+// --- 2. AUTHENTICATION & DATA LOADING ---
 setupAuth((user) => {
     console.log("Logged in as:", user.email);
     
@@ -47,6 +47,7 @@ setupAuth((user) => {
         
         snapshot.forEach(doc => {
             const data = doc.data();
+            data.id = doc.id; // Store document ID for Return function
             globalTransactions.push(data);
             if(data.year) years.add(data.year.toString());
         });
@@ -63,6 +64,7 @@ setupAuth((user) => {
         }
         
         updateDashboard();
+        updateTransactionsTable();
     });
 
 }, () => {
@@ -70,7 +72,7 @@ setupAuth((user) => {
     globalTransactions =[];
 });
 
-// --- 3. PURCHASE & INVENTORY LOGIC (With Autocomplete & Rate Checking) ---
+// --- 3. PURCHASE & INVENTORY LOGIC ---
 const purchaseNameInput = document.getElementById('purchase-item-name');
 const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
@@ -84,10 +86,9 @@ if (purchaseNameInput) {
         }
 
         const matches = globalInventory.filter(item => item.name.toLowerCase().includes(query));
-        
-        // Remove exact duplicates for the suggestion box
         const uniqueMatches =[];
         const seen = new Set();
+        
         matches.forEach(m => {
             const key = m.name + m.price; 
             if(!seen.has(key)) {
@@ -112,7 +113,7 @@ if (purchaseNameInput) {
             });
         } else {
             purchaseSuggestions.classList.remove('hidden');
-            purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created in inventory</li>';
+            purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created</li>';
         }
     });
 
@@ -138,16 +139,12 @@ if (purchaseForm) {
 
         try {
             const batch = writeBatch(db);
-            
-            // 1. Check if exact item + rate exists
             const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
             
             if(existingItem) {
-                // Same rate exists: Add to existing stock
                 const itemRef = doc(db, 'inventory', existingItem.id);
                 batch.update(itemRef, { quantity: existingItem.quantity + qty });
             } else {
-                // Different rate or New Item: Create new inventory doc (New Batch)
                 const newInvRef = doc(collection(db, 'inventory'));
                 batch.set(newInvRef, {
                     name: name,
@@ -157,7 +154,6 @@ if (purchaseForm) {
                 });
             }
 
-            // 2. Record Transaction in Ledger
             const total = rate * qty;
             const newTransRef = doc(collection(db, 'transactions'));
             batch.set(newTransRef, {
@@ -166,6 +162,7 @@ if (purchaseForm) {
                 year: new Date().getFullYear(),
                 total: total,
                 paidAmount: total,
+                status: "Completed",
                 items:[{ particulars: name, quantity: qty, rate: rate }]
             });
 
@@ -190,12 +187,11 @@ function updateInventoryTable() {
     if(!tbody) return;
     tbody.innerHTML = ''; 
     
-    // Sort inventory by newest first so you see recent purchases at top
-    const sortedInventory = [...globalInventory].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const sortedInventory =[...globalInventory].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     sortedInventory.forEach(item => {
         const tr = document.createElement('tr');
-        const stockColor = item.quantity < 5 ? 'text-red-600' : 'text-green-600';
+        const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
         tr.innerHTML = `
             <td class="p-3">${item.name}</td>
             <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
@@ -205,7 +201,7 @@ function updateInventoryTable() {
     });
 }
 
-// --- 4. SALES CART & SEARCH LOGIC (WITH LIFO SORTING) ---
+// --- 4. SALES CART LOGIC (WITH LIFO SORTING) ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -249,7 +245,6 @@ if (searchItemInput) {
             return;
         }
 
-        // LIFO LOGIC: Filter items with stock, then SORT by Newest Created Date
         const matches = globalInventory
             .filter(item => item.name.toLowerCase().includes(query) && item.quantity > 0)
             .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); 
@@ -287,18 +282,13 @@ const addToSaleForm = document.getElementById('add-to-sale-form');
 if (addToSaleForm) {
     addToSaleForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        
         const type = document.querySelector('input[name="item-type"]:checked').value;
-        let id = null;
-        let name = "";
+        let id = null; let name = "";
         
         if(type === 'inventory') {
             id = hiddenItemId.value;
             name = searchItemInput.value;
-            if (!id) {
-                alert("Please select a valid item from the search dropdown.");
-                return;
-            }
+            if (!id) { alert("Please select a valid item from the search."); return; }
         } else {
             name = "(Cosmetic) " + inputCosmetic.value;
         }
@@ -308,14 +298,10 @@ if (addToSaleForm) {
         const qty = parseInt(document.getElementById('sale-qty').value);
 
         currentCart.push({ id, name, type, costRate, salesRate, qty });
-        
         renderCart();
         e.target.reset();
-        searchItemInput.value = ''; 
-        hiddenItemId.value = ''; 
-        
-        if(radioInventory) radioInventory.checked = true; 
-        toggleSaleType();
+        searchItemInput.value = ''; hiddenItemId.value = ''; 
+        if(radioInventory) radioInventory.checked = true; toggleSaleType();
     });
 }
 
@@ -325,7 +311,6 @@ function renderCart() {
     if(!tbody || !grandTotalEl) return;
 
     let grandTotal = 0;
-    
     if(currentCart.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Cart is empty</td></tr>';
         grandTotalEl.textContent = '₹0';
@@ -339,10 +324,8 @@ function renderCart() {
     currentCart.forEach((item, index) => {
         const itemTotal = item.qty * item.salesRate;
         grandTotal += itemTotal;
-        
-        const tr = document.createElement('tr');
         const textStyle = item.type === 'cosmetic' ? 'text-purple-600 font-medium' : 'text-gray-800 font-medium';
-        
+        const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="py-2 ${textStyle}">${item.name}</td>
             <td class="py-2">${item.qty}</td>
@@ -354,22 +337,16 @@ function renderCart() {
         `;
         tbody.appendChild(tr);
     });
-    
     grandTotalEl.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
 }
 
-window.removeFromCart = (index) => {
-    currentCart.splice(index, 1);
-    renderCart();
-};
+window.removeFromCart = (index) => { currentCart.splice(index, 1); renderCart(); };
 
 const recordSaleBtn = document.getElementById('record-sale-btn');
 if (recordSaleBtn) {
     recordSaleBtn.addEventListener('click', async () => {
         if(currentCart.length === 0) return;
-        
         const msgEl = document.getElementById('sale-msg');
-        
         recordSaleBtn.disabled = true;
         recordSaleBtn.textContent = "Processing...";
         msgEl.textContent = "";
@@ -384,13 +361,12 @@ if (recordSaleBtn) {
             renderCart();
             setTimeout(() => { msgEl.textContent = ''; }, 4000);
         }
-        
         recordSaleBtn.textContent = "Complete Sale";
         recordSaleBtn.disabled = false;
     });
 }
 
-// --- 5. DASHBOARD & YEAR FILTER LOGIC ---
+// --- 5. DASHBOARD ---
 const yearFilter = document.getElementById('year-filter');
 if (yearFilter) {
     yearFilter.addEventListener('change', (e) => {
@@ -404,25 +380,79 @@ if (yearFilter) {
 function updateDashboard() {
     const statProducts = document.getElementById('stat-products');
     const statSales = document.getElementById('stat-sales');
-    
     if (statProducts) statProducts.textContent = globalInventory.length;
     
     let totalSales = 0;
     globalTransactions.forEach(transaction => {
-        if(transaction.type === "Sale") {
+        // Only count valid Sales (not returned, not purchases)
+        if(transaction.type === "Sale" && transaction.status !== "Returned") {
             if (selectedYear === "All" || transaction.year.toString() === selectedYear) {
                 totalSales += transaction.total;
             }
         }
     });
-    
     if (statSales) statSales.textContent = `₹${totalSales.toLocaleString('en-IN')}`;
 }
 
-// --- 6. JSON IMPORT LOGIC ---
-let selectedFile = null;
+// --- 6. TRANSACTION HISTORY & RETURNS LOGIC ---
+function updateTransactionsTable() {
+    const tbody = document.getElementById('transactions-table-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    const sorted = [...globalTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    sorted.forEach(t => {
+        const tr = document.createElement('tr');
+        
+        // Format Date nicely
+        const dateObj = new Date(t.date);
+        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        // Format Items list (e.g., FROCK(x2), KURTI(x1))
+        const itemsStr = t.items ? t.items.map(i => `${i.particulars} (x${i.quantity})`).join(', ') : 'N/A';
+        
+        // Color coding
+        const typeColor = t.type === 'Sale' ? 'text-green-600' : 'text-yellow-600';
+        const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-gray-50' : '';
+
+        // Generate Action Button
+        let actionHtml = '';
+        if(t.type === 'Sale' && t.status !== 'Returned') {
+            actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 font-bold text-xs shadow-sm">Return Items</button>`;
+        } else if (t.status === 'Returned') {
+            actionHtml = `<span class="text-red-500 font-bold text-xs border border-red-500 px-2 py-1 rounded">Refunded</span>`;
+        } else {
+            actionHtml = `<span class="text-gray-400 text-xs">Stock Added</span>`; // Purchases
+        }
+
+        tr.className = rowOpacity;
+        tr.innerHTML = `
+            <td class="p-4 text-xs font-medium text-gray-500">${dateStr}</td>
+            <td class="p-4 font-bold ${typeColor}">${t.type}</td>
+            <td class="p-4 text-xs text-gray-700 max-w-[250px] truncate" title="${itemsStr}">${itemsStr}</td>
+            <td class="p-4 font-bold text-gray-800">₹${t.total}</td>
+            <td class="p-4">${actionHtml}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.handleReturn = async (transactionId) => {
+    if(!confirm("Are you sure you want to return this sale? All inventory items from this receipt will be restocked.")) return;
+    
+    const result = await returnTransaction(transactionId);
+    if(result.success) {
+        alert("Success: " + result.message);
+    } else {
+        alert("Error: " + result.message);
+    }
+};
+
+// --- 7. JSON IMPORT LOGIC ---
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
+let selectedFile = null;
 
 if(uploadInput && importBtn) {
     uploadInput.addEventListener('change', (e) => {
