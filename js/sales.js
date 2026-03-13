@@ -1,4 +1,3 @@
-
 import { db } from './firebase-config.js';
 import { doc, getDoc, collection, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -71,8 +70,7 @@ export async function returnTransaction(transactionId) {
             const isCosmetic = item.type === 'cosmetic' || (itemName && itemName.toLowerCase().includes('cosmetic'));
             
             if(!isCosmetic) {
-                // To avoid requiring composite indices, we query by nameLower and filter by price in memory
-                const invQuery = query(collection(db, 'inventory'), where('nameLower', '==', itemName.toLowerCase()));
+                const invQuery = query(collection(db, 'inventory'), where('name', '==', itemName));
                 const invSnap = await getDocs(invQuery);
                 const matchedDocs = invSnap.docs.filter(d => d.data().price === (item.costRate || item.rate || 0));
 
@@ -84,7 +82,6 @@ export async function returnTransaction(transactionId) {
                     const newInvRef = doc(collection(db, 'inventory'));
                     batch.set(newInvRef, {
                         name: itemName,
-                        nameLower: itemName.toLowerCase(), // ADDED for optimization
                         price: item.costRate || item.rate || 0,
                         quantity: item.quantity,
                         createdAt: new Date().toISOString()
@@ -102,4 +99,3 @@ export async function returnTransaction(transactionId) {
         return { success: false, message: err.message };
     }
 }
-
