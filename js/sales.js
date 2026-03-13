@@ -1,4 +1,4 @@
---- START OF FILE sales.js ---
+
 import { db } from './firebase-config.js';
 import { doc, getDoc, collection, writeBatch, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
