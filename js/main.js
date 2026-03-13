@@ -2,7 +2,7 @@
 import { setupAuth } from './auth.js';
 import { addItem, listenToInventory } from './inventory.js';
 import { processCartSale } from './sales.js';
-import { processJSONUpload } from './import.js';
+import { processJSONUpload } from './import.js'; // Imported ONLY here!
 import { db } from './firebase-config.js';
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -325,7 +325,6 @@ function updateDashboard() {
 }
 
 // --- 6. JSON IMPORT LOGIC ---
-import { processJSONUpload } from './import.js';
 let selectedFile = null;
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
