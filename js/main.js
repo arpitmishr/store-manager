@@ -31,7 +31,7 @@ navButtons.forEach(btn => {
     });
 });
 
-// --- 2. AUTHENTICATION & DATA LOADING ---
+// --- 2. AUTHENTICATION & DATA FETCHING ---
 setupAuth((user) => {
     console.log("Logged in as:", user.email);
     
@@ -41,13 +41,14 @@ setupAuth((user) => {
         updateInventoryTable();
     });
 
+    // Auto-Fetches historical JSON data from Firebase
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         const years = new Set();
         
         snapshot.forEach(doc => {
             const data = doc.data();
-            data.id = doc.id; // Store document ID for Return function
+            data.id = doc.id; 
             globalTransactions.push(data);
             if(data.year) years.add(data.year.toString());
         });
@@ -68,7 +69,7 @@ setupAuth((user) => {
     });
 
 }, () => {
-    globalInventory = []; 
+    globalInventory =[]; 
     globalTransactions =[];
 });
 
@@ -384,7 +385,6 @@ function updateDashboard() {
     
     let totalSales = 0;
     globalTransactions.forEach(transaction => {
-        // Only count valid Sales (not returned, not purchases)
         if(transaction.type === "Sale" && transaction.status !== "Returned") {
             if (selectedYear === "All" || transaction.year.toString() === selectedYear) {
                 totalSales += transaction.total;
@@ -400,30 +400,27 @@ function updateTransactionsTable() {
     if(!tbody) return;
     tbody.innerHTML = '';
 
-    const sorted = [...globalTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted =[...globalTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     sorted.forEach(t => {
         const tr = document.createElement('tr');
         
-        // Format Date nicely
         const dateObj = new Date(t.date);
         const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
-        // Format Items list (e.g., FROCK(x2), KURTI(x1))
-        const itemsStr = t.items ? t.items.map(i => `${i.particulars} (x${i.quantity})`).join(', ') : 'N/A';
+        // This safely handles the JSON "particulars" formatting!
+        const itemsStr = t.items ? t.items.map(i => `${i.particulars || i.name || 'Item'} (x${i.quantity})`).join(', ') : 'N/A';
         
-        // Color coding
         const typeColor = t.type === 'Sale' ? 'text-green-600' : 'text-yellow-600';
         const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-gray-50' : '';
 
-        // Generate Action Button
         let actionHtml = '';
         if(t.type === 'Sale' && t.status !== 'Returned') {
             actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 font-bold text-xs shadow-sm">Return Items</button>`;
         } else if (t.status === 'Returned') {
             actionHtml = `<span class="text-red-500 font-bold text-xs border border-red-500 px-2 py-1 rounded">Refunded</span>`;
         } else {
-            actionHtml = `<span class="text-gray-400 text-xs">Stock Added</span>`; // Purchases
+            actionHtml = `<span class="text-gray-400 text-xs">Stock Added</span>`; 
         }
 
         tr.className = rowOpacity;
