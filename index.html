@@ -55,20 +55,30 @@
 
             <div class="p-6">
                 <!-- DASHBOARD SECTION -->
+                <!-- DASHBOARD SECTION -->
                 <section id="dashboard" class="page-section">
-                    <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Dashboard</h2>
+                        <!-- YEAR FILTER -->
+                        <select id="year-filter" class="border p-2 rounded bg-white shadow font-bold text-blue-600">
+                            <option value="All">All Time</option>
+                            <!-- Years will load here -->
+                        </select>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
-                            <h3 class="text-gray-500 font-medium">Total Products</h3>
+                            <h3 class="text-gray-500 font-medium">Total Products in Stock</h3>
                             <p id="stat-products" class="text-3xl font-bold">0</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow border-t-4 border-green-500">
-                            <h3 class="text-gray-500 font-medium">Total Sales Value</h3>
+                            <h3 class="text-gray-500 font-medium">Total Sales (<span id="display-year">All Time</span>)</h3>
                             <p id="stat-sales" class="text-3xl font-bold">₹0</p>
                         </div>
                     </div>
                 </section>
 
+
+                
                 <!-- INVENTORY SECTION -->
                 <section id="inventory" class="page-section hidden">
                     <h2 class="text-3xl font-bold mb-6">Inventory Management</h2>
@@ -128,6 +138,21 @@
                         <p id="sale-msg" class="mt-4 font-bold"></p>
                     </div>
                 </section>
+
+
+<!-- SETTINGS / IMPORT SECTION -->
+                <section id="settings" class="page-section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Data Management</h2>
+                    <div class="bg-white p-6 rounded-lg shadow border-t-4 border-purple-500">
+                        <h3 class="text-lg font-bold mb-2">Import Previous Data (JSON)</h3>
+                        <p class="text-sm text-gray-500 mb-4">Upload your historical data file. This will add your old inventory and year-wise transactions to the database.</p>
+                        <input type="file" id="json-upload" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 mb-4"/>
+                        <button id="import-btn" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 font-bold hidden">Start Import</button>
+                        <p id="import-status" class="mt-4 font-bold text-blue-600"></p>
+                    </div>
+                </section>
+
+                
 
             </div>
         </main>
