@@ -1,16 +1,30 @@
-// --- ALL IMPORTS STRICTLY AT THE TOP ---
+--- START OF FILE main.js ---
 import { setupAuth } from './auth.js';
-import { listenToInventory } from './inventory.js';
+import { getInventoryPage, searchInventoryByName } from './inventory.js';
 import { processCartSale, returnTransaction } from './sales.js';
 import { processJSONUpload } from './import.js'; 
 import { db } from './firebase-config.js';
-import { collection, onSnapshot, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, doc, writeBatch, query, where, getDocs, orderBy, limit, startAfter, getAggregateFromServer, sum, count } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // --- GLOBAL VARIABLES ---
-let globalInventory =[];
-let globalTransactions =[];
 let selectedYear = "All"; 
-let currentCart =[]; 
+let currentCart = []; 
+
+// Pagination States
+let invCursors = [null]; 
+let invPage = 0;
+
+let transCursors = [null];
+let transPage = 0;
+
+// Reusable Debouncer
+function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
 
 // --- 1. NAVIGATION LOGIC ---
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -31,71 +45,88 @@ navButtons.forEach(btn => {
     });
 });
 
+// Setup Year Filter dynamically
+function initializeYears() {
+    const yearSelect = document.getElementById('year-filter');
+    if(yearSelect) {
+        yearSelect.innerHTML = '<option value="All">All Time</option>';
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= 2020; y--) {
+            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+    }
+}
+
 // --- 2. AUTHENTICATION & DATA FETCHING ---
 setupAuth((user) => {
     console.log("Logged in as:", user.email);
+    initializeYears();
     
-    listenToInventory((items) => {
-        globalInventory = items;
-        updateDashboard();
-        updateInventoryTable();
-    });
-
-    // Auto-Fetches historical JSON data from Firebase
-    onSnapshot(collection(db, 'transactions'), (snapshot) => {
-        globalTransactions =[];
-        const years = new Set();
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            data.id = doc.id; 
-            globalTransactions.push(data);
-            if(data.year) years.add(data.year.toString());
-        });
-        
-        const select = document.getElementById('year-filter');
-        if(select) {
-            select.innerHTML = '<option value="All">All Time</option>';
-            Array.from(years).sort().reverse().forEach(year => {
-                const opt = document.createElement('option');
-                opt.value = year;
-                opt.textContent = year;
-                select.appendChild(opt);
-            });
-        }
-        
-        updateDashboard();
-        updateTransactionsTable();
-    });
+    // Initial fetch of page 0 for tables
+    renderInventoryPage(0);
+    renderTransactionsPage(0);
+    updateDashboard();
 
 }, () => {
-    globalInventory =[]; 
-    globalTransactions =[];
+    invCursors = [null]; transCursors = [null];
+    invPage = 0; transPage = 0;
 });
 
-// --- 3. PURCHASE & INVENTORY LOGIC ---
+// --- 3. PAGINATED INVENTORY LOGIC ---
+async function renderInventoryPage(pageIndex) {
+    const snap = await getInventoryPage(invCursors[pageIndex], 15);
+    const tbody = document.getElementById('inventory-table-body');
+    tbody.innerHTML = ''; 
+
+    if (snap.empty && pageIndex > 0) return; // Boundary hit
+
+    // Set cursor for next page if full batch returned
+    invCursors[pageIndex + 1] = snap.docs.length === 15 ? snap.docs[snap.docs.length - 1] : null;
+    invPage = pageIndex;
+
+    snap.forEach(docSnap => {
+        const item = docSnap.data();
+        const tr = document.createElement('tr');
+        const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
+        tr.innerHTML = `
+            <td class="p-3">${item.name}</td>
+            <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
+            <td class="p-3 text-right">₹${item.price}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('inv-page-indicator').textContent = `Page ${invPage + 1}`;
+    document.getElementById('inv-prev-btn').disabled = (invPage === 0);
+    document.getElementById('inv-next-btn').disabled = (!invCursors[invPage + 1]);
+}
+
+document.getElementById('inv-prev-btn').addEventListener('click', () => { if(invPage > 0) renderInventoryPage(invPage - 1); });
+document.getElementById('inv-next-btn').addEventListener('click', () => { if(invCursors[invPage + 1]) renderInventoryPage(invPage + 1); });
+
+
+// Search (debounced to save firestore reads)
 const purchaseNameInput = document.getElementById('purchase-item-name');
 const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
 if (purchaseNameInput) {
-    purchaseNameInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
+    purchaseNameInput.addEventListener('input', debounce(async (e) => {
+        const queryText = e.target.value.trim();
         purchaseSuggestions.innerHTML = '';
-        if(!query) {
+        if(!queryText) {
             purchaseSuggestions.classList.add('hidden');
             return;
         }
 
-        const matches = globalInventory.filter(item => item.name.toLowerCase().includes(query));
+        const snap = await searchInventoryByName(queryText);
+        const matches = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        
+        // Ensure uniques
         const uniqueMatches =[];
         const seen = new Set();
-        
         matches.forEach(m => {
             const key = m.name + m.price; 
-            if(!seen.has(key)) {
-                seen.add(key);
-                uniqueMatches.push(m);
-            }
+            if(!seen.has(key)) { seen.add(key); uniqueMatches.push(m); }
         });
 
         if(uniqueMatches.length > 0) {
@@ -116,7 +147,7 @@ if (purchaseNameInput) {
             purchaseSuggestions.classList.remove('hidden');
             purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created</li>';
         }
-    });
+    }, 300)); // 300ms debounce
 
     document.addEventListener('click', (e) => {
         if (!purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
@@ -125,6 +156,7 @@ if (purchaseNameInput) {
     });
 }
 
+// Submitting a Purchase
 const purchaseForm = document.getElementById('purchase-form');
 if (purchaseForm) {
     purchaseForm.addEventListener('submit', async (e) => {
@@ -140,7 +172,11 @@ if (purchaseForm) {
 
         try {
             const batch = writeBatch(db);
-            const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
+            
+            // Look up existing exact item
+            const qExisting = query(collection(db, 'inventory'), where('nameLower', '==', name.toLowerCase()));
+            const snapExisting = await getDocs(qExisting);
+            const existingItem = snapExisting.docs.map(d=>({id: d.id, ...d.data()})).find(i => i.price === rate);
             
             if(existingItem) {
                 const itemRef = doc(db, 'inventory', existingItem.id);
@@ -149,6 +185,7 @@ if (purchaseForm) {
                 const newInvRef = doc(collection(db, 'inventory'));
                 batch.set(newInvRef, {
                     name: name,
+                    nameLower: name.toLowerCase(), // Critical for optimized search
                     price: rate,
                     quantity: qty,
                     createdAt: new Date().toISOString()
@@ -172,6 +209,11 @@ if (purchaseForm) {
             msgEl.textContent = "Purchase Recorded Successfully!";
             msgEl.className = "mt-3 font-bold text-green-600 text-center";
             e.target.reset();
+            
+            // Refresh visuals globally
+            renderInventoryPage(0);
+            renderTransactionsPage(0);
+            updateDashboard();
         } catch(err) {
             msgEl.textContent = "Error: " + err.message;
             msgEl.className = "mt-3 font-bold text-red-600 text-center";
@@ -183,26 +225,7 @@ if (purchaseForm) {
     });
 }
 
-function updateInventoryTable() {
-    const tbody = document.getElementById('inventory-table-body');
-    if(!tbody) return;
-    tbody.innerHTML = ''; 
-    
-    const sortedInventory =[...globalInventory].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-    sortedInventory.forEach(item => {
-        const tr = document.createElement('tr');
-        const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
-        tr.innerHTML = `
-            <td class="p-3">${item.name}</td>
-            <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
-            <td class="p-3 text-right">₹${item.price}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-// --- 4. SALES CART LOGIC (WITH LIFO SORTING) ---
+// --- 4. SALES CART LOGIC (WITH DEBOUNCED DB SEARCH) ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -236,23 +259,23 @@ if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
 if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
 
 if (searchItemInput) {
-    searchItemInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
+    searchItemInput.addEventListener('input', debounce(async (e) => {
+        const queryText = e.target.value.trim();
         suggestionsBox.innerHTML = ''; 
         hiddenItemId.value = ''; 
         
-        if (!query) {
+        if (!queryText) {
             suggestionsBox.classList.add('hidden');
             return;
         }
 
-        const matches = globalInventory
-            .filter(item => item.name.toLowerCase().includes(query) && item.quantity > 0)
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); 
-
+        const snap = await searchInventoryByName(queryText);
+        // Filter in memory for items > 0 stock (avoid index necessity)
+        let matches = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => m.quantity > 0);
+        
         if (matches.length > 0) {
             suggestionsBox.classList.remove('hidden');
-            matches.forEach(item => {
+            matches.slice(0, 10).forEach(item => { // Show top 10 results
                 const li = document.createElement('li');
                 li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
                 li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Rate: ₹${item.price} | Stock: ${item.quantity}</span>`;
@@ -270,7 +293,7 @@ if (searchItemInput) {
             suggestionsBox.classList.remove('hidden');
             suggestionsBox.innerHTML = '<li class="p-3 text-red-500 text-sm font-bold">No items found / Out of Stock</li>';
         }
-    });
+    }, 300));
 
     document.addEventListener('click', (e) => {
         if (!searchItemInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
@@ -360,6 +383,9 @@ if (recordSaleBtn) {
         if(result.success) {
             currentCart =[]; 
             renderCart();
+            renderInventoryPage(0);
+            renderTransactionsPage(0);
+            updateDashboard();
             setTimeout(() => { msgEl.textContent = ''; }, 4000);
         }
         recordSaleBtn.textContent = "Complete Sale";
@@ -367,7 +393,7 @@ if (recordSaleBtn) {
     });
 }
 
-// --- 5. DASHBOARD ---
+// --- 5. DASHBOARD (AGGREGATION) ---
 const yearFilter = document.getElementById('year-filter');
 if (yearFilter) {
     yearFilter.addEventListener('change', (e) => {
@@ -378,37 +404,54 @@ if (yearFilter) {
     });
 }
 
-function updateDashboard() {
-    const statProducts = document.getElementById('stat-products');
-    const statSales = document.getElementById('stat-sales');
-    if (statProducts) statProducts.textContent = globalInventory.length;
-    
-    let totalSales = 0;
-    globalTransactions.forEach(transaction => {
-        if(transaction.type === "Sale" && transaction.status !== "Returned") {
-            if (selectedYear === "All" || transaction.year.toString() === selectedYear) {
-                totalSales += transaction.total;
-            }
+// Highly optimized using Server-Side Aggregations (1 API call)
+async function updateDashboard() {
+    try {
+        // 1. Count Total Products
+        const invSnap = await getAggregateFromServer(collection(db, 'inventory'), { total: count() });
+        document.getElementById('stat-products').textContent = invSnap.data().total;
+
+        // 2. Sum Sales dynamically
+        const transRef = collection(db, 'transactions');
+        let salesQuery;
+        if (selectedYear === "All") {
+            salesQuery = query(transRef, where('type', '==', 'Sale'), where('status', '==', 'Completed'));
+        } else {
+            salesQuery = query(transRef, where('type', '==', 'Sale'), where('status', '==', 'Completed'), where('year', '==', parseInt(selectedYear)));
         }
-    });
-    if (statSales) statSales.textContent = `₹${totalSales.toLocaleString('en-IN')}`;
+
+        const salesSnap = await getAggregateFromServer(salesQuery, { sumTotal: sum('total') });
+        const totalAmount = salesSnap.data().sumTotal || 0;
+        document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+    } catch(err) {
+        console.error("Aggregation Error", err);
+    }
 }
 
-// --- 6. TRANSACTION HISTORY & RETURNS LOGIC ---
-function updateTransactionsTable() {
+
+// --- 6. PAGINATED TRANSACTION HISTORY ---
+async function renderTransactionsPage(pageIndex) {
     const tbody = document.getElementById('transactions-table-body');
-    if(!tbody) return;
+    let q = query(collection(db, 'transactions'), orderBy('date', 'desc'), limit(15));
+    if (transCursors[pageIndex]) {
+        q = query(collection(db, 'transactions'), orderBy('date', 'desc'), startAfter(transCursors[pageIndex]), limit(15));
+    }
+
+    const snap = await getDocs(q);
+    if (snap.empty && pageIndex > 0) return;
+    
     tbody.innerHTML = '';
+    transCursors[pageIndex + 1] = snap.docs.length === 15 ? snap.docs[snap.docs.length - 1] : null;
+    transPage = pageIndex;
 
-    const sorted =[...globalTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    sorted.forEach(t => {
+    snap.forEach(docSnap => {
+        const t = docSnap.data();
+        t.id = docSnap.id;
         const tr = document.createElement('tr');
         
         const dateObj = new Date(t.date);
         const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
-        // This safely handles the JSON "particulars" formatting!
         const itemsStr = t.items ? t.items.map(i => `${i.particulars || i.name || 'Item'} (x${i.quantity})`).join(', ') : 'N/A';
         
         const typeColor = t.type === 'Sale' ? 'text-green-600' : 'text-yellow-600';
@@ -425,15 +468,22 @@ function updateTransactionsTable() {
 
         tr.className = rowOpacity;
         tr.innerHTML = `
-            <td class="p-4 text-xs font-medium text-gray-500">${dateStr}</td>
+            <td class="p-4 text-xs font-medium text-gray-500 whitespace-nowrap">${dateStr}</td>
             <td class="p-4 font-bold ${typeColor}">${t.type}</td>
-            <td class="p-4 text-xs text-gray-700 max-w-[250px] truncate" title="${itemsStr}">${itemsStr}</td>
+            <td class="p-4 text-xs text-gray-700 max-w-xs truncate" title="${itemsStr}">${itemsStr}</td>
             <td class="p-4 font-bold text-gray-800">₹${t.total}</td>
             <td class="p-4">${actionHtml}</td>
         `;
         tbody.appendChild(tr);
     });
+
+    document.getElementById('trans-page-indicator').textContent = `Page ${transPage + 1}`;
+    document.getElementById('trans-prev-btn').disabled = (transPage === 0);
+    document.getElementById('trans-next-btn').disabled = (!transCursors[transPage + 1]);
 }
+
+document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) renderTransactionsPage(transPage - 1); });
+document.getElementById('trans-next-btn').addEventListener('click', () => { if(transCursors[transPage + 1]) renderTransactionsPage(transPage + 1); });
 
 window.handleReturn = async (transactionId) => {
     if(!confirm("Are you sure you want to return this sale? All inventory items from this receipt will be restocked.")) return;
@@ -441,6 +491,9 @@ window.handleReturn = async (transactionId) => {
     const result = await returnTransaction(transactionId);
     if(result.success) {
         alert("Success: " + result.message);
+        renderTransactionsPage(transPage); // refresh current page
+        renderInventoryPage(0);
+        updateDashboard();
     } else {
         alert("Error: " + result.message);
     }
@@ -465,3 +518,4 @@ if(uploadInput && importBtn) {
         }
     });
 }
+--- END OF FILE main.js ---
