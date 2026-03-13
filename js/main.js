@@ -46,19 +46,29 @@ navButtons.forEach(btn => {
 
 // --- 2. AUTHENTICATION & DIRECT DATA FETCHING ---
 setupAuth((user) => {
-    // 1. Fetch Inventory Directly (Bulletproofs legacy data and missing files)
+    
+    // 1. Fetch & Normalize Inventory (Bulletproofs legacy data)
     onSnapshot(collection(db, 'inventory'), (snapshot) => {
         globalInventory =[];
         snapshot.forEach(doc => {
-            globalInventory.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            globalInventory.push({ 
+                id: doc.id, 
+                // Forces missing names into a valid string
+                name: String(data.name || data.particulars || 'Unnamed Item'),
+                // Forces numbers safely
+                price: parseFloat(data.price || data.costRate || data.rate || 0),
+                quantity: parseInt(data.quantity || 0),
+                createdAt: data.createdAt || new Date().toISOString()
+            });
         });
-        globalInventory.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        globalInventory.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         
         updateDashboard();
         renderInventoryList();
     });
 
-    // 2. Fetch Transactions Directly
+    // 2. Fetch Transactions
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         snapshot.forEach(doc => {
@@ -72,7 +82,7 @@ setupAuth((user) => {
     });
 
 }, () => {
-    globalInventory = []; globalTransactions =[]; transPage = 0;
+    globalInventory =[]; globalTransactions =[]; transPage = 0;
 });
 
 
@@ -288,12 +298,11 @@ function renderAnalytics() {
     sortedInv.forEach(item => {
         let maxQty = sortedInv[0].quantity || 1;
         let pct = Math.max(10, Math.round((item.quantity / maxQty) * 100));
-        let itemName = item.name || item.particulars || 'Item';
         
         breakdownList.innerHTML += `
             <div>
                 <div class="flex justify-between text-sm font-medium mb-1">
-                    <span class="text-slate-700 truncate w-3/4">${itemName}</span>
+                    <span class="text-slate-700 truncate w-3/4">${item.name}</span>
                     <span class="text-slate-400">${item.quantity} left</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-1.5">
@@ -305,7 +314,7 @@ function renderAnalytics() {
 }
 
 
-// --- 6. SALES CART & AUTO-SUGGEST LOGIC ---
+// --- 6. SALES CART & AUTO-SUGGEST LOGIC (BULLETPROOF) ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -329,7 +338,7 @@ function toggleSaleType() {
         searchItemInput.required = false;
         searchItemInput.value = '';
         hiddenItemId.value = '';
-        suggestionsBox.classList.add('hidden');
+        suggestionsBox.style.display = 'none';
         document.getElementById('sale-cost-rate').value = '';
         document.getElementById('sale-sales-rate').value = '';
     }
@@ -338,46 +347,46 @@ function toggleSaleType() {
 if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
 if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
 
-if (searchItemInput) {
-    searchItemInput.addEventListener('input', (e) => {
-        const queryText = e.target.value.toLowerCase().trim();
-        suggestionsBox.innerHTML = ''; 
-        hiddenItemId.value = ''; 
-        
-        if (!queryText) {
-            suggestionsBox.classList.add('hidden');
-            return;
-        }
+function executeSaleSearch(queryText) {
+    suggestionsBox.innerHTML = ''; 
+    hiddenItemId.value = ''; 
+    
+    if (!queryText) {
+        suggestionsBox.style.display = 'none';
+        return;
+    }
 
-        // Supports both new 'name' format and legacy JSON 'particulars' format
-        const matches = globalInventory.filter(item => {
-            const itemName = String(item.name || item.particulars || '').toLowerCase();
-            const qty = Number(item.quantity) || 0;
-            return itemName.includes(queryText) && qty > 0;
-        });
-        
-        if (matches.length > 0) {
-            suggestionsBox.classList.remove('hidden');
-            matches.slice(0, 10).forEach(item => {
-                const displayName = item.name || item.particulars || 'Item';
-                const li = document.createElement('li');
-                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
-                li.innerHTML = `<span>${displayName}</span> <span class="text-slate-400 font-normal">₹${item.price} (${item.quantity} left)</span>`;
-                
-                li.addEventListener('click', () => {
-                    searchItemInput.value = displayName;
-                    hiddenItemId.value = item.id;
-                    document.getElementById('sale-cost-rate').value = item.price; 
-                    document.getElementById('sale-sales-rate').value = item.price;
-                    suggestionsBox.classList.add('hidden'); 
-                });
-                suggestionsBox.appendChild(li);
-            });
-        } else {
-            suggestionsBox.classList.remove('hidden');
-            suggestionsBox.innerHTML = '<li class="p-4 text-rose-500 text-sm font-bold">No items found / Out of Stock</li>';
-        }
+    const matches = globalInventory.filter(item => {
+        return item.name.toLowerCase().includes(queryText.toLowerCase()) && item.quantity > 0;
     });
+    
+    if (matches.length > 0) {
+        suggestionsBox.style.display = 'block';
+        matches.slice(0, 15).forEach(item => {
+            const li = document.createElement('li');
+            li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
+            li.innerHTML = `<span>${item.name}</span> <span class="text-slate-400 font-normal">₹${item.price} (${item.quantity} left)</span>`;
+            
+            // Using mousedown instead of click prevents 'blur' conflicts on mobile
+            li.addEventListener('mousedown', (e) => {
+                e.preventDefault(); 
+                searchItemInput.value = item.name;
+                hiddenItemId.value = item.id;
+                document.getElementById('sale-cost-rate').value = item.price; 
+                document.getElementById('sale-sales-rate').value = item.price;
+                suggestionsBox.style.display = 'none';
+            });
+            suggestionsBox.appendChild(li);
+        });
+    } else {
+        suggestionsBox.style.display = 'block';
+        suggestionsBox.innerHTML = '<li class="p-4 text-rose-500 text-sm font-bold">No items found / Out of Stock</li>';
+    }
+}
+
+if (searchItemInput) {
+    searchItemInput.addEventListener('input', (e) => executeSaleSearch(e.target.value.trim()));
+    searchItemInput.addEventListener('focus', (e) => executeSaleSearch(e.target.value.trim()));
 }
 
 const addToSaleForm = document.getElementById('add-to-sale-form');
@@ -472,7 +481,6 @@ if (recordSaleBtn) {
 
 // --- 7. INVENTORY LIST, SEARCH & PURCHASE ---
 
-// Render Stock List
 const stockSearchInput = document.getElementById('stock-search-input');
 if (stockSearchInput) {
     stockSearchInput.addEventListener('input', (e) => {
@@ -486,9 +494,7 @@ function renderInventoryList() {
     if (!list) return;
     list.innerHTML = '';
     
-    const filtered = globalInventory.filter(item => 
-        String(item.name || item.particulars || '').toLowerCase().includes(stockSearchQuery)
-    );
+    const filtered = globalInventory.filter(item => item.name.toLowerCase().includes(stockSearchQuery));
 
     if (filtered.length === 0) {
         list.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">No items found.</p>`;
@@ -496,11 +502,10 @@ function renderInventoryList() {
     }
 
     filtered.forEach(item => {
-        const displayName = item.name || item.particulars || 'Item';
         const stockColor = item.quantity <= 0 ? 'text-rose-500' : 'text-slate-500';
         list.innerHTML += `
             <div class="flex justify-between items-center p-3 border-b border-slate-50 last:border-0">
-                <span class="text-sm font-medium text-slate-900 truncate pr-2 w-2/3">${displayName}</span>
+                <span class="text-sm font-medium text-slate-900 truncate pr-2 w-2/3">${item.name}</span>
                 <div class="text-right w-1/3">
                     <span class="text-sm font-bold ${stockColor}">${item.quantity} in stock</span>
                     <p class="text-xs text-slate-400">₹${item.price}</p>
@@ -510,59 +515,60 @@ function renderInventoryList() {
     });
 }
 
-// Purchase Item Suggestions
+// Purchase Item Suggestions (BULLETPROOF)
 const purchaseNameInput = document.getElementById('purchase-item-name');
 const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
-if (purchaseNameInput) {
-    purchaseNameInput.addEventListener('input', (e) => {
-        const queryText = e.target.value.toLowerCase().trim();
-        purchaseSuggestions.innerHTML = '';
-        if(!queryText) {
-            purchaseSuggestions.classList.add('hidden');
-            return;
-        }
+function executePurchaseSearch(queryText) {
+    purchaseSuggestions.innerHTML = '';
+    if(!queryText) {
+        purchaseSuggestions.style.display = 'none';
+        return;
+    }
 
-        const matches = globalInventory.filter(item => {
-            return String(item.name || item.particulars || '').toLowerCase().includes(queryText);
-        });
+    const matches = globalInventory.filter(item => item.name.toLowerCase().includes(queryText.toLowerCase()));
 
-        const uniqueMatches =[];
-        const seen = new Set();
-        matches.forEach(m => {
-            const key = String(m.name || m.particulars) + String(m.price || 0); 
-            if(!seen.has(key)) { seen.add(key); uniqueMatches.push(m); }
-        });
-
-        if(uniqueMatches.length > 0) {
-            purchaseSuggestions.classList.remove('hidden');
-            uniqueMatches.slice(0, 10).forEach(item => {
-                const displayName = item.name || item.particulars || 'Item';
-                const li = document.createElement('li');
-                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
-                li.innerHTML = `<span>${displayName}</span> <span class="text-slate-400 font-normal">₹${item.price}</span>`;
-                
-                li.addEventListener('click', () => {
-                    purchaseNameInput.value = displayName;
-                    document.getElementById('purchase-rate').value = item.price;
-                    purchaseSuggestions.classList.add('hidden');
-                });
-                purchaseSuggestions.appendChild(li);
-            });
-        } else {
-            purchaseSuggestions.classList.remove('hidden');
-            purchaseSuggestions.innerHTML = '<li class="p-4 text-slate-400 text-sm italic">New item will be created</li>';
-        }
+    // Keep unique price/name combinations
+    const uniqueMatches =[];
+    const seen = new Set();
+    matches.forEach(m => {
+        const key = m.name + m.price; 
+        if(!seen.has(key)) { seen.add(key); uniqueMatches.push(m); }
     });
+
+    if(uniqueMatches.length > 0) {
+        purchaseSuggestions.style.display = 'block';
+        uniqueMatches.slice(0, 15).forEach(item => {
+            const li = document.createElement('li');
+            li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
+            li.innerHTML = `<span>${item.name}</span> <span class="text-slate-400 font-normal">₹${item.price}</span>`;
+            
+            li.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                purchaseNameInput.value = item.name;
+                document.getElementById('purchase-rate').value = item.price;
+                purchaseSuggestions.style.display = 'none';
+            });
+            purchaseSuggestions.appendChild(li);
+        });
+    } else {
+        purchaseSuggestions.style.display = 'block';
+        purchaseSuggestions.innerHTML = '<li class="p-4 text-slate-400 text-sm italic">New item will be created</li>';
+    }
+}
+
+if (purchaseNameInput) {
+    purchaseNameInput.addEventListener('input', (e) => executePurchaseSearch(e.target.value.trim()));
+    purchaseNameInput.addEventListener('focus', (e) => executePurchaseSearch(e.target.value.trim()));
 }
 
 // Global Click outside to hide dropdowns
 document.addEventListener('click', (e) => {
     if (purchaseNameInput && purchaseSuggestions && !purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
-        purchaseSuggestions.classList.add('hidden');
+        purchaseSuggestions.style.display = 'none';
     }
     if (searchItemInput && suggestionsBox && !searchItemInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.classList.add('hidden');
+        suggestionsBox.style.display = 'none';
     }
 });
 
@@ -582,7 +588,7 @@ if (purchaseForm) {
 
         try {
             const batch = writeBatch(db);
-            const existingItem = globalInventory.find(i => String(i.name || i.particulars).toLowerCase() === name.toLowerCase() && Number(i.price) === rate);
+            const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
             
             if(existingItem) {
                 const itemRef = doc(db, 'inventory', existingItem.id);
