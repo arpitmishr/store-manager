@@ -1,4 +1,4 @@
---- START OF FILE main.js ---
+
 import { setupAuth } from './auth.js';
 import { getInventoryPage, searchInventoryByName } from './inventory.js';
 import { processCartSale, returnTransaction } from './sales.js';
@@ -518,4 +518,4 @@ if(uploadInput && importBtn) {
         }
     });
 }
---- END OF FILE main.js ---
+
