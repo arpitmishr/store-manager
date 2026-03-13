@@ -1,4 +1,3 @@
-// --- ALL IMPORTS STRICTLY AT THE TOP ---
 import { setupAuth } from './auth.js';
 import { listenToInventory } from './inventory.js';
 import { processCartSale, returnTransaction } from './sales.js';
@@ -18,15 +17,19 @@ const sections = document.querySelectorAll('.page-section');
 
 navButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
+        const targetBtn = e.currentTarget;
+        const targetId = targetBtn.getAttribute('data-target');
+        
+        // Sync active state across all nav elements (Mobile + Desktop sync)
         navButtons.forEach(b => {
-            b.classList.remove('bg-gray-800');
-            b.classList.add('hover:bg-gray-800');
+            if(b.getAttribute('data-target') === targetId) {
+                b.setAttribute('data-active', 'true');
+            } else {
+                b.setAttribute('data-active', 'false');
+            }
         });
-        e.target.classList.add('bg-gray-800');
-        e.target.classList.remove('hover:bg-gray-800');
 
         sections.forEach(sec => sec.classList.add('hidden'));
-        const targetId = e.target.getAttribute('data-target');
         document.getElementById(targetId).classList.remove('hidden');
     });
 });
@@ -102,8 +105,8 @@ if (purchaseNameInput) {
             purchaseSuggestions.classList.remove('hidden');
             uniqueMatches.forEach(item => {
                 const li = document.createElement('li');
-                li.className = "p-3 hover:bg-yellow-100 cursor-pointer border-b text-sm font-medium text-gray-800";
-                li.innerHTML = `${item.name} <span class="float-right text-gray-500">Last Rate: ₹${item.price}</span>`;
+                li.className = "p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 text-sm font-medium text-slate-700 transition-colors flex justify-between items-center";
+                li.innerHTML = `<span><i class="fas fa-search text-slate-400 mr-2"></i>${item.name}</span> <span class="text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md text-xs font-bold shadow-sm">₹${item.price}</span>`;
                 
                 li.addEventListener('click', () => {
                     purchaseNameInput.value = item.name;
@@ -114,7 +117,7 @@ if (purchaseNameInput) {
             });
         } else {
             purchaseSuggestions.classList.remove('hidden');
-            purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created</li>';
+            purchaseSuggestions.innerHTML = '<li class="p-4 text-emerald-600 bg-emerald-50 text-sm font-semibold flex items-center gap-2"><i class="fas fa-plus-circle"></i> New item will be created</li>';
         }
     });
 
@@ -132,7 +135,7 @@ if (purchaseForm) {
         const btn = document.getElementById('record-purchase-btn');
         const msgEl = document.getElementById('purchase-msg');
         btn.disabled = true;
-        btn.textContent = "Processing...";
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
 
         const name = purchaseNameInput.value.trim();
         const rate = parseFloat(document.getElementById('purchase-rate').value);
@@ -169,17 +172,17 @@ if (purchaseForm) {
 
             await batch.commit();
 
-            msgEl.textContent = "Purchase Recorded Successfully!";
-            msgEl.className = "mt-3 font-bold text-green-600 text-center";
+            msgEl.innerHTML = '<i class="fas fa-check-circle"></i> Purchase Recorded!';
+            msgEl.className = "mt-3 text-sm font-bold text-emerald-600 text-center";
             e.target.reset();
         } catch(err) {
-            msgEl.textContent = "Error: " + err.message;
-            msgEl.className = "mt-3 font-bold text-red-600 text-center";
+            msgEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + err.message;
+            msgEl.className = "mt-3 text-sm font-bold text-red-500 text-center";
         }
 
         btn.disabled = false;
-        btn.textContent = "Record Purchase";
-        setTimeout(() => msgEl.textContent = '', 3000);
+        btn.innerHTML = '<i class="fas fa-save"></i> Save to Inventory';
+        setTimeout(() => msgEl.textContent = '', 4000);
     });
 }
 
@@ -192,17 +195,18 @@ function updateInventoryTable() {
 
     sortedInventory.forEach(item => {
         const tr = document.createElement('tr');
-        const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
+        const stockColor = item.quantity <= 0 ? 'text-red-500 bg-red-50 px-2 py-0.5 rounded-md' : 'text-slate-800';
+        tr.className = "hover:bg-slate-50 transition-colors group";
         tr.innerHTML = `
-            <td class="p-3">${item.name}</td>
-            <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
-            <td class="p-3 text-right">₹${item.price}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 font-medium text-slate-700">${item.name}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 text-right"><span class="font-bold ${stockColor}">${item.quantity}</span></td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 text-right font-medium text-slate-500">₹${item.price}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// --- 4. SALES CART LOGIC (WITH LIFO SORTING) ---
+// --- 4. SALES CART LOGIC ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -254,8 +258,8 @@ if (searchItemInput) {
             suggestionsBox.classList.remove('hidden');
             matches.forEach(item => {
                 const li = document.createElement('li');
-                li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
-                li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Rate: ₹${item.price} | Stock: ${item.quantity}</span>`;
+                li.className = "p-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 text-sm font-medium text-slate-700 transition-colors flex justify-between items-center";
+                li.innerHTML = `<span><i class="fas fa-box text-slate-400 mr-2"></i>${item.name}</span> <div class="flex gap-2 text-[10px]"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold border border-slate-200">Stock: ${item.quantity}</span><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-bold border border-indigo-100">₹${item.price}</span></div>`;
                 
                 li.addEventListener('click', () => {
                     searchItemInput.value = item.name;
@@ -268,7 +272,7 @@ if (searchItemInput) {
             });
         } else {
             suggestionsBox.classList.remove('hidden');
-            suggestionsBox.innerHTML = '<li class="p-3 text-red-500 text-sm font-bold">No items found / Out of Stock</li>';
+            suggestionsBox.innerHTML = '<li class="p-4 text-red-500 bg-red-50 text-sm font-bold flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> No items found / Out of Stock</li>';
         }
     });
 
@@ -302,7 +306,7 @@ if (addToSaleForm) {
         renderCart();
         e.target.reset();
         searchItemInput.value = ''; hiddenItemId.value = ''; 
-        if(radioInventory) radioInventory.checked = true; toggleSaleType();
+        if(radioInventory) { radioInventory.checked = true; toggleSaleType(); }
     });
 }
 
@@ -313,7 +317,7 @@ function renderCart() {
 
     let grandTotal = 0;
     if(currentCart.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Cart is empty</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="py-16"><div class="flex flex-col items-center justify-center text-slate-400"><i class="fas fa-shopping-basket text-5xl mb-4 opacity-30"></i><p class="font-medium text-sm">Your order is empty</p></div></td></tr>';
         grandTotalEl.textContent = '₹0';
         document.getElementById('record-sale-btn').disabled = true;
         return;
@@ -325,15 +329,18 @@ function renderCart() {
     currentCart.forEach((item, index) => {
         const itemTotal = item.qty * item.salesRate;
         grandTotal += itemTotal;
-        const textStyle = item.type === 'cosmetic' ? 'text-purple-600 font-medium' : 'text-gray-800 font-medium';
+        const textStyle = item.type === 'cosmetic' ? 'text-purple-600 font-semibold' : 'text-slate-700 font-semibold';
         const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors group";
         tr.innerHTML = `
-            <td class="py-2 ${textStyle}">${item.name}</td>
-            <td class="py-2">${item.qty}</td>
-            <td class="py-2">₹${item.salesRate}</td>
-            <td class="py-2 text-right font-bold text-green-600">₹${itemTotal}</td>
-            <td class="py-2 text-center">
-                <button type="button" onclick="window.removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold">X</button>
+            <td class="p-3 border-b border-gray-100 group-last:border-0 ${textStyle}"><div class="truncate max-w-[150px] md:max-w-xs" title="${item.name}">${item.name}</div></td>
+            <td class="p-3 border-b border-gray-100 group-last:border-0 text-center font-medium text-slate-600">${item.qty}</td>
+            <td class="p-3 border-b border-gray-100 group-last:border-0 text-right text-slate-500">₹${item.salesRate}</td>
+            <td class="p-3 border-b border-gray-100 group-last:border-0 text-right font-extrabold text-emerald-600">₹${itemTotal}</td>
+            <td class="p-3 border-b border-gray-100 group-last:border-0 text-center">
+                <button type="button" onclick="window.removeFromCart(${index})" class="w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center mx-auto shadow-sm">
+                    <i class="fas fa-times"></i>
+                </button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -349,21 +356,24 @@ if (recordSaleBtn) {
         if(currentCart.length === 0) return;
         const msgEl = document.getElementById('sale-msg');
         recordSaleBtn.disabled = true;
-        recordSaleBtn.textContent = "Processing...";
+        recordSaleBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing...';
         msgEl.textContent = "";
         
         const result = await processCartSale(currentCart);
         
-        msgEl.textContent = result.message;
-        msgEl.className = result.success ? "mt-3 font-bold text-green-600 text-center" : "mt-3 font-bold text-red-600 text-center";
-        
         if(result.success) {
+            msgEl.innerHTML = '<i class="fas fa-check-circle"></i> ' + result.message;
+            msgEl.className = "mt-3 text-sm font-bold text-emerald-600 text-center";
             currentCart =[]; 
             renderCart();
-            setTimeout(() => { msgEl.textContent = ''; }, 4000);
+        } else {
+            msgEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + result.message;
+            msgEl.className = "mt-3 text-sm font-bold text-red-500 text-center";
         }
-        recordSaleBtn.textContent = "Complete Sale";
-        recordSaleBtn.disabled = false;
+        
+        recordSaleBtn.innerHTML = '<i class="fas fa-check-circle"></i> Complete Sale';
+        recordSaleBtn.disabled = currentCart.length === 0;
+        setTimeout(() => { msgEl.textContent = ''; }, 4000);
     });
 }
 
@@ -407,42 +417,42 @@ function updateTransactionsTable() {
         
         const dateObj = new Date(t.date);
         const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        // This safely handles the JSON "particulars" formatting!
         const itemsStr = t.items ? t.items.map(i => `${i.particulars || i.name || 'Item'} (x${i.quantity})`).join(', ') : 'N/A';
         
-        const typeColor = t.type === 'Sale' ? 'text-green-600' : 'text-yellow-600';
-        const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-gray-50' : '';
+        const typeColor = t.type === 'Sale' ? 'text-emerald-700 bg-emerald-100 border-emerald-200' : 'text-amber-700 bg-amber-100 border-amber-200';
+        const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-slate-50' : 'hover:bg-slate-50 transition-colors group';
 
         let actionHtml = '';
         if(t.type === 'Sale' && t.status !== 'Returned') {
-            actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 font-bold text-xs shadow-sm">Return Items</button>`;
+            actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-white border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:border-red-300 transition-all font-semibold text-xs shadow-sm flex items-center justify-center gap-1.5 ml-auto w-full max-w-[100px]"><i class="fas fa-undo"></i> Return</button>`;
         } else if (t.status === 'Returned') {
-            actionHtml = `<span class="text-red-500 font-bold text-xs border border-red-500 px-2 py-1 rounded">Refunded</span>`;
+            actionHtml = `<span class="inline-flex items-center justify-end gap-1.5 text-red-500 font-bold text-xs ml-auto w-full"><i class="fas fa-check-circle"></i> Refunded</span>`;
         } else {
-            actionHtml = `<span class="text-gray-400 text-xs">Stock Added</span>`; 
+            actionHtml = `<span class="inline-flex items-center justify-end gap-1.5 text-slate-400 font-semibold text-xs ml-auto w-full"><i class="fas fa-arrow-down"></i> Stock Added</span>`; 
         }
 
         tr.className = rowOpacity;
         tr.innerHTML = `
-            <td class="p-4 text-xs font-medium text-gray-500">${dateStr}</td>
-            <td class="p-4 font-bold ${typeColor}">${t.type}</td>
-            <td class="p-4 text-xs text-gray-700 max-w-[250px] truncate" title="${itemsStr}">${itemsStr}</td>
-            <td class="p-4 font-bold text-gray-800">₹${t.total}</td>
-            <td class="p-4">${actionHtml}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 text-sm font-medium text-slate-500"><i class="far fa-clock mr-1.5 opacity-50"></i> ${dateStr}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0">
+                <span class="px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider border ${typeColor}">${t.type}</span>
+            </td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 text-sm text-slate-700 max-w-[200px] truncate" title="${itemsStr}">${itemsStr}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 font-extrabold text-slate-800 text-base">₹${t.total}</td>
+            <td class="p-4 border-b border-gray-100 group-last:border-0 text-right">${actionHtml}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
 window.handleReturn = async (transactionId) => {
-    if(!confirm("Are you sure you want to return this sale? All inventory items from this receipt will be restocked.")) return;
+    if(!confirm("Return this sale? Inventory items from this receipt will be restocked.")) return;
     
     const result = await returnTransaction(transactionId);
     if(result.success) {
-        alert("Success: " + result.message);
+        alert("✅ Success: " + result.message);
     } else {
-        alert("Error: " + result.message);
+        alert("❌ Error: " + result.message);
     }
 };
 
@@ -454,14 +464,127 @@ let selectedFile = null;
 if(uploadInput && importBtn) {
     uploadInput.addEventListener('change', (e) => {
         selectedFile = e.target.files[0];
-        if(selectedFile) importBtn.classList.remove('hidden');
+        if(selectedFile) {
+            importBtn.classList.remove('hidden');
+            const statusEl = document.getElementById('import-status');
+            statusEl.innerHTML = `<span class="text-indigo-600 font-semibold"><i class="fas fa-file-code"></i> Selected: ${selectedFile.name}</span>`;
+        }
     });
 
     importBtn.addEventListener('click', () => {
         if(selectedFile) {
             const statusEl = document.getElementById('import-status');
             importBtn.classList.add('hidden'); 
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin text-purple-600"></i> Processing...';
             processJSONUpload(selectedFile, statusEl);
         }
     });
+}
+--- START OF FILE auth.js ---
+import { auth } from './firebase-config.js';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+export function setupAuth(onLogin, onLogout) {
+    // Listen for state changes (keeps user logged in on refresh)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-wrapper').classList.remove('hidden');
+            onLogin(user);
+        } else {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('app-wrapper').classList.add('hidden');
+            onLogout();
+        }
+    });
+
+    // Handle Login Submit
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('auth-error');
+        
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            errorEl.classList.add('hidden');
+        } catch (error) {
+            errorEl.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Invalid email or password.';
+            errorEl.classList.remove('hidden');
+        }
+    });
+
+    // Handle Logout
+    const logout = () => signOut(auth);
+    const logoutBtn = document.getElementById('logout-btn');
+    const logoutBtnMobile = document.getElementById('logout-btn-mobile');
+    
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+    if (logoutBtnMobile) logoutBtnMobile.addEventListener('click', logout);
+}
+--- START OF FILE import.js ---
+import { db } from './firebase-config.js';
+import { collection, setDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+export async function processJSONUpload(file, statusElement) {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            statusElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Inventory... Please do not close window.';
+            statusElement.className = "mt-4 font-bold text-indigo-600 text-center text-sm";
+            
+            // 1. Upload Inventory
+            if(data.inventory && data.inventory.length > 0) {
+                const invRef = collection(db, 'inventory');
+                for (let item of data.inventory) {
+                    await addDoc(invRef, {
+                        name: item.particulars,
+                        quantity: Number(item.quantity),
+                        price: Number(item.rate),
+                        createdAt: new Date().toISOString()
+                    });
+                }
+            }
+
+            statusElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Transaction History... Please wait.';
+            
+            // 2. Upload Transactions
+            if(data.transactions && data.transactions.length > 0) {
+                const transRef = collection(db, 'transactions');
+                for (let t of data.transactions) {
+                    const dateObj = new Date(t.date);
+                    
+                    await setDoc(doc(transRef, t.id.toString()), {
+                        type: t.type,
+                        saleType: t.saleType || "Cash", 
+                        partyName: t.partyName || null,
+                        date: t.date,
+                        year: dateObj.getFullYear(),
+                        total: Number(t.total),
+                        paidAmount: Number(t.paidAmount),
+                        status: "Completed", 
+                        items: t.items.map(i => ({
+                            // Maps your exact JSON fields
+                            particulars: i.particulars || i.name || "Unknown Item",
+                            quantity: i.quantity,
+                            sellingRate: i.sellingRate || 0,
+                            costRate: i.costRate || i.rate || 0,
+                            type: (i.particulars && i.particulars.toLowerCase().includes('cosmetic')) ? 'cosmetic' : 'inventory'
+                        }))
+                    });
+                }
+            }
+            
+            statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Import Complete! Refresh the page to see History.';
+            statusElement.className = "mt-4 font-bold text-emerald-600 text-center text-sm";
+        } catch (error) {
+            console.error(error);
+            statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error: ' + error.message;
+            statusElement.className = "mt-4 font-bold text-red-500 text-center text-sm";
+        }
+    };
+    
+    reader.readAsText(file);
 }
