@@ -11,6 +11,7 @@ export async function processCartSale(cartItems) {
             const itemTotal = item.qty * item.salesRate;
             grandTotal += itemTotal;
 
+            // Saves using the JSON structure for consistency
             ledgerItems.push({
                 particulars: item.name,
                 quantity: item.qty,
@@ -55,7 +56,6 @@ export async function processCartSale(cartItems) {
     }
 }
 
-// NEW FUNCTION: Handles Returns and Restocking
 export async function returnTransaction(transactionId) {
     const transRef = doc(db, 'transactions', transactionId);
     const batch = writeBatch(db);
@@ -68,29 +68,27 @@ export async function returnTransaction(transactionId) {
         if(tData.status === 'Returned') throw new Error("This sale was already returned.");
         if(tData.type !== 'Sale') throw new Error("Only sales can be returned.");
 
-        // Loop through the items sold in this transaction to restock them
+        // Loop items to restock
         for(let item of tData.items) {
-            // Check if it's cosmetic (either by explicit type or by name for imported data)
-            const isCosmetic = item.type === 'cosmetic' || (item.particulars && item.particulars.toLowerCase().includes('(cosmetic)'));
+            // Read JSON 'particulars'
+            const itemName = item.particulars || item.name;
+            const isCosmetic = item.type === 'cosmetic' || (itemName && itemName.toLowerCase().includes('cosmetic'));
             
             if(!isCosmetic) {
-                // Find original inventory item by matching name & cost rate
                 const invQuery = query(collection(db, 'inventory'),
-                    where('name', '==', item.particulars),
-                    where('price', '==', item.costRate || item.rate)
+                    where('name', '==', itemName),
+                    where('price', '==', item.costRate || item.rate || 0)
                 );
                 const invSnap = await getDocs(invQuery);
 
                 if(!invSnap.empty) {
-                    // Item batch still exists, add stock back
                     const invDoc = invSnap.docs[0];
                     const currentQty = invDoc.data().quantity;
                     batch.update(invDoc.ref, { quantity: currentQty + item.quantity });
                 } else {
-                    // The batch was deleted, recreate it so stock is saved
                     const newInvRef = doc(collection(db, 'inventory'));
                     batch.set(newInvRef, {
-                        name: item.particulars,
+                        name: itemName,
                         price: item.costRate || item.rate || 0,
                         quantity: item.quantity,
                         createdAt: new Date().toISOString()
@@ -99,11 +97,9 @@ export async function returnTransaction(transactionId) {
             }
         }
 
-        // Mark the transaction as returned
         batch.update(transRef, { status: 'Returned' });
         await batch.commit();
-
-        return { success: true, message: "Transaction returned. Inventory has been restocked." };
+        return { success: true, message: "Transaction returned. Inventory restocked." };
 
     } catch (err) {
         console.error(err);
