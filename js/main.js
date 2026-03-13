@@ -1,13 +1,16 @@
+// --- ALL IMPORTS AT THE TOP ---
 import { setupAuth } from './auth.js';
 import { addItem, listenToInventory } from './inventory.js';
-import { processSale } from './sales.js';
+import { processCartSale } from './sales.js';
 import { processJSONUpload } from './import.js';
 import { db } from './firebase-config.js';
 import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-let globalInventory =[];
+// --- GLOBAL VARIABLES ---
+let globalInventory = [];
 let globalTransactions =[];
 let selectedYear = "All"; 
+let currentCart =[]; // Holds items currently in the POS Cart
 
 // --- 1. NAVIGATION LOGIC ---
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -53,13 +56,15 @@ setupAuth((user) => {
         
         // Update Year Dropdown dynamically
         const select = document.getElementById('year-filter');
-        select.innerHTML = '<option value="All">All Time</option>';
-        Array.from(years).sort().reverse().forEach(year => {
-            const opt = document.createElement('option');
-            opt.value = year;
-            opt.textContent = year;
-            select.appendChild(opt);
-        });
+        if(select) {
+            select.innerHTML = '<option value="All">All Time</option>';
+            Array.from(years).sort().reverse().forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year;
+                opt.textContent = year;
+                select.appendChild(opt);
+            });
+        }
         
         updateDashboard();
     });
@@ -71,15 +76,18 @@ setupAuth((user) => {
 });
 
 // --- 3. INVENTORY LOGIC ---
-document.getElementById('add-item-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('item-name').value;
-    const qty = document.getElementById('item-qty').value;
-    const price = document.getElementById('item-price').value;
+const addItemForm = document.getElementById('add-item-form');
+if (addItemForm) {
+    addItemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('item-name').value;
+        const qty = document.getElementById('item-qty').value;
+        const price = document.getElementById('item-price').value;
 
-    const success = await addItem(name, qty, price);
-    if(success) e.target.reset();
-});
+        const success = await addItem(name, qty, price);
+        if(success) e.target.reset();
+    });
+}
 
 function updateInventoryTable() {
     const tbody = document.getElementById('inventory-table-body');
@@ -98,11 +106,7 @@ function updateInventoryTable() {
     });
 }
 
-// --- 4. SALES LOGIC ---
 // --- 4. SALES CART LOGIC ---
-let currentCart =[];
-
-// Handle Toggling between Inventory & Cosmetic
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -111,6 +115,7 @@ const selectItem = document.getElementById('sale-item-select');
 const inputCosmetic = document.getElementById('cosmetic-name');
 
 function toggleSaleType() {
+    if (!radioInventory || !radioCosmetic) return;
     if(radioInventory.checked) {
         divInventory.classList.remove('hidden');
         divCosmetic.classList.add('hidden');
@@ -122,17 +127,18 @@ function toggleSaleType() {
         divCosmetic.classList.remove('hidden');
         selectItem.required = false;
         selectItem.value = '';
-        // Clear rates for cosmetic
         document.getElementById('sale-cost-rate').value = '';
         document.getElementById('sale-sales-rate').value = '';
     }
 }
-radioInventory.addEventListener('change', toggleSaleType);
-radioCosmetic.addEventListener('change', toggleSaleType);
 
-// Populate Dropdown
+if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
+if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
+
 function updateSalesDropdown() {
+    if(!selectItem) return;
     selectItem.innerHTML = '<option value="">-- Choose Item --</option>';
+    
     globalInventory.forEach(item => {
         if(item.quantity > 0) {
             const opt = document.createElement('option');
@@ -143,48 +149,51 @@ function updateSalesDropdown() {
     });
 }
 
-// Auto-fill Rates when Inventory Item is chosen
-selectItem.addEventListener('change', (e) => {
-    const itemId = e.target.value;
-    const item = globalInventory.find(i => i.id === itemId);
-    if(item) {
-        document.getElementById('sale-cost-rate').value = item.price; 
-        document.getElementById('sale-sales-rate').value = item.price; // Default sales rate = cost rate, user can edit
-    }
-});
+if (selectItem) {
+    selectItem.addEventListener('change', (e) => {
+        const itemId = e.target.value;
+        const item = globalInventory.find(i => i.id === itemId);
+        if(item) {
+            document.getElementById('sale-cost-rate').value = item.price; 
+            document.getElementById('sale-sales-rate').value = item.price; 
+        }
+    });
+}
 
-// Add Item to Cart Array
-document.getElementById('add-to-sale-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const type = document.querySelector('input[name="item-type"]:checked').value;
-    let id = null;
-    let name = "";
-    
-    if(type === 'inventory') {
-        id = selectItem.value;
-        // Get just the name without the "(Stock: X)" part
-        name = selectItem.options[selectItem.selectedIndex].text.split(' (Stock')[0];
-    } else {
-        name = "(Cosmetic) " + inputCosmetic.value;
-    }
+const addToSaleForm = document.getElementById('add-to-sale-form');
+if (addToSaleForm) {
+    addToSaleForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const type = document.querySelector('input[name="item-type"]:checked').value;
+        let id = null;
+        let name = "";
+        
+        if(type === 'inventory') {
+            id = selectItem.value;
+            name = selectItem.options[selectItem.selectedIndex].text.split(' (Stock')[0];
+        } else {
+            name = "(Cosmetic) " + inputCosmetic.value;
+        }
 
-    const costRate = parseFloat(document.getElementById('sale-cost-rate').value);
-    const salesRate = parseFloat(document.getElementById('sale-sales-rate').value);
-    const qty = parseInt(document.getElementById('sale-qty').value);
+        const costRate = parseFloat(document.getElementById('sale-cost-rate').value);
+        const salesRate = parseFloat(document.getElementById('sale-sales-rate').value);
+        const qty = parseInt(document.getElementById('sale-qty').value);
 
-    currentCart.push({ id, name, type, costRate, salesRate, qty });
-    
-    renderCart();
-    e.target.reset(); // Clear form
-    radioInventory.checked = true; // Default back to inventory
-    toggleSaleType();
-});
+        currentCart.push({ id, name, type, costRate, salesRate, qty });
+        
+        renderCart();
+        e.target.reset();
+        if(radioInventory) radioInventory.checked = true; 
+        toggleSaleType();
+    });
+}
 
-// Render the Cart UI
 function renderCart() {
     const tbody = document.getElementById('sale-cart-body');
     const grandTotalEl = document.getElementById('sale-grand-total');
+    if(!tbody || !grandTotalEl) return;
+
     let grandTotal = 0;
     
     if(currentCart.length === 0) {
@@ -210,7 +219,7 @@ function renderCart() {
             <td class="py-2">₹${item.salesRate}</td>
             <td class="py-2 text-right font-bold text-green-600">₹${itemTotal}</td>
             <td class="py-2 text-center">
-                <button onclick="window.removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold">X</button>
+                <button type="button" onclick="window.removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold">X</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -225,44 +234,51 @@ window.removeFromCart = (index) => {
     renderCart();
 };
 
-// --- PROCESS THE FINAL SALE ---
-import { processCartSale } from './sales.js'; // Ensure we import the new function
-
-document.getElementById('record-sale-btn').addEventListener('click', async () => {
-    if(currentCart.length === 0) return;
-    
-    const msgEl = document.getElementById('sale-msg');
-    const btn = document.getElementById('record-sale-btn');
-    
-    btn.disabled = true;
-    btn.textContent = "Processing...";
-    msgEl.textContent = "";
-    
-    const result = await processCartSale(currentCart);
-    
-    msgEl.textContent = result.message;
-    msgEl.className = result.success ? "mt-3 font-bold text-green-600 text-center" : "mt-3 font-bold text-red-600 text-center";
-    
-    if(result.success) {
-        currentCart =[]; // Empty the cart
-        renderCart();
-        setTimeout(() => { msgEl.textContent = ''; }, 4000);
-    }
-    
-    btn.textContent = "Complete Sale";
-    btn.disabled = false;
-});
-
+// Handle Complete Sale Button
+const recordSaleBtn = document.getElementById('record-sale-btn');
+if (recordSaleBtn) {
+    recordSaleBtn.addEventListener('click', async () => {
+        if(currentCart.length === 0) return;
+        
+        const msgEl = document.getElementById('sale-msg');
+        
+        recordSaleBtn.disabled = true;
+        recordSaleBtn.textContent = "Processing...";
+        msgEl.textContent = "";
+        
+        // Ensure processCartSale is imported from sales.js at the top!
+        const result = await processCartSale(currentCart);
+        
+        msgEl.textContent = result.message;
+        msgEl.className = result.success ? "mt-3 font-bold text-green-600 text-center" : "mt-3 font-bold text-red-600 text-center";
+        
+        if(result.success) {
+            currentCart =[]; // Empty the cart
+            renderCart();
+            setTimeout(() => { msgEl.textContent = ''; }, 4000);
+        }
+        
+        recordSaleBtn.textContent = "Complete Sale";
+        recordSaleBtn.disabled = false;
+    });
+}
 
 // --- 5. DASHBOARD & YEAR FILTER LOGIC ---
-document.getElementById('year-filter').addEventListener('change', (e) => {
-    selectedYear = e.target.value;
-    document.getElementById('display-year').textContent = selectedYear === "All" ? "All Time" : selectedYear;
-    updateDashboard();
-});
+const yearFilter = document.getElementById('year-filter');
+if (yearFilter) {
+    yearFilter.addEventListener('change', (e) => {
+        selectedYear = e.target.value;
+        const displayYear = document.getElementById('display-year');
+        if (displayYear) displayYear.textContent = selectedYear === "All" ? "All Time" : selectedYear;
+        updateDashboard();
+    });
+}
 
 function updateDashboard() {
-    document.getElementById('stat-products').textContent = globalInventory.length;
+    const statProducts = document.getElementById('stat-products');
+    const statSales = document.getElementById('stat-sales');
+    
+    if (statProducts) statProducts.textContent = globalInventory.length;
     
     let totalSales = 0;
     globalTransactions.forEach(transaction => {
@@ -272,49 +288,8 @@ function updateDashboard() {
             }
         }
     });
-    document.getElementById('stat-sales').textContent = `₹${totalSales.toLocaleString('en-IN')}`;
-}
-
-// --- 6. JSON IMPORT LOGIC ---
-import { processJSONUpload } from './import.js';
-let selectedFile = null;
-const uploadInput = document.getElementById('json-upload');
-const importBtn = document.getElementById('import-btn');
-
-if(uploadInput && importBtn) {
-    uploadInput.addEventListener('change', (e) => {
-        selectedFile = e.target.files[0];
-        if(selectedFile) importBtn.classList.remove('hidden');
-    });
-
-    importBtn.addEventListener('click', () => {
-        if(selectedFile) {
-            const statusEl = document.getElementById('import-status');
-            importBtn.classList.add('hidden'); // Prevent double clicking
-            processJSONUpload(selectedFile, statusEl);
-        }
-    });
-}
-
-// --- 5. DASHBOARD & YEAR FILTER LOGIC ---
-document.getElementById('year-filter').addEventListener('change', (e) => {
-    selectedYear = e.target.value;
-    document.getElementById('display-year').textContent = selectedYear === "All" ? "All Time" : selectedYear;
-    updateDashboard();
-});
-
-function updateDashboard() {
-    document.getElementById('stat-products').textContent = globalInventory.length;
     
-    let totalSales = 0;
-    globalTransactions.forEach(transaction => {
-        if(transaction.type === "Sale") {
-            if (selectedYear === "All" || transaction.year.toString() === selectedYear) {
-                totalSales += transaction.total;
-            }
-        }
-    });
-    document.getElementById('stat-sales').textContent = `₹${totalSales.toLocaleString('en-IN')}`;
+    if (statSales) statSales.textContent = `₹${totalSales.toLocaleString('en-IN')}`;
 }
 
 // --- 6. JSON IMPORT LOGIC ---
