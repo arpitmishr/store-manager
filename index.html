@@ -51,7 +51,6 @@
             
             <!-- HOME / DASHBOARD -->
             <section id="page-home" class="page-section space-y-6">
-                <!-- Dark Card -->
                 <div class="bg-slate-800 rounded-3xl p-6 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
                     <div class="flex justify-between items-center mb-2">
@@ -66,7 +65,6 @@
                     <p class="text-sm text-slate-400">All time sales</p>
                 </div>
 
-                <!-- 4 Grid Stats -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-start">
                         <div>
@@ -98,7 +96,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Transactions Preview -->
                 <div>
                     <div class="flex justify-between items-end mb-4">
                         <h3 class="text-lg font-bold text-slate-900">Recent transactions</h3>
@@ -116,7 +113,8 @@
                 
                 <div class="bg-white rounded-2xl flex items-center p-3 shadow-sm border border-slate-100">
                     <svg class="w-5 h-5 text-slate-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input type="text" placeholder="Search orders..." class="w-full bg-transparent border-none focus:ring-0 px-3 text-sm outline-none">
+                    <!-- Added ID here -->
+                    <input type="text" id="order-search-input" placeholder="Search orders by item or ID..." class="w-full bg-transparent border-none focus:ring-0 px-3 text-sm outline-none">
                 </div>
 
                 <div id="full-transactions-list" class="space-y-4 pb-4">
@@ -133,7 +131,6 @@
             <!-- ANALYTICS SECTION -->
             <section id="page-analytics" class="page-section hidden space-y-6">
                 <h2 class="text-2xl font-bold tracking-tight">Analytics</h2>
-                
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                     <div class="mb-6">
                         <h3 class="text-3xl font-bold text-slate-900 mb-1" id="chart-total-label">₹0</h3>
@@ -143,8 +140,6 @@
                         <canvas id="salesChart"></canvas>
                     </div>
                 </div>
-
-                <!-- Top Selling Items Simulation -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Inventory Breakdown</h3>
                     <div id="inventory-breakdown-list" class="space-y-4">
@@ -173,7 +168,8 @@
                         <div id="inventory-selection" class="relative">
                             <input type="text" id="sale-item-search" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Search item..." autocomplete="off">
                             <input type="hidden" id="sale-item-id">
-                            <ul id="sale-item-suggestions" class="absolute z-10 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
+                            <!-- High z-index to ensure visibility -->
+                            <ul id="sale-item-suggestions" class="absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
                         </div>
                         
                         <div id="cosmetic-name-div" class="hidden">
@@ -201,7 +197,7 @@
                 <div class="bg-slate-800 p-5 rounded-3xl shadow-lg text-white">
                     <h3 class="text-sm font-semibold text-slate-300 mb-4">Current Cart</h3>
                     <div id="sale-cart-body" class="space-y-3 mb-6 min-h-[100px]">
-                        <p class="text-center text-slate-500 text-sm py-4">Cart is empty</p>
+                        <p class="text-center text-slate-500 text-sm py-4 border-dashed border-2 border-slate-700 rounded-xl">Cart is empty</p>
                     </div>
                     <div class="border-t border-slate-700 pt-4 flex justify-between items-end mb-4">
                         <span class="text-slate-400 font-medium text-sm">Grand Total</span>
@@ -215,13 +211,25 @@
             <!-- INVENTORY / SETTINGS SECTION -->
             <section id="page-inventory" class="page-section hidden space-y-6">
                 <h2 class="text-2xl font-bold tracking-tight">Stock & Data</h2>
+
+                <!-- NEW: CURRENT STOCK CARD -->
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-4 gap-2">
+                        <h3 class="text-lg font-bold text-slate-900">Current Stock</h3>
+                        <input type="text" id="stock-search-input" placeholder="Search stock..." class="w-1/2 bg-slate-50 border border-slate-100 p-2 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-xs">
+                    </div>
+                    <div id="inventory-list" class="space-y-1 max-h-64 overflow-y-auto pr-2 hide-scrollbar">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
                 
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Add Purchase</h3>
                     <form id="purchase-form" class="space-y-4">
                         <div class="relative">
                             <input type="text" id="purchase-item-name" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Item Name" autocomplete="off" required>
-                            <ul id="purchase-item-suggestions" class="absolute z-10 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
+                            <!-- High z-index to ensure visibility -->
+                            <ul id="purchase-item-suggestions" class="absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
@@ -255,7 +263,6 @@
                 <svg class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 <span class="text-[10px] font-bold pointer-events-none">Orders</span>
             </button>
-            <!-- Highlighted Center Action -->
             <button class="nav-btn flex flex-col items-center gap-1 -mt-8" data-target="page-sales">
                 <div class="w-14 h-14 bg-slate-900 rounded-full flex items-center justify-center text-white shadow-lg shadow-slate-900/30 border-4 border-[#F7F8FA] pointer-events-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -272,7 +279,6 @@
         </nav>
     </div>
 
-    <!-- Main Logic -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
