@@ -14,6 +14,10 @@ let salesChartInstance = null;
 let transPage = 0;
 const pageSize = 15;
 
+// Search queries
+let orderSearchQuery = "";
+let stockSearchQuery = "";
+
 // --- 1. NAVIGATION LOGIC (BOTTOM NAV) ---
 const navButtons = document.querySelectorAll('.nav-btn');
 const sections = document.querySelectorAll('.page-section');
@@ -23,40 +27,33 @@ navButtons.forEach(btn => {
         const targetBtn = e.currentTarget;
         const targetId = targetBtn.getAttribute('data-target');
         
-        // Reset all buttons styling
         navButtons.forEach(b => {
-            if(!b.querySelector('.w-14')) { // Don't gray out the center + button
+            if(!b.querySelector('.w-14')) {
                 b.classList.remove('text-slate-900');
                 b.classList.add('text-slate-400');
             }
         });
 
-        // Activate clicked button
         if(!targetBtn.querySelector('.w-14')) {
             targetBtn.classList.add('text-slate-900');
             targetBtn.classList.remove('text-slate-400');
         }
 
-        // Show section
         sections.forEach(sec => sec.classList.add('hidden'));
         document.getElementById(targetId).classList.remove('hidden');
 
-        // Render Chart if Analytics is clicked
-        if(targetId === 'page-analytics') {
-            renderAnalytics();
-        }
+        if(targetId === 'page-analytics') renderAnalytics();
     });
 });
 
 // --- 2. AUTHENTICATION & DATA FETCHING ---
 setupAuth((user) => {
-    // 1. Sync Inventory
     listenToInventory((items) => {
         globalInventory = items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         updateDashboard();
+        renderInventoryList();
     });
 
-    // 2. Sync Transactions
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         snapshot.forEach(doc => {
@@ -66,11 +63,11 @@ setupAuth((user) => {
         
         updateDashboard();
         renderTransactionsPage();
-        if(salesChartInstance) renderAnalytics(); // update chart if visible
+        if(salesChartInstance) renderAnalytics();
     });
 
 }, () => {
-    globalInventory = []; globalTransactions =[]; transPage = 0;
+    globalInventory =[]; globalTransactions =[]; transPage = 0;
 });
 
 
@@ -104,17 +101,26 @@ function updateDashboard() {
     document.getElementById('dash-today-sales').textContent = `₹${todaySales.toLocaleString('en-IN')}`;
     document.getElementById('dash-returns').textContent = returnCount;
 
-    // Render Recent Transactions (Top 4)
     const recentList = document.getElementById('recent-transactions-list');
-    recentList.innerHTML = '';
-    
-    globalTransactions.slice(0, 4).forEach(t => {
-        recentList.appendChild(createTransactionCard(t));
-    });
+    if (recentList) {
+        recentList.innerHTML = '';
+        globalTransactions.slice(0, 4).forEach(t => {
+            recentList.appendChild(createTransactionCard(t));
+        });
+    }
 }
 
 
-// --- 4. TRANSACTIONS UI LOGIC (CARD LISTS) ---
+// --- 4. TRANSACTIONS UI LOGIC & ORDER SEARCH ---
+const orderSearchInput = document.getElementById('order-search-input');
+if (orderSearchInput) {
+    orderSearchInput.addEventListener('input', (e) => {
+        orderSearchQuery = e.target.value.toLowerCase().trim();
+        transPage = 0; 
+        renderTransactionsPage();
+    });
+}
+
 function createTransactionCard(t, showAction = false) {
     const div = document.createElement('div');
     const dateObj = new Date(t.date);
@@ -132,7 +138,6 @@ function createTransactionCard(t, showAction = false) {
         statusHtml = `<span class="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Restock</span>`;
     }
 
-    // Determine primary item name for display
     let title = t.items && t.items.length > 0 ? (t.items[0].particulars || t.items[0].name || 'Item') : 'Transaction';
     let subtext = t.items ? `${t.items.length} Item(s) • ${timeStr}` : timeStr;
     let initial = title.charAt(0).toUpperCase();
@@ -166,21 +171,31 @@ function renderTransactionsPage() {
     if (!list) return;
     list.innerHTML = '';
     
+    const filtered = globalTransactions.filter(t => {
+        if(!orderSearchQuery) return true;
+        const typeMatch = (t.type || '').toLowerCase().includes(orderSearchQuery);
+        const itemMatch = t.items && t.items.some(i => (i.particulars || i.name || '').toLowerCase().includes(orderSearchQuery));
+        const idMatch = (t.id || '').toLowerCase().includes(orderSearchQuery);
+        return typeMatch || itemMatch || idMatch;
+    });
+
     const start = transPage * pageSize;
     const end = start + pageSize;
-    const pageItems = globalTransactions.slice(start, end);
+    const pageItems = filtered.slice(start, end);
 
-    pageItems.forEach(t => {
-        list.appendChild(createTransactionCard(t, true));
-    });
+    if(pageItems.length === 0) {
+        list.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">No matching orders found.</p>`;
+    } else {
+        pageItems.forEach(t => list.appendChild(createTransactionCard(t, true)));
+    }
 
     document.getElementById('trans-page-indicator').textContent = `Page ${transPage + 1}`;
     document.getElementById('trans-prev-btn').disabled = (transPage === 0);
-    document.getElementById('trans-next-btn').disabled = (end >= globalTransactions.length);
+    document.getElementById('trans-next-btn').disabled = (end >= filtered.length);
 }
 
 document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) { transPage--; renderTransactionsPage(); } });
-document.getElementById('trans-next-btn').addEventListener('click', () => { if((transPage + 1) * pageSize < globalTransactions.length) { transPage++; renderTransactionsPage(); } });
+document.getElementById('trans-next-btn').addEventListener('click', () => { transPage++; renderTransactionsPage(); });
 
 window.handleReturn = async (transactionId) => {
     if(!confirm("Are you sure you want to return this sale?")) return;
@@ -195,14 +210,12 @@ function renderAnalytics() {
     const ctx = document.getElementById('salesChart');
     if(!ctx) return;
 
-    // Group last 6 months of sales
     const months =["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const currentMonth = new Date().getMonth();
     
-    let labels = [];
+    let labels =[];
     let dataPoints = [0,0,0,0,0,0];
     
-    // Generate last 6 month labels
     for(let i = 5; i >= 0; i--) {
         let m = currentMonth - i;
         if(m < 0) m += 12;
@@ -241,7 +254,7 @@ function renderAnalytics() {
             datasets:[{
                 label: 'Revenue',
                 data: dataPoints,
-                borderColor: '#0f172a', // slate-900
+                borderColor: '#0f172a', 
                 backgroundColor: 'rgba(15, 23, 42, 0.05)',
                 borderWidth: 2,
                 pointBackgroundColor: '#fff',
@@ -263,13 +276,11 @@ function renderAnalytics() {
         }
     });
 
-    // Populate Inventory Breakdown
     const breakdownList = document.getElementById('inventory-breakdown-list');
     breakdownList.innerHTML = '';
     
     const sortedInv = [...globalInventory].sort((a,b) => b.quantity - a.quantity).slice(0, 4);
     sortedInv.forEach(item => {
-        // Calculate a random looking percentage fill based on relative max quantity for visual effect
         let maxQty = sortedInv[0].quantity || 1;
         let pct = Math.max(10, Math.round((item.quantity / maxQty) * 100));
         
@@ -288,7 +299,7 @@ function renderAnalytics() {
 }
 
 
-// --- 6. SALES CART LOGIC ---
+// --- 6. SALES CART & AUTO-SUGGEST LOGIC ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -342,7 +353,7 @@ if (searchItemInput) {
             suggestionsBox.classList.remove('hidden');
             matches.slice(0, 10).forEach(item => {
                 const li = document.createElement('li');
-                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 text-sm font-medium text-slate-900 flex justify-between";
+                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
                 li.innerHTML = `<span>${item.name}</span> <span class="text-slate-400 font-normal">₹${item.price} (${item.quantity} left)</span>`;
                 
                 li.addEventListener('click', () => {
@@ -453,7 +464,98 @@ if (recordSaleBtn) {
     });
 }
 
-// --- 7. PURCHASE / IMPORT UI ---
+
+// --- 7. INVENTORY LIST, SEARCH & PURCHASE ---
+
+// Render Stock List
+const stockSearchInput = document.getElementById('stock-search-input');
+if (stockSearchInput) {
+    stockSearchInput.addEventListener('input', (e) => {
+        stockSearchQuery = e.target.value.toLowerCase().trim();
+        renderInventoryList();
+    });
+}
+
+function renderInventoryList() {
+    const list = document.getElementById('inventory-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const filtered = globalInventory.filter(item => 
+        (item.name || '').toLowerCase().includes(stockSearchQuery)
+    );
+
+    if (filtered.length === 0) {
+        list.innerHTML = `<p class="text-center text-slate-400 text-sm py-4">No items found.</p>`;
+        return;
+    }
+
+    filtered.forEach(item => {
+        const stockColor = item.quantity <= 0 ? 'text-rose-500' : 'text-slate-500';
+        list.innerHTML += `
+            <div class="flex justify-between items-center p-3 border-b border-slate-50 last:border-0">
+                <span class="text-sm font-medium text-slate-900 truncate pr-2 w-2/3">${item.name}</span>
+                <div class="text-right w-1/3">
+                    <span class="text-sm font-bold ${stockColor}">${item.quantity} in stock</span>
+                    <p class="text-xs text-slate-400">₹${item.price}</p>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Purchase Item Suggestions
+const purchaseNameInput = document.getElementById('purchase-item-name');
+const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
+
+if (purchaseNameInput) {
+    purchaseNameInput.addEventListener('input', (e) => {
+        const queryText = e.target.value.toLowerCase().trim();
+        purchaseSuggestions.innerHTML = '';
+        if(!queryText) {
+            purchaseSuggestions.classList.add('hidden');
+            return;
+        }
+
+        const matches = globalInventory.filter(item => {
+            return String(item.name || '').toLowerCase().includes(queryText);
+        });
+
+        const uniqueMatches =[];
+        const seen = new Set();
+        matches.forEach(m => {
+            const key = m.name + m.price; 
+            if(!seen.has(key)) { seen.add(key); uniqueMatches.push(m); }
+        });
+
+        if(uniqueMatches.length > 0) {
+            purchaseSuggestions.classList.remove('hidden');
+            uniqueMatches.slice(0, 10).forEach(item => {
+                const li = document.createElement('li');
+                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-100 text-sm font-medium text-slate-900 flex justify-between";
+                li.innerHTML = `<span>${item.name}</span> <span class="text-slate-400 font-normal">₹${item.price}</span>`;
+                
+                li.addEventListener('click', () => {
+                    purchaseNameInput.value = item.name;
+                    document.getElementById('purchase-rate').value = item.price;
+                    purchaseSuggestions.classList.add('hidden');
+                });
+                purchaseSuggestions.appendChild(li);
+            });
+        } else {
+            purchaseSuggestions.classList.remove('hidden');
+            purchaseSuggestions.innerHTML = '<li class="p-4 text-slate-400 text-sm italic">New item will be created</li>';
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
+            purchaseSuggestions.classList.add('hidden');
+        }
+    });
+}
+
+// Purchase Form Submission
 const purchaseForm = document.getElementById('purchase-form');
 if (purchaseForm) {
     purchaseForm.addEventListener('submit', async (e) => {
@@ -501,7 +603,7 @@ if (purchaseForm) {
     });
 }
 
-// Import JSON
+// JSON Import
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
 let selectedFile = null;
