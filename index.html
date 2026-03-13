@@ -113,7 +113,6 @@
                 
                 <div class="bg-white rounded-2xl flex items-center p-3 shadow-sm border border-slate-100">
                     <svg class="w-5 h-5 text-slate-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <!-- Added ID here -->
                     <input type="text" id="order-search-input" placeholder="Search orders by item or ID..." class="w-full bg-transparent border-none focus:ring-0 px-3 text-sm outline-none">
                 </div>
 
@@ -152,7 +151,7 @@
             <section id="page-sales" class="page-section hidden space-y-6">
                 <h2 class="text-2xl font-bold tracking-tight">New Sale</h2>
                 
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative z-50">
                     <div class="mb-5 flex gap-4 bg-slate-50 p-1 rounded-xl">
                         <label class="flex-1 cursor-pointer text-center relative">
                             <input type="radio" name="item-type" value="inventory" checked class="peer sr-only">
@@ -165,18 +164,18 @@
                     </div>
 
                     <form id="add-to-sale-form" class="space-y-4">
-                        <div id="inventory-selection" class="relative">
+                        <!-- Z-index fix for autocomplete -->
+                        <div id="inventory-selection" class="relative z-50">
                             <input type="text" id="sale-item-search" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Search item..." autocomplete="off">
                             <input type="hidden" id="sale-item-id">
-                            <!-- High z-index to ensure visibility -->
-                            <ul id="sale-item-suggestions" class="absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
+                            <ul id="sale-item-suggestions" class="absolute left-0 right-0 z-50 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden mt-2"></ul>
                         </div>
                         
-                        <div id="cosmetic-name-div" class="hidden">
+                        <div id="cosmetic-name-div" class="hidden relative z-40">
                             <input type="text" id="cosmetic-name" class="w-full bg-purple-50 border border-purple-100 p-4 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none text-sm text-purple-900" placeholder="Cosmetic Item Name">
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-3 relative z-30">
                             <div class="hidden">
                                 <label class="block text-xs font-semibold text-slate-400 mb-1 ml-1">Cost (₹)</label>
                                 <input type="number" step="0.01" id="sale-cost-rate" class="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-sm outline-none">
@@ -190,11 +189,11 @@
                                 <input type="number" id="sale-qty" min="1" value="1" class="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-sm outline-none" required>
                             </div>
                         </div>
-                        <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all">Add to Cart</button>
+                        <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all relative z-20">Add to Cart</button>
                     </form>
                 </div>
 
-                <div class="bg-slate-800 p-5 rounded-3xl shadow-lg text-white">
+                <div class="bg-slate-800 p-5 rounded-3xl shadow-lg text-white relative z-10">
                     <h3 class="text-sm font-semibold text-slate-300 mb-4">Current Cart</h3>
                     <div id="sale-cart-body" class="space-y-3 mb-6 min-h-[100px]">
                         <p class="text-center text-slate-500 text-sm py-4 border-dashed border-2 border-slate-700 rounded-xl">Cart is empty</p>
@@ -212,7 +211,7 @@
             <section id="page-inventory" class="page-section hidden space-y-6">
                 <h2 class="text-2xl font-bold tracking-tight">Stock & Data</h2>
 
-                <!-- NEW: CURRENT STOCK CARD -->
+                <!-- CURRENT STOCK CARD -->
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
                     <div class="flex justify-between items-center mb-4 gap-2">
                         <h3 class="text-lg font-bold text-slate-900">Current Stock</h3>
@@ -223,15 +222,15 @@
                     </div>
                 </div>
                 
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative z-50">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Add Purchase</h3>
                     <form id="purchase-form" class="space-y-4">
-                        <div class="relative">
-                            <input type="text" id="purchase-item-name" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Item Name" autocomplete="off" required>
-                            <!-- High z-index to ensure visibility -->
-                            <ul id="purchase-item-suggestions" class="absolute z-50 w-full bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden mt-1"></ul>
+                        <!-- Z-index fix for autocomplete -->
+                        <div class="relative z-50">
+                            <input type="text" id="purchase-item-name" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Search or Type New Item..." autocomplete="off" required>
+                            <ul id="purchase-item-suggestions" class="absolute left-0 right-0 z-50 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden mt-2"></ul>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-3 relative z-30">
                             <div>
                                 <input type="number" step="0.01" id="purchase-rate" class="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-sm outline-none" placeholder="Cost Rate (₹)" required>
                             </div>
@@ -239,12 +238,12 @@
                                 <input type="number" id="purchase-qty" min="1" value="1" class="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-sm outline-none" placeholder="Qty" required>
                             </div>
                         </div>
-                        <button type="submit" id="record-purchase-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all">Record Purchase</button>
+                        <button type="submit" id="record-purchase-btn" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all relative z-20">Record Purchase</button>
                         <p id="purchase-msg" class="text-center text-sm font-bold mt-2"></p>
                     </form>
                 </div>
 
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative z-10">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Data Import</h3>
                     <input type="file" id="json-upload" accept=".json" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-900 hover:file:bg-slate-200 mb-4"/>
                     <button id="import-btn" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 hidden">Start Import</button>
