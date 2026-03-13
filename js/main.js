@@ -1,30 +1,21 @@
-
 import { setupAuth } from './auth.js';
-import { getInventoryPage, searchInventoryByName } from './inventory.js';
+import { listenToInventory } from './inventory.js';
 import { processCartSale, returnTransaction } from './sales.js';
 import { processJSONUpload } from './import.js'; 
 import { db } from './firebase-config.js';
-import { collection, doc, writeBatch, query, where, getDocs, orderBy, limit, startAfter, getAggregateFromServer, sum, count } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, doc, writeBatch, query, where, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // --- GLOBAL VARIABLES ---
 let selectedYear = "All"; 
 let currentCart = []; 
+let globalInventory =[]; 
 
 // Pagination States
-let invCursors = [null]; 
 let invPage = 0;
+const pageSize = 15;
 
 let transCursors = [null];
 let transPage = 0;
-
-// Reusable Debouncer
-function debounce(func, delay) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), delay);
-    };
-}
 
 // --- 1. NAVIGATION LOGIC ---
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -45,7 +36,6 @@ navButtons.forEach(btn => {
     });
 });
 
-// Setup Year Filter dynamically
 function initializeYears() {
     const yearSelect = document.getElementById('year-filter');
     if(yearSelect) {
@@ -62,30 +52,72 @@ setupAuth((user) => {
     console.log("Logged in as:", user.email);
     initializeYears();
     
-    // Initial fetch of page 0 for tables
-    renderInventoryPage(0);
+    // Load Inventory entirely for quick search, paginate only the view
+    listenToInventory((items) => {
+        globalInventory = items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        renderInventoryPage();
+        updateDashboardProducts();
+    });
+
     renderTransactionsPage(0);
-    updateDashboard();
+    updateDashboardSales(); 
 
 }, () => {
-    invCursors = [null]; transCursors = [null];
-    invPage = 0; transPage = 0;
+    transCursors =[null]; transPage = 0; invPage = 0; globalInventory =[];
 });
 
-// --- 3. PAGINATED INVENTORY LOGIC ---
-async function renderInventoryPage(pageIndex) {
-    const snap = await getInventoryPage(invCursors[pageIndex], 15);
+
+// --- 3. DASHBOARD LOGIC (FIXED) ---
+const yearFilter = document.getElementById('year-filter');
+if (yearFilter) {
+    yearFilter.addEventListener('change', (e) => {
+        selectedYear = e.target.value;
+        const displayYear = document.getElementById('display-year');
+        if (displayYear) displayYear.textContent = selectedYear === "All" ? "All Time" : selectedYear;
+        updateDashboardSales();
+    });
+}
+
+function updateDashboardProducts() {
+    document.getElementById('stat-products').textContent = globalInventory.length;
+}
+
+// Single-Index Query bypasses Firebase Composite Index requirement
+async function updateDashboardSales() {
+    try {
+        const transRef = collection(db, 'transactions');
+        const q = query(transRef, where('type', '==', 'Sale')); 
+        const snap = await getDocs(q); 
+        
+        let totalAmount = 0;
+        snap.forEach(docSnap => {
+            const t = docSnap.data();
+            if (t.status === 'Completed') {
+                if (selectedYear === "All" || String(t.year) === String(selectedYear)) {
+                    totalAmount += (t.total || 0);
+                }
+            }
+        });
+
+        document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
+    } catch(err) {
+        console.error("Sales Aggregation Error:", err);
+        document.getElementById('stat-sales').textContent = "Error";
+    }
+}
+
+
+// --- 4. INVENTORY LOGIC (Client-Side Paginated) ---
+function renderInventoryPage() {
     const tbody = document.getElementById('inventory-table-body');
-    tbody.innerHTML = ''; 
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const start = invPage * pageSize;
+    const end = start + pageSize;
+    const pageItems = globalInventory.slice(start, end);
 
-    if (snap.empty && pageIndex > 0) return; // Boundary hit
-
-    // Set cursor for next page if full batch returned
-    invCursors[pageIndex + 1] = snap.docs.length === 15 ? snap.docs[snap.docs.length - 1] : null;
-    invPage = pageIndex;
-
-    snap.forEach(docSnap => {
-        const item = docSnap.data();
+    pageItems.forEach(item => {
         const tr = document.createElement('tr');
         const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
         tr.innerHTML = `
@@ -98,30 +130,26 @@ async function renderInventoryPage(pageIndex) {
 
     document.getElementById('inv-page-indicator').textContent = `Page ${invPage + 1}`;
     document.getElementById('inv-prev-btn').disabled = (invPage === 0);
-    document.getElementById('inv-next-btn').disabled = (!invCursors[invPage + 1]);
+    document.getElementById('inv-next-btn').disabled = (end >= globalInventory.length);
 }
 
-document.getElementById('inv-prev-btn').addEventListener('click', () => { if(invPage > 0) renderInventoryPage(invPage - 1); });
-document.getElementById('inv-next-btn').addEventListener('click', () => { if(invCursors[invPage + 1]) renderInventoryPage(invPage + 1); });
+document.getElementById('inv-prev-btn').addEventListener('click', () => { if(invPage > 0) { invPage--; renderInventoryPage(); } });
+document.getElementById('inv-next-btn').addEventListener('click', () => { if((invPage + 1) * pageSize < globalInventory.length) { invPage++; renderInventoryPage(); } });
 
-
-// Search (debounced to save firestore reads)
+// Search Logic (Restored to `.includes()` for perfect UX)
 const purchaseNameInput = document.getElementById('purchase-item-name');
 const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
 if (purchaseNameInput) {
-    purchaseNameInput.addEventListener('input', debounce(async (e) => {
-        const queryText = e.target.value.trim();
+    purchaseNameInput.addEventListener('input', (e) => {
+        const queryText = e.target.value.toLowerCase().trim();
         purchaseSuggestions.innerHTML = '';
         if(!queryText) {
             purchaseSuggestions.classList.add('hidden');
             return;
         }
 
-        const snap = await searchInventoryByName(queryText);
-        const matches = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        
-        // Ensure uniques
+        const matches = globalInventory.filter(item => item.name && item.name.toLowerCase().includes(queryText));
         const uniqueMatches =[];
         const seen = new Set();
         matches.forEach(m => {
@@ -147,7 +175,7 @@ if (purchaseNameInput) {
             purchaseSuggestions.classList.remove('hidden');
             purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created</li>';
         }
-    }, 300)); // 300ms debounce
+    });
 
     document.addEventListener('click', (e) => {
         if (!purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
@@ -156,7 +184,6 @@ if (purchaseNameInput) {
     });
 }
 
-// Submitting a Purchase
 const purchaseForm = document.getElementById('purchase-form');
 if (purchaseForm) {
     purchaseForm.addEventListener('submit', async (e) => {
@@ -172,11 +199,7 @@ if (purchaseForm) {
 
         try {
             const batch = writeBatch(db);
-            
-            // Look up existing exact item
-            const qExisting = query(collection(db, 'inventory'), where('nameLower', '==', name.toLowerCase()));
-            const snapExisting = await getDocs(qExisting);
-            const existingItem = snapExisting.docs.map(d=>({id: d.id, ...d.data()})).find(i => i.price === rate);
+            const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
             
             if(existingItem) {
                 const itemRef = doc(db, 'inventory', existingItem.id);
@@ -185,7 +208,6 @@ if (purchaseForm) {
                 const newInvRef = doc(collection(db, 'inventory'));
                 batch.set(newInvRef, {
                     name: name,
-                    nameLower: name.toLowerCase(), // Critical for optimized search
                     price: rate,
                     quantity: qty,
                     createdAt: new Date().toISOString()
@@ -210,10 +232,8 @@ if (purchaseForm) {
             msgEl.className = "mt-3 font-bold text-green-600 text-center";
             e.target.reset();
             
-            // Refresh visuals globally
-            renderInventoryPage(0);
-            renderTransactionsPage(0);
-            updateDashboard();
+            renderTransactionsPage(0); // Refresh history
+            updateDashboardSales();
         } catch(err) {
             msgEl.textContent = "Error: " + err.message;
             msgEl.className = "mt-3 font-bold text-red-600 text-center";
@@ -225,7 +245,7 @@ if (purchaseForm) {
     });
 }
 
-// --- 4. SALES CART LOGIC (WITH DEBOUNCED DB SEARCH) ---
+// --- 5. SALES LOGIC (Restored `.includes()` UX) ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -259,8 +279,8 @@ if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
 if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
 
 if (searchItemInput) {
-    searchItemInput.addEventListener('input', debounce(async (e) => {
-        const queryText = e.target.value.trim();
+    searchItemInput.addEventListener('input', (e) => {
+        const queryText = e.target.value.toLowerCase().trim();
         suggestionsBox.innerHTML = ''; 
         hiddenItemId.value = ''; 
         
@@ -269,13 +289,13 @@ if (searchItemInput) {
             return;
         }
 
-        const snap = await searchInventoryByName(queryText);
-        // Filter in memory for items > 0 stock (avoid index necessity)
-        let matches = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(m => m.quantity > 0);
+        const matches = globalInventory.filter(item => 
+            item.name && item.name.toLowerCase().includes(queryText) && item.quantity > 0
+        );
         
         if (matches.length > 0) {
             suggestionsBox.classList.remove('hidden');
-            matches.slice(0, 10).forEach(item => { // Show top 10 results
+            matches.slice(0, 15).forEach(item => {
                 const li = document.createElement('li');
                 li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
                 li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Rate: ₹${item.price} | Stock: ${item.quantity}</span>`;
@@ -293,7 +313,7 @@ if (searchItemInput) {
             suggestionsBox.classList.remove('hidden');
             suggestionsBox.innerHTML = '<li class="p-3 text-red-500 text-sm font-bold">No items found / Out of Stock</li>';
         }
-    }, 300));
+    });
 
     document.addEventListener('click', (e) => {
         if (!searchItemInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
@@ -383,9 +403,8 @@ if (recordSaleBtn) {
         if(result.success) {
             currentCart =[]; 
             renderCart();
-            renderInventoryPage(0);
             renderTransactionsPage(0);
-            updateDashboard();
+            updateDashboardSales();
             setTimeout(() => { msgEl.textContent = ''; }, 4000);
         }
         recordSaleBtn.textContent = "Complete Sale";
@@ -393,43 +412,7 @@ if (recordSaleBtn) {
     });
 }
 
-// --- 5. DASHBOARD (AGGREGATION) ---
-const yearFilter = document.getElementById('year-filter');
-if (yearFilter) {
-    yearFilter.addEventListener('change', (e) => {
-        selectedYear = e.target.value;
-        const displayYear = document.getElementById('display-year');
-        if (displayYear) displayYear.textContent = selectedYear === "All" ? "All Time" : selectedYear;
-        updateDashboard();
-    });
-}
-
-// Highly optimized using Server-Side Aggregations (1 API call)
-async function updateDashboard() {
-    try {
-        // 1. Count Total Products
-        const invSnap = await getAggregateFromServer(collection(db, 'inventory'), { total: count() });
-        document.getElementById('stat-products').textContent = invSnap.data().total;
-
-        // 2. Sum Sales dynamically
-        const transRef = collection(db, 'transactions');
-        let salesQuery;
-        if (selectedYear === "All") {
-            salesQuery = query(transRef, where('type', '==', 'Sale'), where('status', '==', 'Completed'));
-        } else {
-            salesQuery = query(transRef, where('type', '==', 'Sale'), where('status', '==', 'Completed'), where('year', '==', parseInt(selectedYear)));
-        }
-
-        const salesSnap = await getAggregateFromServer(salesQuery, { sumTotal: sum('total') });
-        const totalAmount = salesSnap.data().sumTotal || 0;
-        document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-    } catch(err) {
-        console.error("Aggregation Error", err);
-    }
-}
-
-
-// --- 6. PAGINATED TRANSACTION HISTORY ---
+// --- 6. TRANSACTIONS HISTORY (Server-Side Paginated) ---
 async function renderTransactionsPage(pageIndex) {
     const tbody = document.getElementById('transactions-table-body');
     let q = query(collection(db, 'transactions'), orderBy('date', 'desc'), limit(15));
@@ -491,9 +474,8 @@ window.handleReturn = async (transactionId) => {
     const result = await returnTransaction(transactionId);
     if(result.success) {
         alert("Success: " + result.message);
-        renderTransactionsPage(transPage); // refresh current page
-        renderInventoryPage(0);
-        updateDashboard();
+        renderTransactionsPage(transPage); 
+        updateDashboardSales();
     } else {
         alert("Error: " + result.message);
     }
@@ -518,4 +500,3 @@ if(uploadInput && importBtn) {
         }
     });
 }
-
