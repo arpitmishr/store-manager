@@ -8,250 +8,287 @@ import { collection, doc, writeBatch, onSnapshot } from "https://www.gstatic.com
 // --- GLOBAL VARIABLES & STATE ---
 let globalInventory =[];
 let globalTransactions = [];
-let selectedYear = "All"; 
 let currentCart =[]; 
+let salesChartInstance = null;
 
-let invPage = 0;
 let transPage = 0;
 const pageSize = 15;
 
-// --- 1. NAVIGATION LOGIC ---
+// --- 1. NAVIGATION LOGIC (BOTTOM NAV) ---
 const navButtons = document.querySelectorAll('.nav-btn');
 const sections = document.querySelectorAll('.page-section');
 
 navButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
+        const targetBtn = e.currentTarget;
+        const targetId = targetBtn.getAttribute('data-target');
+        
+        // Reset all buttons styling
         navButtons.forEach(b => {
-            b.classList.remove('bg-gray-800');
-            b.classList.add('hover:bg-gray-800');
+            if(!b.querySelector('.w-14')) { // Don't gray out the center + button
+                b.classList.remove('text-slate-900');
+                b.classList.add('text-slate-400');
+            }
         });
-        e.target.classList.add('bg-gray-800');
-        e.target.classList.remove('hover:bg-gray-800');
 
+        // Activate clicked button
+        if(!targetBtn.querySelector('.w-14')) {
+            targetBtn.classList.add('text-slate-900');
+            targetBtn.classList.remove('text-slate-400');
+        }
+
+        // Show section
         sections.forEach(sec => sec.classList.add('hidden'));
-        const targetId = e.target.getAttribute('data-target');
         document.getElementById(targetId).classList.remove('hidden');
+
+        // Render Chart if Analytics is clicked
+        if(targetId === 'page-analytics') {
+            renderAnalytics();
+        }
     });
 });
 
-function initializeYears() {
-    const yearSelect = document.getElementById('year-filter');
-    if(yearSelect) {
-        yearSelect.innerHTML = '<option value="All">All Time</option>';
-        const currentYear = new Date().getFullYear();
-        for (let y = currentYear; y >= 2020; y--) {
-            yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-        }
-    }
-}
-
 // --- 2. AUTHENTICATION & DATA FETCHING ---
 setupAuth((user) => {
-    console.log("Logged in as:", user.email);
-    initializeYears();
-    
-    // 1. Sync Inventory Once + Delta updates
+    // 1. Sync Inventory
     listenToInventory((items) => {
         globalInventory = items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        renderInventoryPage();
         updateDashboard();
     });
 
-    // 2. Sync Transactions Once + Delta updates (Saves massive reads, makes pagination instant)
+    // 2. Sync Transactions
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         snapshot.forEach(doc => {
             globalTransactions.push({ id: doc.id, ...doc.data() });
         });
-        // Sort newest first
         globalTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
         
-        renderTransactionsPage();
         updateDashboard();
+        renderTransactionsPage();
+        if(salesChartInstance) renderAnalytics(); // update chart if visible
     });
 
 }, () => {
-    globalInventory = []; globalTransactions =[];
-    invPage = 0; transPage = 0;
+    globalInventory = []; globalTransactions =[]; transPage = 0;
 });
 
 
 // --- 3. DASHBOARD LOGIC ---
-const yearFilter = document.getElementById('year-filter');
-if (yearFilter) {
-    yearFilter.addEventListener('change', (e) => {
-        selectedYear = e.target.value;
-        const displayYear = document.getElementById('display-year');
-        if (displayYear) displayYear.textContent = selectedYear === "All" ? "All Time" : selectedYear;
-        updateDashboard();
-    });
-}
-
 function updateDashboard() {
-    // Total Products
-    document.getElementById('stat-products').textContent = globalInventory.length;
+    let totalRevenue = 0;
+    let todaySales = 0;
+    let returnCount = 0;
+    let orderCount = 0;
+    
+    const todayStr = new Date().toDateString();
 
-    // Total Net Sales safely calculated checking old & new data
-    let totalAmount = 0;
     globalTransactions.forEach(t => {
         const type = String(t.type || '').toLowerCase();
         
-        // If it's a sale, and wasn't returned
         if (type.includes('sale') && t.status !== 'Returned') {
-            if (selectedYear === "All" || String(t.year) === String(selectedYear)) {
-                totalAmount += (Number(t.total) || 0);
-            }
-        }
-    });
-
-    document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-}
-
-
-// --- 4. INVENTORY LOGIC (Client-Side Paginated) ---
-function renderInventoryPage() {
-    const tbody = document.getElementById('inventory-table-body');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    const start = invPage * pageSize;
-    const end = start + pageSize;
-    const pageItems = globalInventory.slice(start, end);
-
-    pageItems.forEach(item => {
-        const tr = document.createElement('tr');
-        const stockColor = item.quantity <= 0 ? 'text-red-600' : 'text-gray-800';
-        tr.innerHTML = `
-            <td class="p-3">${item.name}</td>
-            <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
-            <td class="p-3 text-right">₹${item.price}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    document.getElementById('inv-page-indicator').textContent = `Page ${invPage + 1}`;
-    document.getElementById('inv-prev-btn').disabled = (invPage === 0);
-    document.getElementById('inv-next-btn').disabled = (end >= globalInventory.length);
-}
-
-document.getElementById('inv-prev-btn').addEventListener('click', () => { if(invPage > 0) { invPage--; renderInventoryPage(); } });
-document.getElementById('inv-next-btn').addEventListener('click', () => { if((invPage + 1) * pageSize < globalInventory.length) { invPage++; renderInventoryPage(); } });
-
-// Purchase Search Logic (Ultra-Resilient)
-const purchaseNameInput = document.getElementById('purchase-item-name');
-const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
-
-if (purchaseNameInput) {
-    purchaseNameInput.addEventListener('input', (e) => {
-        const queryText = e.target.value.toLowerCase().trim();
-        purchaseSuggestions.innerHTML = '';
-        if(!queryText) {
-            purchaseSuggestions.classList.add('hidden');
-            return;
-        }
-
-        // Substring search works for anything
-        const matches = globalInventory.filter(item => {
-            return String(item.name || '').toLowerCase().includes(queryText);
-        });
-
-        const uniqueMatches =[];
-        const seen = new Set();
-        matches.forEach(m => {
-            const key = m.name + m.price; 
-            if(!seen.has(key)) { seen.add(key); uniqueMatches.push(m); }
-        });
-
-        if(uniqueMatches.length > 0) {
-            purchaseSuggestions.classList.remove('hidden');
-            uniqueMatches.forEach(item => {
-                const li = document.createElement('li');
-                li.className = "p-3 hover:bg-yellow-100 cursor-pointer border-b text-sm font-medium text-gray-800";
-                li.innerHTML = `${item.name} <span class="float-right text-gray-500">Last Rate: ₹${item.price}</span>`;
-                
-                li.addEventListener('click', () => {
-                    purchaseNameInput.value = item.name;
-                    document.getElementById('purchase-rate').value = item.price;
-                    purchaseSuggestions.classList.add('hidden');
-                });
-                purchaseSuggestions.appendChild(li);
-            });
-        } else {
-            purchaseSuggestions.classList.remove('hidden');
-            purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created</li>';
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
-            purchaseSuggestions.classList.add('hidden');
-        }
-    });
-}
-
-// Submitting Purchase
-const purchaseForm = document.getElementById('purchase-form');
-if (purchaseForm) {
-    purchaseForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('record-purchase-btn');
-        const msgEl = document.getElementById('purchase-msg');
-        btn.disabled = true;
-        btn.textContent = "Processing...";
-
-        const name = purchaseNameInput.value.trim();
-        const rate = parseFloat(document.getElementById('purchase-rate').value);
-        const qty = parseInt(document.getElementById('purchase-qty').value);
-
-        try {
-            const batch = writeBatch(db);
-            const existingItem = globalInventory.find(i => 
-                String(i.name).toLowerCase() === name.toLowerCase() && 
-                Number(i.price) === rate
-            );
+            totalRevenue += (Number(t.total) || 0);
+            orderCount++;
             
-            if(existingItem) {
-                const itemRef = doc(db, 'inventory', existingItem.id);
-                batch.update(itemRef, { quantity: existingItem.quantity + qty });
-            } else {
-                const newInvRef = doc(collection(db, 'inventory'));
-                batch.set(newInvRef, {
-                    name: name,
-                    price: rate,
-                    quantity: qty,
-                    createdAt: new Date().toISOString()
-                });
+            const transDate = new Date(t.date).toDateString();
+            if(transDate === todayStr) {
+                todaySales += (Number(t.total) || 0);
             }
-
-            const total = rate * qty;
-            const newTransRef = doc(collection(db, 'transactions'));
-            batch.set(newTransRef, {
-                type: "Purchase",
-                date: new Date().toISOString(),
-                year: new Date().getFullYear(),
-                total: total,
-                paidAmount: total,
-                status: "Completed",
-                items:[{ particulars: name, quantity: qty, rate: rate }]
-            });
-
-            await batch.commit();
-
-            msgEl.textContent = "Purchase Recorded Successfully!";
-            msgEl.className = "mt-3 font-bold text-green-600 text-center";
-            e.target.reset();
-        } catch(err) {
-            msgEl.textContent = "Error: " + err.message;
-            msgEl.className = "mt-3 font-bold text-red-600 text-center";
         }
+        if (t.status === 'Returned') returnCount++;
+    });
 
-        btn.disabled = false;
-        btn.textContent = "Record Purchase";
-        setTimeout(() => msgEl.textContent = '', 3000);
+    document.getElementById('dash-total-sales').textContent = `₹${totalRevenue.toLocaleString('en-IN')}`;
+    document.getElementById('dash-products').textContent = globalInventory.length;
+    document.getElementById('dash-orders').textContent = orderCount;
+    document.getElementById('dash-today-sales').textContent = `₹${todaySales.toLocaleString('en-IN')}`;
+    document.getElementById('dash-returns').textContent = returnCount;
+
+    // Render Recent Transactions (Top 4)
+    const recentList = document.getElementById('recent-transactions-list');
+    recentList.innerHTML = '';
+    
+    globalTransactions.slice(0, 4).forEach(t => {
+        recentList.appendChild(createTransactionCard(t));
     });
 }
 
-// --- 5. SALES CART & SEARCH LOGIC ---
+
+// --- 4. TRANSACTIONS UI LOGIC (CARD LISTS) ---
+function createTransactionCard(t, showAction = false) {
+    const div = document.createElement('div');
+    const dateObj = new Date(t.date);
+    const timeStr = dateObj.toLocaleDateString('en-GB', {day: 'numeric', month:'short'}) + ' • ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    const isSale = String(t.type || '').toLowerCase().includes('sale');
+    const isReturned = t.status === 'Returned';
+    
+    let statusHtml = '';
+    if(isSale && !isReturned) {
+        statusHtml = `<span class="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">Fulfilled</span>`;
+    } else if (isReturned) {
+        statusHtml = `<span class="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-md">Returned</span>`;
+    } else {
+        statusHtml = `<span class="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Restock</span>`;
+    }
+
+    // Determine primary item name for display
+    let title = t.items && t.items.length > 0 ? (t.items[0].particulars || t.items[0].name || 'Item') : 'Transaction';
+    let subtext = t.items ? `${t.items.length} Item(s) • ${timeStr}` : timeStr;
+    let initial = title.charAt(0).toUpperCase();
+
+    let returnBtnHtml = (isSale && !isReturned && showAction) 
+        ? `<button onclick="window.handleReturn('${t.id}')" class="mt-3 w-full text-xs font-bold text-rose-500 bg-rose-50 py-2 rounded-lg border border-rose-100">Issue Return</button>` 
+        : '';
+
+    div.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col";
+    div.innerHTML = `
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-xl text-slate-400 shrink-0">
+                ${initial}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-slate-900 truncate">${title}</p>
+                <p class="text-xs text-slate-500">${subtext}</p>
+            </div>
+            <div class="text-right shrink-0 flex flex-col items-end gap-1">
+                ${statusHtml}
+                <p class="text-sm font-bold text-slate-900 mt-1">₹${t.total}</p>
+            </div>
+        </div>
+        ${returnBtnHtml}
+    `;
+    return div;
+}
+
+function renderTransactionsPage() {
+    const list = document.getElementById('full-transactions-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const start = transPage * pageSize;
+    const end = start + pageSize;
+    const pageItems = globalTransactions.slice(start, end);
+
+    pageItems.forEach(t => {
+        list.appendChild(createTransactionCard(t, true));
+    });
+
+    document.getElementById('trans-page-indicator').textContent = `Page ${transPage + 1}`;
+    document.getElementById('trans-prev-btn').disabled = (transPage === 0);
+    document.getElementById('trans-next-btn').disabled = (end >= globalTransactions.length);
+}
+
+document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) { transPage--; renderTransactionsPage(); } });
+document.getElementById('trans-next-btn').addEventListener('click', () => { if((transPage + 1) * pageSize < globalTransactions.length) { transPage++; renderTransactionsPage(); } });
+
+window.handleReturn = async (transactionId) => {
+    if(!confirm("Are you sure you want to return this sale?")) return;
+    const result = await returnTransaction(transactionId);
+    if(result.success) alert("Success: " + result.message);
+    else alert("Error: " + result.message);
+};
+
+
+// --- 5. ANALYTICS LOGIC (CHART.JS) ---
+function renderAnalytics() {
+    const ctx = document.getElementById('salesChart');
+    if(!ctx) return;
+
+    // Group last 6 months of sales
+    const months =["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentMonth = new Date().getMonth();
+    
+    let labels = [];
+    let dataPoints = [0,0,0,0,0,0];
+    
+    // Generate last 6 month labels
+    for(let i = 5; i >= 0; i--) {
+        let m = currentMonth - i;
+        if(m < 0) m += 12;
+        labels.push(months[m]);
+    }
+
+    let sixMonthTotal = 0;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(currentMonth - 5);
+    sixMonthsAgo.setDate(1);
+
+    globalTransactions.forEach(t => {
+        const d = new Date(t.date);
+        const type = String(t.type || '').toLowerCase();
+        
+        if (type.includes('sale') && t.status !== 'Returned' && d >= sixMonthsAgo) {
+            let mDiff = currentMonth - d.getMonth();
+            if(mDiff < 0) mDiff += 12;
+            let index = 5 - mDiff;
+            
+            if(index >= 0 && index <= 5) {
+                dataPoints[index] += Number(t.total) || 0;
+                sixMonthTotal += Number(t.total) || 0;
+            }
+        }
+    });
+
+    document.getElementById('chart-total-label').textContent = `₹${sixMonthTotal.toLocaleString('en-IN')}`;
+
+    if(salesChartInstance) salesChartInstance.destroy();
+
+    salesChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets:[{
+                label: 'Revenue',
+                data: dataPoints,
+                borderColor: '#0f172a', // slate-900
+                backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                borderWidth: 2,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#0f172a',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8' } },
+                y: { border: { display: false }, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8', callback: (val) => '₹'+val } }
+            }
+        }
+    });
+
+    // Populate Inventory Breakdown
+    const breakdownList = document.getElementById('inventory-breakdown-list');
+    breakdownList.innerHTML = '';
+    
+    const sortedInv = [...globalInventory].sort((a,b) => b.quantity - a.quantity).slice(0, 4);
+    sortedInv.forEach(item => {
+        // Calculate a random looking percentage fill based on relative max quantity for visual effect
+        let maxQty = sortedInv[0].quantity || 1;
+        let pct = Math.max(10, Math.round((item.quantity / maxQty) * 100));
+        
+        breakdownList.innerHTML += `
+            <div>
+                <div class="flex justify-between text-sm font-medium mb-1">
+                    <span class="text-slate-700 truncate w-3/4">${item.name}</span>
+                    <span class="text-slate-400">${item.quantity} left</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                    <div class="bg-slate-800 h-1.5 rounded-full" style="width: ${pct}%"></div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+
+// --- 6. SALES CART LOGIC ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -303,10 +340,10 @@ if (searchItemInput) {
         
         if (matches.length > 0) {
             suggestionsBox.classList.remove('hidden');
-            matches.slice(0, 15).forEach(item => {
+            matches.slice(0, 10).forEach(item => {
                 const li = document.createElement('li');
-                li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
-                li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Rate: ₹${item.price} | Stock: ${item.quantity}</span>`;
+                li.className = "p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 text-sm font-medium text-slate-900 flex justify-between";
+                li.innerHTML = `<span>${item.name}</span> <span class="text-slate-400 font-normal">₹${item.price} (${item.quantity} left)</span>`;
                 
                 li.addEventListener('click', () => {
                     searchItemInput.value = item.name;
@@ -317,9 +354,6 @@ if (searchItemInput) {
                 });
                 suggestionsBox.appendChild(li);
             });
-        } else {
-            suggestionsBox.classList.remove('hidden');
-            suggestionsBox.innerHTML = '<li class="p-3 text-red-500 text-sm font-bold">No items found / Out of Stock</li>';
         }
     });
 
@@ -340,12 +374,12 @@ if (addToSaleForm) {
         if(type === 'inventory') {
             id = hiddenItemId.value;
             name = searchItemInput.value;
-            if (!id) { alert("Please select a valid item from the search."); return; }
+            if (!id) return;
         } else {
             name = "(Cosmetic) " + inputCosmetic.value;
         }
 
-        const costRate = parseFloat(document.getElementById('sale-cost-rate').value);
+        const costRate = parseFloat(document.getElementById('sale-cost-rate').value || 0);
         const salesRate = parseFloat(document.getElementById('sale-sales-rate').value);
         const qty = parseInt(document.getElementById('sale-qty').value);
 
@@ -364,7 +398,7 @@ function renderCart() {
 
     let grandTotal = 0;
     if(currentCart.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-400">Cart is empty</td></tr>';
+        tbody.innerHTML = '<p class="text-center text-slate-500 text-sm py-4 border-dashed border-2 border-slate-700 rounded-xl">Cart is empty</p>';
         grandTotalEl.textContent = '₹0';
         document.getElementById('record-sale-btn').disabled = true;
         return;
@@ -376,18 +410,20 @@ function renderCart() {
     currentCart.forEach((item, index) => {
         const itemTotal = item.qty * item.salesRate;
         grandTotal += itemTotal;
-        const textStyle = item.type === 'cosmetic' ? 'text-purple-600 font-medium' : 'text-gray-800 font-medium';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="py-2 ${textStyle}">${item.name}</td>
-            <td class="py-2">${item.qty}</td>
-            <td class="py-2">₹${item.salesRate}</td>
-            <td class="py-2 text-right font-bold text-green-600">₹${itemTotal}</td>
-            <td class="py-2 text-center">
-                <button type="button" onclick="window.removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold">X</button>
-            </td>
+        
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center bg-slate-700/50 p-3 rounded-xl";
+        div.innerHTML = `
+            <div class="flex-1 min-w-0 pr-2">
+                <p class="text-sm font-medium text-white truncate">${item.name}</p>
+                <p class="text-xs text-slate-400">${item.qty} x ₹${item.salesRate}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <p class="text-sm font-bold text-emerald-400">₹${itemTotal}</p>
+                <button type="button" onclick="window.removeFromCart(${index})" class="w-6 h-6 bg-rose-500/10 text-rose-500 rounded flex items-center justify-center font-bold hover:bg-rose-500 hover:text-white">✕</button>
+            </div>
         `;
-        tbody.appendChild(tr);
+        tbody.appendChild(div);
     });
     grandTotalEl.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
 }
@@ -401,85 +437,71 @@ if (recordSaleBtn) {
         const msgEl = document.getElementById('sale-msg');
         recordSaleBtn.disabled = true;
         recordSaleBtn.textContent = "Processing...";
-        msgEl.textContent = "";
         
         const result = await processCartSale(currentCart);
         
         msgEl.textContent = result.message;
-        msgEl.className = result.success ? "mt-3 font-bold text-green-600 text-center" : "mt-3 font-bold text-red-600 text-center";
+        msgEl.className = result.success ? "mt-4 font-bold text-emerald-400 text-center text-sm" : "mt-4 font-bold text-rose-400 text-center text-sm";
         
         if(result.success) {
             currentCart =[]; 
             renderCart();
-            setTimeout(() => { msgEl.textContent = ''; }, 4000);
+            setTimeout(() => { msgEl.textContent = ''; }, 3000);
         }
-        recordSaleBtn.textContent = "Complete Sale";
+        recordSaleBtn.textContent = "Checkout";
         recordSaleBtn.disabled = false;
     });
 }
 
-// --- 6. TRANSACTIONS HISTORY (Client-Side Paginated) ---
-function renderTransactionsPage() {
-    const tbody = document.getElementById('transactions-table-body');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    const start = transPage * pageSize;
-    const end = start + pageSize;
-    const pageItems = globalTransactions.slice(start, end);
+// --- 7. PURCHASE / IMPORT UI ---
+const purchaseForm = document.getElementById('purchase-form');
+if (purchaseForm) {
+    purchaseForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('record-purchase-btn');
+        const msgEl = document.getElementById('purchase-msg');
+        btn.disabled = true;
+        btn.textContent = "Wait...";
 
-    pageItems.forEach(t => {
-        const tr = document.createElement('tr');
-        
-        const dateObj = new Date(t.date);
-        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        const itemsStr = t.items ? t.items.map(i => `${i.particulars || i.name || 'Item'} (x${i.quantity})`).join(', ') : 'N/A';
-        
-        const typeStr = String(t.type || '');
-        const typeColor = typeStr.toLowerCase().includes('sale') ? 'text-green-600' : 'text-yellow-600';
-        const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-gray-50' : '';
+        const name = document.getElementById('purchase-item-name').value.trim();
+        const rate = parseFloat(document.getElementById('purchase-rate').value);
+        const qty = parseInt(document.getElementById('purchase-qty').value);
 
-        let actionHtml = '';
-        if(typeStr.toLowerCase().includes('sale') && t.status !== 'Returned') {
-            actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 font-bold text-xs shadow-sm">Return Items</button>`;
-        } else if (t.status === 'Returned') {
-            actionHtml = `<span class="text-red-500 font-bold text-xs border border-red-500 px-2 py-1 rounded">Refunded</span>`;
-        } else {
-            actionHtml = `<span class="text-gray-400 text-xs">Stock Added</span>`; 
+        try {
+            const batch = writeBatch(db);
+            const existingItem = globalInventory.find(i => String(i.name).toLowerCase() === name.toLowerCase() && Number(i.price) === rate);
+            
+            if(existingItem) {
+                const itemRef = doc(db, 'inventory', existingItem.id);
+                batch.update(itemRef, { quantity: existingItem.quantity + qty });
+            } else {
+                const newInvRef = doc(collection(db, 'inventory'));
+                batch.set(newInvRef, { name: name, price: rate, quantity: qty, createdAt: new Date().toISOString() });
+            }
+
+            const total = rate * qty;
+            const newTransRef = doc(collection(db, 'transactions'));
+            batch.set(newTransRef, {
+                type: "Purchase", date: new Date().toISOString(), year: new Date().getFullYear(),
+                total: total, paidAmount: total, status: "Completed",
+                items:[{ particulars: name, quantity: qty, rate: rate }]
+            });
+
+            await batch.commit();
+            msgEl.textContent = "Stock Added!";
+            msgEl.className = "text-center text-sm font-bold mt-2 text-emerald-500";
+            e.target.reset();
+        } catch(err) {
+            msgEl.textContent = "Error";
+            msgEl.className = "text-center text-sm font-bold mt-2 text-rose-500";
         }
-
-        tr.className = rowOpacity;
-        tr.innerHTML = `
-            <td class="p-4 text-xs font-medium text-gray-500 whitespace-nowrap">${dateStr}</td>
-            <td class="p-4 font-bold ${typeColor}">${typeStr}</td>
-            <td class="p-4 text-xs text-gray-700 max-w-xs truncate" title="${itemsStr}">${itemsStr}</td>
-            <td class="p-4 font-bold text-gray-800">₹${t.total}</td>
-            <td class="p-4">${actionHtml}</td>
-        `;
-        tbody.appendChild(tr);
+        btn.disabled = false;
+        btn.textContent = "Record Purchase";
+        setTimeout(() => msgEl.textContent = '', 3000);
     });
-
-    document.getElementById('trans-page-indicator').textContent = `Page ${transPage + 1}`;
-    document.getElementById('trans-prev-btn').disabled = (transPage === 0);
-    document.getElementById('trans-next-btn').disabled = (end >= globalTransactions.length);
 }
 
-document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) { transPage--; renderTransactionsPage(); } });
-document.getElementById('trans-next-btn').addEventListener('click', () => { if((transPage + 1) * pageSize < globalTransactions.length) { transPage++; renderTransactionsPage(); } });
-
-window.handleReturn = async (transactionId) => {
-    if(!confirm("Are you sure you want to return this sale? All inventory items from this receipt will be restocked.")) return;
-    
-    const result = await returnTransaction(transactionId);
-    if(result.success) {
-        alert("Success: " + result.message);
-    } else {
-        alert("Error: " + result.message);
-    }
-};
-
-// --- 7. JSON IMPORT LOGIC ---
+// Import JSON
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
 let selectedFile = null;
