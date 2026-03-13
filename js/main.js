@@ -3,19 +3,17 @@ import { listenToInventory } from './inventory.js';
 import { processCartSale, returnTransaction } from './sales.js';
 import { processJSONUpload } from './import.js'; 
 import { db } from './firebase-config.js';
-import { collection, doc, writeBatch, query, where, getDocs, orderBy, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, doc, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// --- GLOBAL VARIABLES ---
+// --- GLOBAL VARIABLES & STATE ---
+let globalInventory =[];
+let globalTransactions = [];
 let selectedYear = "All"; 
-let currentCart = []; 
-let globalInventory =[]; 
+let currentCart =[]; 
 
-// Pagination States
 let invPage = 0;
-const pageSize = 15;
-
-let transCursors = [null];
 let transPage = 0;
+const pageSize = 15;
 
 // --- 1. NAVIGATION LOGIC ---
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -52,58 +50,61 @@ setupAuth((user) => {
     console.log("Logged in as:", user.email);
     initializeYears();
     
-    // Load Inventory entirely for quick search, paginate only the view
+    // 1. Sync Inventory Once + Delta updates
     listenToInventory((items) => {
         globalInventory = items.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         renderInventoryPage();
-        updateDashboardProducts();
+        updateDashboard();
     });
 
-    renderTransactionsPage(0);
-    updateDashboardSales(); 
+    // 2. Sync Transactions Once + Delta updates (Saves massive reads, makes pagination instant)
+    onSnapshot(collection(db, 'transactions'), (snapshot) => {
+        globalTransactions =[];
+        snapshot.forEach(doc => {
+            globalTransactions.push({ id: doc.id, ...doc.data() });
+        });
+        // Sort newest first
+        globalTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        renderTransactionsPage();
+        updateDashboard();
+    });
 
 }, () => {
-    transCursors =[null]; transPage = 0; invPage = 0; globalInventory =[];
+    globalInventory = []; globalTransactions =[];
+    invPage = 0; transPage = 0;
 });
 
 
-// --- 3. DASHBOARD LOGIC (FIXED) ---
+// --- 3. DASHBOARD LOGIC ---
 const yearFilter = document.getElementById('year-filter');
 if (yearFilter) {
     yearFilter.addEventListener('change', (e) => {
         selectedYear = e.target.value;
         const displayYear = document.getElementById('display-year');
         if (displayYear) displayYear.textContent = selectedYear === "All" ? "All Time" : selectedYear;
-        updateDashboardSales();
+        updateDashboard();
     });
 }
 
-function updateDashboardProducts() {
+function updateDashboard() {
+    // Total Products
     document.getElementById('stat-products').textContent = globalInventory.length;
-}
 
-// Single-Index Query bypasses Firebase Composite Index requirement
-async function updateDashboardSales() {
-    try {
-        const transRef = collection(db, 'transactions');
-        const q = query(transRef, where('type', '==', 'Sale')); 
-        const snap = await getDocs(q); 
+    // Total Net Sales safely calculated checking old & new data
+    let totalAmount = 0;
+    globalTransactions.forEach(t => {
+        const type = String(t.type || '').toLowerCase();
         
-        let totalAmount = 0;
-        snap.forEach(docSnap => {
-            const t = docSnap.data();
-            if (t.status === 'Completed') {
-                if (selectedYear === "All" || String(t.year) === String(selectedYear)) {
-                    totalAmount += (t.total || 0);
-                }
+        // If it's a sale, and wasn't returned
+        if (type.includes('sale') && t.status !== 'Returned') {
+            if (selectedYear === "All" || String(t.year) === String(selectedYear)) {
+                totalAmount += (Number(t.total) || 0);
             }
-        });
+        }
+    });
 
-        document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
-    } catch(err) {
-        console.error("Sales Aggregation Error:", err);
-        document.getElementById('stat-sales').textContent = "Error";
-    }
+    document.getElementById('stat-sales').textContent = `₹${totalAmount.toLocaleString('en-IN')}`;
 }
 
 
@@ -136,7 +137,7 @@ function renderInventoryPage() {
 document.getElementById('inv-prev-btn').addEventListener('click', () => { if(invPage > 0) { invPage--; renderInventoryPage(); } });
 document.getElementById('inv-next-btn').addEventListener('click', () => { if((invPage + 1) * pageSize < globalInventory.length) { invPage++; renderInventoryPage(); } });
 
-// Search Logic (Restored to `.includes()` for perfect UX)
+// Purchase Search Logic (Ultra-Resilient)
 const purchaseNameInput = document.getElementById('purchase-item-name');
 const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
@@ -149,7 +150,11 @@ if (purchaseNameInput) {
             return;
         }
 
-        const matches = globalInventory.filter(item => item.name && item.name.toLowerCase().includes(queryText));
+        // Substring search works for anything
+        const matches = globalInventory.filter(item => {
+            return String(item.name || '').toLowerCase().includes(queryText);
+        });
+
         const uniqueMatches =[];
         const seen = new Set();
         matches.forEach(m => {
@@ -184,6 +189,7 @@ if (purchaseNameInput) {
     });
 }
 
+// Submitting Purchase
 const purchaseForm = document.getElementById('purchase-form');
 if (purchaseForm) {
     purchaseForm.addEventListener('submit', async (e) => {
@@ -199,7 +205,10 @@ if (purchaseForm) {
 
         try {
             const batch = writeBatch(db);
-            const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
+            const existingItem = globalInventory.find(i => 
+                String(i.name).toLowerCase() === name.toLowerCase() && 
+                Number(i.price) === rate
+            );
             
             if(existingItem) {
                 const itemRef = doc(db, 'inventory', existingItem.id);
@@ -231,9 +240,6 @@ if (purchaseForm) {
             msgEl.textContent = "Purchase Recorded Successfully!";
             msgEl.className = "mt-3 font-bold text-green-600 text-center";
             e.target.reset();
-            
-            renderTransactionsPage(0); // Refresh history
-            updateDashboardSales();
         } catch(err) {
             msgEl.textContent = "Error: " + err.message;
             msgEl.className = "mt-3 font-bold text-red-600 text-center";
@@ -245,7 +251,7 @@ if (purchaseForm) {
     });
 }
 
-// --- 5. SALES LOGIC (Restored `.includes()` UX) ---
+// --- 5. SALES CART & SEARCH LOGIC ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
@@ -289,9 +295,11 @@ if (searchItemInput) {
             return;
         }
 
-        const matches = globalInventory.filter(item => 
-            item.name && item.name.toLowerCase().includes(queryText) && item.quantity > 0
-        );
+        const matches = globalInventory.filter(item => {
+            const itemName = String(item.name || '').toLowerCase();
+            const qty = Number(item.quantity) || 0;
+            return itemName.includes(queryText) && qty > 0;
+        });
         
         if (matches.length > 0) {
             suggestionsBox.classList.remove('hidden');
@@ -403,8 +411,6 @@ if (recordSaleBtn) {
         if(result.success) {
             currentCart =[]; 
             renderCart();
-            renderTransactionsPage(0);
-            updateDashboardSales();
             setTimeout(() => { msgEl.textContent = ''; }, 4000);
         }
         recordSaleBtn.textContent = "Complete Sale";
@@ -412,24 +418,17 @@ if (recordSaleBtn) {
     });
 }
 
-// --- 6. TRANSACTIONS HISTORY (Server-Side Paginated) ---
-async function renderTransactionsPage(pageIndex) {
+// --- 6. TRANSACTIONS HISTORY (Client-Side Paginated) ---
+function renderTransactionsPage() {
     const tbody = document.getElementById('transactions-table-body');
-    let q = query(collection(db, 'transactions'), orderBy('date', 'desc'), limit(15));
-    if (transCursors[pageIndex]) {
-        q = query(collection(db, 'transactions'), orderBy('date', 'desc'), startAfter(transCursors[pageIndex]), limit(15));
-    }
-
-    const snap = await getDocs(q);
-    if (snap.empty && pageIndex > 0) return;
-    
+    if (!tbody) return;
     tbody.innerHTML = '';
-    transCursors[pageIndex + 1] = snap.docs.length === 15 ? snap.docs[snap.docs.length - 1] : null;
-    transPage = pageIndex;
+    
+    const start = transPage * pageSize;
+    const end = start + pageSize;
+    const pageItems = globalTransactions.slice(start, end);
 
-    snap.forEach(docSnap => {
-        const t = docSnap.data();
-        t.id = docSnap.id;
+    pageItems.forEach(t => {
         const tr = document.createElement('tr');
         
         const dateObj = new Date(t.date);
@@ -437,11 +436,12 @@ async function renderTransactionsPage(pageIndex) {
         
         const itemsStr = t.items ? t.items.map(i => `${i.particulars || i.name || 'Item'} (x${i.quantity})`).join(', ') : 'N/A';
         
-        const typeColor = t.type === 'Sale' ? 'text-green-600' : 'text-yellow-600';
+        const typeStr = String(t.type || '');
+        const typeColor = typeStr.toLowerCase().includes('sale') ? 'text-green-600' : 'text-yellow-600';
         const rowOpacity = t.status === 'Returned' ? 'opacity-50 bg-gray-50' : '';
 
         let actionHtml = '';
-        if(t.type === 'Sale' && t.status !== 'Returned') {
+        if(typeStr.toLowerCase().includes('sale') && t.status !== 'Returned') {
             actionHtml = `<button type="button" onclick="window.handleReturn('${t.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 font-bold text-xs shadow-sm">Return Items</button>`;
         } else if (t.status === 'Returned') {
             actionHtml = `<span class="text-red-500 font-bold text-xs border border-red-500 px-2 py-1 rounded">Refunded</span>`;
@@ -452,7 +452,7 @@ async function renderTransactionsPage(pageIndex) {
         tr.className = rowOpacity;
         tr.innerHTML = `
             <td class="p-4 text-xs font-medium text-gray-500 whitespace-nowrap">${dateStr}</td>
-            <td class="p-4 font-bold ${typeColor}">${t.type}</td>
+            <td class="p-4 font-bold ${typeColor}">${typeStr}</td>
             <td class="p-4 text-xs text-gray-700 max-w-xs truncate" title="${itemsStr}">${itemsStr}</td>
             <td class="p-4 font-bold text-gray-800">₹${t.total}</td>
             <td class="p-4">${actionHtml}</td>
@@ -462,11 +462,11 @@ async function renderTransactionsPage(pageIndex) {
 
     document.getElementById('trans-page-indicator').textContent = `Page ${transPage + 1}`;
     document.getElementById('trans-prev-btn').disabled = (transPage === 0);
-    document.getElementById('trans-next-btn').disabled = (!transCursors[transPage + 1]);
+    document.getElementById('trans-next-btn').disabled = (end >= globalTransactions.length);
 }
 
-document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) renderTransactionsPage(transPage - 1); });
-document.getElementById('trans-next-btn').addEventListener('click', () => { if(transCursors[transPage + 1]) renderTransactionsPage(transPage + 1); });
+document.getElementById('trans-prev-btn').addEventListener('click', () => { if(transPage > 0) { transPage--; renderTransactionsPage(); } });
+document.getElementById('trans-next-btn').addEventListener('click', () => { if((transPage + 1) * pageSize < globalTransactions.length) { transPage++; renderTransactionsPage(); } });
 
 window.handleReturn = async (transactionId) => {
     if(!confirm("Are you sure you want to return this sale? All inventory items from this receipt will be restocked.")) return;
@@ -474,8 +474,6 @@ window.handleReturn = async (transactionId) => {
     const result = await returnTransaction(transactionId);
     if(result.success) {
         alert("Success: " + result.message);
-        renderTransactionsPage(transPage); 
-        updateDashboardSales();
     } else {
         alert("Error: " + result.message);
     }
