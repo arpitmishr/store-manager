@@ -1,32 +1,25 @@
+--- START OF FILE inventory.js ---
 import { db } from './firebase-config.js';
-import { collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, query, orderBy, limit, startAfter, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const inventoryRef = collection(db, 'inventory');
-
-// Add a new item to Firestore
-export async function addItem(name, qty, price) {
-    try {
-        await addDoc(inventoryRef, {
-            name: name,
-            quantity: Number(qty),
-            price: Number(price),
-            createdAt: new Date()
-        });
-        return true;
-    } catch (error) {
-        console.error("Error adding item: ", error);
-        return false;
+// Fetch paginated inventory (limits reads massively)
+export async function getInventoryPage(cursorDoc = null, pageSize = 15) {
+    let q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'), limit(pageSize));
+    if (cursorDoc) {
+        q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'), startAfter(cursorDoc), limit(pageSize));
     }
+    return await getDocs(q);
 }
 
-// Listen to inventory changes in REAL-TIME
-export function listenToInventory(callback) {
-    // onSnapshot triggers automatically whenever data changes in Firebase
-    return onSnapshot(inventoryRef, (snapshot) => {
-        const items =[];
-        snapshot.forEach(doc => {
-            items.push({ id: doc.id, ...doc.data() });
-        });
-        callback(items);
-    });
+// Optimized Search via prefix querying
+export async function searchInventoryByName(searchText) {
+    const searchLower = searchText.toLowerCase();
+    const q = query(
+        collection(db, 'inventory'),
+        where('nameLower', '>=', searchLower),
+        where('nameLower', '<=', searchLower + '\uf8ff'),
+        limit(20)
+    );
+    return await getDocs(q);
 }
+--- END OF FILE inventory.js ---
