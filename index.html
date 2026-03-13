@@ -1,3 +1,4 @@
+--- START OF FILE index.html ---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,7 +49,6 @@
         <!-- MAIN CONTENT AREA -->
         <main class="flex-1 flex flex-col overflow-y-auto">
             
-            <!-- Mobile Header -->
             <header class="bg-white shadow p-4 md:hidden flex justify-between items-center">
                 <h1 class="text-xl font-bold">Store Manager</h1>
                 <button id="logout-btn-mobile" class="text-red-600 font-bold">Logout</button>
@@ -60,17 +60,17 @@
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-3xl font-bold">Dashboard</h2>
                         <select id="year-filter" class="border p-2 rounded bg-white shadow font-bold text-blue-600">
-                            <option value="All">All Time</option>
+                            <!-- JS Dynamically Loads Years -->
                         </select>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
                             <h3 class="text-gray-500 font-medium">Total Products in Stock</h3>
-                            <p id="stat-products" class="text-3xl font-bold">0</p>
+                            <p id="stat-products" class="text-3xl font-bold">Loading...</p>
                         </div>
                         <div class="bg-white p-6 rounded-lg shadow border-t-4 border-green-500">
                             <h3 class="text-gray-500 font-medium">Total Net Sales (<span id="display-year">All Time</span>)</h3>
-                            <p id="stat-sales" class="text-3xl font-bold">₹0</p>
+                            <p id="stat-sales" class="text-3xl font-bold">Loading...</p>
                         </div>
                     </div>
                 </section>
@@ -79,7 +79,7 @@
                 <section id="inventory" class="page-section hidden">
                     <h2 class="text-3xl font-bold mb-6">Record Purchase & Add Stock</h2>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Purchase Form -->
+                        
                         <div class="bg-white p-6 rounded-lg shadow border-t-4 border-yellow-500">
                             <h3 class="text-xl font-bold mb-4">Add Items to Inventory</h3>
                             <form id="purchase-form" class="space-y-4">
@@ -103,8 +103,8 @@
                             </form>
                         </div>
 
-                        <!-- Current Stock -->
-                        <div class="bg-white rounded-lg shadow flex flex-col border-t-4 border-gray-500 max-h-[500px]">
+                        <!-- Current Stock (Paginated) -->
+                        <div class="bg-white rounded-lg shadow flex flex-col border-t-4 border-gray-500 h-[500px]">
                             <div class="p-4 border-b bg-gray-50">
                                 <h3 class="text-lg font-bold">Current Stock</h3>
                             </div>
@@ -119,6 +119,12 @@
                                     </thead>
                                     <tbody id="inventory-table-body" class="divide-y divide-gray-200"></tbody>
                                 </table>
+                            </div>
+                            <!-- Pagination Controls -->
+                            <div class="p-3 border-t bg-white flex justify-between items-center text-sm font-medium">
+                                <button id="inv-prev-btn" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300">Prev</button>
+                                <span id="inv-page-indicator">Page 1</span>
+                                <button id="inv-next-btn" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300">Next</button>
                             </div>
                         </div>
                     </div>
@@ -173,7 +179,6 @@
                             </form>
                         </div>
 
-                        <!-- Current Cart -->
                         <div class="bg-white p-6 rounded-lg shadow flex flex-col border-t-4 border-green-500">
                             <h3 class="text-xl font-bold mb-4">Current Transaction</h3>
                             <div class="flex-1 overflow-y-auto mb-4 border rounded bg-gray-50 p-2 min-h-[200px]">
@@ -205,24 +210,32 @@
                     </div>
                 </section>
 
-                <!-- TRANSACTION HISTORY SECTION (NEW) -->
+                <!-- TRANSACTION HISTORY SECTION (Paginated) -->
                 <section id="transactions-section" class="page-section hidden">
                     <h2 class="text-3xl font-bold mb-6">Transaction History</h2>
-                    <div class="bg-white rounded-lg shadow overflow-hidden border-t-4 border-indigo-500">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-100 border-b">
-                                <tr>
-                                    <th class="p-4">Date & Time</th>
-                                    <th class="p-4">Type</th>
-                                    <th class="p-4">Items Included</th>
-                                    <th class="p-4">Total Amount</th>
-                                    <th class="p-4">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transactions-table-body" class="divide-y divide-gray-200">
-                                <!-- JS Loaded -->
-                            </tbody>
-                        </table>
+                    <div class="bg-white rounded-lg shadow overflow-hidden border-t-4 border-indigo-500 flex flex-col h-[600px]">
+                        <div class="flex-1 overflow-y-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-gray-100 border-b sticky top-0">
+                                    <tr>
+                                        <th class="p-4">Date & Time</th>
+                                        <th class="p-4">Type</th>
+                                        <th class="p-4">Items Included</th>
+                                        <th class="p-4">Total Amount</th>
+                                        <th class="p-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body" class="divide-y divide-gray-200">
+                                    <!-- JS Loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination Controls -->
+                        <div class="p-4 border-t bg-gray-50 flex justify-between items-center text-sm font-medium">
+                            <button id="trans-prev-btn" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300">Previous</button>
+                            <span id="trans-page-indicator">Page 1</span>
+                            <button id="trans-next-btn" class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300">Next</button>
+                        </div>
                     </div>
                 </section>
 
@@ -246,3 +259,4 @@
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
+--- END OF FILE index.html ---
