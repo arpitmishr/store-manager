@@ -6,7 +6,7 @@ import { collection, doc, writeBatch, onSnapshot } from "https://www.gstatic.com
 
 // --- GLOBAL VARIABLES & STATE ---
 let globalInventory =[];
-let globalTransactions = [];
+let globalTransactions =[];
 let currentCart =[]; 
 let salesChartInstance = null;
 
@@ -229,7 +229,7 @@ function renderAnalytics() {
     const currentMonth = new Date().getMonth();
     
     let labels =[];
-    let dataPoints = [0,0,0,0,0,0];
+    let dataPoints =[0,0,0,0,0,0];
     
     for(let i = 5; i >= 0; i--) {
         let m = currentMonth - i;
@@ -351,7 +351,8 @@ function executeSaleSearch(queryText) {
     suggestionsBox.innerHTML = ''; 
     hiddenItemId.value = ''; 
     
-    if (!queryText) {
+    // Only search if 3 or more characters are entered
+    if (!queryText || queryText.length < 3) {
         suggestionsBox.style.display = 'none';
         return;
     }
