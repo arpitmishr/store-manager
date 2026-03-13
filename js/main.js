@@ -1,10 +1,10 @@
 // --- ALL IMPORTS AT THE TOP ---
 import { setupAuth } from './auth.js';
-import { addItem, listenToInventory } from './inventory.js';
+import { listenToInventory } from './inventory.js';
 import { processCartSale } from './sales.js';
-import { processJSONUpload } from './import.js'; // Imported ONLY here!
+import { processJSONUpload } from './import.js'; 
 import { db } from './firebase-config.js';
-import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, onSnapshot, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // --- GLOBAL VARIABLES ---
 let globalInventory =[];
@@ -35,14 +35,12 @@ navButtons.forEach(btn => {
 setupAuth((user) => {
     console.log("Logged in as:", user.email);
     
-    // Load Inventory
     listenToInventory((items) => {
         globalInventory = items;
         updateDashboard();
         updateInventoryTable();
     });
 
-    // Load Transactions
     onSnapshot(collection(db, 'transactions'), (snapshot) => {
         globalTransactions =[];
         const years = new Set();
@@ -72,17 +70,118 @@ setupAuth((user) => {
     globalTransactions =[];
 });
 
-// --- 3. INVENTORY LOGIC ---
-const addItemForm = document.getElementById('add-item-form');
-if (addItemForm) {
-    addItemForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('item-name').value;
-        const qty = document.getElementById('item-qty').value;
-        const price = document.getElementById('item-price').value;
+// --- 3. PURCHASE & INVENTORY LOGIC (With Autocomplete & Rate Checking) ---
+const purchaseNameInput = document.getElementById('purchase-item-name');
+const purchaseSuggestions = document.getElementById('purchase-item-suggestions');
 
-        const success = await addItem(name, qty, price);
-        if(success) e.target.reset();
+if (purchaseNameInput) {
+    purchaseNameInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        purchaseSuggestions.innerHTML = '';
+        if(!query) {
+            purchaseSuggestions.classList.add('hidden');
+            return;
+        }
+
+        const matches = globalInventory.filter(item => item.name.toLowerCase().includes(query));
+        
+        // Remove exact duplicates for the suggestion box
+        const uniqueMatches =[];
+        const seen = new Set();
+        matches.forEach(m => {
+            const key = m.name + m.price; // Group by name and price
+            if(!seen.has(key)) {
+                seen.add(key);
+                uniqueMatches.push(m);
+            }
+        });
+
+        if(uniqueMatches.length > 0) {
+            purchaseSuggestions.classList.remove('hidden');
+            uniqueMatches.forEach(item => {
+                const li = document.createElement('li');
+                li.className = "p-3 hover:bg-yellow-100 cursor-pointer border-b text-sm font-medium text-gray-800";
+                li.innerHTML = `${item.name} <span class="float-right text-gray-500">Last Rate: ₹${item.price}</span>`;
+                
+                li.addEventListener('click', () => {
+                    purchaseNameInput.value = item.name;
+                    document.getElementById('purchase-rate').value = item.price;
+                    purchaseSuggestions.classList.add('hidden');
+                });
+                purchaseSuggestions.appendChild(li);
+            });
+        } else {
+            purchaseSuggestions.classList.remove('hidden');
+            purchaseSuggestions.innerHTML = '<li class="p-3 text-gray-500 text-sm italic">New item will be created in inventory</li>';
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!purchaseNameInput.contains(e.target) && !purchaseSuggestions.contains(e.target)) {
+            purchaseSuggestions.classList.add('hidden');
+        }
+    });
+}
+
+const purchaseForm = document.getElementById('purchase-form');
+if (purchaseForm) {
+    purchaseForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('record-purchase-btn');
+        const msgEl = document.getElementById('purchase-msg');
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        const name = purchaseNameInput.value.trim();
+        const rate = parseFloat(document.getElementById('purchase-rate').value);
+        const qty = parseInt(document.getElementById('purchase-qty').value);
+
+        try {
+            const batch = writeBatch(db);
+            
+            // 1. Check if exact item + rate exists
+            const existingItem = globalInventory.find(i => i.name.toLowerCase() === name.toLowerCase() && i.price === rate);
+            
+            if(existingItem) {
+                // Same rate exists: Add to existing stock
+                const itemRef = doc(db, 'inventory', existingItem.id);
+                batch.update(itemRef, { quantity: existingItem.quantity + qty });
+            } else {
+                // Different rate or New Item: Create new inventory doc (New Batch)
+                const newInvRef = doc(collection(db, 'inventory'));
+                batch.set(newInvRef, {
+                    name: name,
+                    price: rate,
+                    quantity: qty,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            // 2. Record Transaction in Ledger
+            const total = rate * qty;
+            const newTransRef = doc(collection(db, 'transactions'));
+            batch.set(newTransRef, {
+                type: "Purchase",
+                date: new Date().toISOString(),
+                year: new Date().getFullYear(),
+                total: total,
+                paidAmount: total,
+                items: [{ particulars: name, quantity: qty, rate: rate }]
+            });
+
+            await batch.commit();
+
+            msgEl.textContent = "Purchase Recorded Successfully!";
+            msgEl.className = "mt-3 font-bold text-green-600 text-center";
+            e.target.reset();
+        } catch(err) {
+            msgEl.textContent = "Error: " + err.message;
+            msgEl.className = "mt-3 font-bold text-red-600 text-center";
+        }
+
+        btn.disabled = false;
+        btn.textContent = "Record Purchase";
+        setTimeout(() => msgEl.textContent = '', 3000);
     });
 }
 
@@ -91,25 +190,26 @@ function updateInventoryTable() {
     if(!tbody) return;
     tbody.innerHTML = ''; 
     
-    globalInventory.forEach(item => {
+    // Sort inventory by newest first so you see recent purchases at top
+    const sortedInventory = [...globalInventory].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    sortedInventory.forEach(item => {
         const tr = document.createElement('tr');
         const stockColor = item.quantity < 5 ? 'text-red-600' : 'text-green-600';
         tr.innerHTML = `
-            <td class="p-4">${item.name}</td>
-            <td class="p-4 font-bold ${stockColor}">${item.quantity}</td>
-            <td class="p-4">₹${item.price}</td>
+            <td class="p-3">${item.name}</td>
+            <td class="p-3 text-right font-bold ${stockColor}">${item.quantity}</td>
+            <td class="p-3 text-right">₹${item.price}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// --- 4. SALES CART & SEARCH LOGIC ---
+// --- 4. SALES CART & SEARCH LOGIC (WITH LIFO SORTING) ---
 const radioInventory = document.querySelector('input[value="inventory"]');
 const radioCosmetic = document.querySelector('input[value="cosmetic"]');
 const divInventory = document.getElementById('inventory-selection');
 const divCosmetic = document.getElementById('cosmetic-name-div');
-
-// Search Bar Elements
 const searchItemInput = document.getElementById('sale-item-search');
 const hiddenItemId = document.getElementById('sale-item-id');
 const suggestionsBox = document.getElementById('sale-item-suggestions');
@@ -138,37 +238,35 @@ function toggleSaleType() {
 if (radioInventory) radioInventory.addEventListener('change', toggleSaleType);
 if (radioCosmetic) radioCosmetic.addEventListener('change', toggleSaleType);
 
-// --- SEARCH AUTOCOMPLETE LOGIC ---
 if (searchItemInput) {
     searchItemInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
-        suggestionsBox.innerHTML = ''; // Clear old suggestions
-        hiddenItemId.value = ''; // Reset ID if user types something new
+        suggestionsBox.innerHTML = ''; 
+        hiddenItemId.value = ''; 
         
         if (!query) {
             suggestionsBox.classList.add('hidden');
             return;
         }
 
-        // Filter items that match the text AND have stock > 0
-        const matches = globalInventory.filter(item => 
-            item.name.toLowerCase().includes(query) && item.quantity > 0
-        );
+        // LIFO LOGIC: Filter items with stock, then SORT by Newest Created Date
+        const matches = globalInventory
+            .filter(item => item.name.toLowerCase().includes(query) && item.quantity > 0)
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); 
 
         if (matches.length > 0) {
             suggestionsBox.classList.remove('hidden');
             matches.forEach(item => {
                 const li = document.createElement('li');
                 li.className = "p-3 hover:bg-blue-100 cursor-pointer border-b text-sm font-medium text-gray-800";
-                li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Stock: ${item.quantity}</span>`;
+                li.innerHTML = `${item.name} <span class="float-right text-gray-500 font-normal">Rate: ₹${item.price} | Stock: ${item.quantity}</span>`;
                 
-                // When an item is clicked
                 li.addEventListener('click', () => {
                     searchItemInput.value = item.name;
                     hiddenItemId.value = item.id;
                     document.getElementById('sale-cost-rate').value = item.price; 
                     document.getElementById('sale-sales-rate').value = item.price;
-                    suggestionsBox.classList.add('hidden'); // Hide list
+                    suggestionsBox.classList.add('hidden'); 
                 });
                 suggestionsBox.appendChild(li);
             });
@@ -178,7 +276,6 @@ if (searchItemInput) {
         }
     });
 
-    // Hide suggestions when clicking somewhere else on the page
     document.addEventListener('click', (e) => {
         if (!searchItemInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
             suggestionsBox.classList.add('hidden');
@@ -198,8 +295,6 @@ if (addToSaleForm) {
         if(type === 'inventory') {
             id = hiddenItemId.value;
             name = searchItemInput.value;
-            
-            // Security check: Make sure they actually clicked an item from the list
             if (!id) {
                 alert("Please select a valid item from the search dropdown.");
                 return;
@@ -216,8 +311,8 @@ if (addToSaleForm) {
         
         renderCart();
         e.target.reset();
-        searchItemInput.value = ''; // Clear search bar
-        hiddenItemId.value = ''; // Clear hidden ID
+        searchItemInput.value = ''; 
+        hiddenItemId.value = ''; 
         
         if(radioInventory) radioInventory.checked = true; 
         toggleSaleType();
@@ -325,6 +420,7 @@ function updateDashboard() {
 }
 
 // --- 6. JSON IMPORT LOGIC ---
+import { processJSONUpload } from './import.js';
 let selectedFile = null;
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
