@@ -140,11 +140,17 @@
 
                             <form id="add-to-sale-form" class="space-y-4">
                                 <!-- Inventory Dropdown -->
-                                <div id="inventory-selection">
-                                    <label class="block text-sm font-medium text-gray-700">Select Inventory Item</label>
-                                    <select id="sale-item-select" class="w-full border p-2 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500" required>
-                                        <option value="">-- Choose Item --</option>
-                                    </select>
+                                <!-- Inventory Search Bar -->
+                                <div id="inventory-selection" class="relative">
+                                    <label class="block text-sm font-medium text-gray-700">Search Inventory Item</label>
+                                    <input type="text" id="sale-item-search" class="w-full border p-2 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500" placeholder="Type to search (e.g., KURTI)..." autocomplete="off" required>
+                                    <!-- Hidden input to store the actual item ID -->
+                                    <input type="hidden" id="sale-item-id">
+                                    
+                                    <!-- Pop-up Suggestions Box -->
+                                    <ul id="sale-item-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded shadow-xl max-h-48 overflow-y-auto hidden">
+                                        <!-- Suggestions will load here -->
+                                    </ul>
                                 </div>
                                 
                                 <!-- Cosmetic Name Input (Hidden by default) -->
