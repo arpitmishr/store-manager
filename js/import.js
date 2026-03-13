@@ -1,4 +1,4 @@
---- START OF FILE import.js ---
+
 import { db } from './firebase-config.js';
 import { collection, setDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -63,4 +63,4 @@ export async function processJSONUpload(file, statusElement) {
     
     reader.readAsText(file);
 }
---- END OF FILE import.js ---
+
