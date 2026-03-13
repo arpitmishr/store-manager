@@ -11,6 +11,7 @@ export async function processCartSale(cartItems) {
             const itemTotal = item.qty * item.salesRate;
             grandTotal += itemTotal;
 
+            // Saves using the JSON structure for consistency
             ledgerItems.push({
                 particulars: item.name,
                 quantity: item.qty,
@@ -26,7 +27,9 @@ export async function processCartSale(cartItems) {
                 if (!itemSnap.exists()) throw new Error(`Item ${item.name} missing from database.`);
                 
                 const currentQty = itemSnap.data().quantity;
-                if (currentQty < item.qty) throw new Error(`Not enough stock for ${item.name}. Only ${currentQty} left.`);
+                if (currentQty < item.qty) {
+                    throw new Error(`Not enough stock for ${item.name}. Only ${currentQty} left.`);
+                }
                 
                 batch.update(itemRef, { quantity: currentQty - item.qty });
             }
@@ -63,19 +66,23 @@ export async function returnTransaction(transactionId) {
 
         const tData = tSnap.data();
         if(tData.status === 'Returned') throw new Error("This sale was already returned.");
-        if(String(tData.type).toLowerCase() !== 'sale') throw new Error("Only sales can be returned.");
+        if(tData.type !== 'Sale') throw new Error("Only sales can be returned.");
 
+        // Loop items to restock
         for(let item of tData.items) {
+            // Read JSON 'particulars'
             const itemName = item.particulars || item.name;
             const isCosmetic = item.type === 'cosmetic' || (itemName && itemName.toLowerCase().includes('cosmetic'));
             
             if(!isCosmetic) {
-                const invQuery = query(collection(db, 'inventory'), where('name', '==', itemName));
+                const invQuery = query(collection(db, 'inventory'),
+                    where('name', '==', itemName),
+                    where('price', '==', item.costRate || item.rate || 0)
+                );
                 const invSnap = await getDocs(invQuery);
-                const matchedDocs = invSnap.docs.filter(d => d.data().price === (item.costRate || item.rate || 0));
 
-                if(matchedDocs.length > 0) {
-                    const invDoc = matchedDocs[0];
+                if(!invSnap.empty) {
+                    const invDoc = invSnap.docs[0];
                     const currentQty = invDoc.data().quantity;
                     batch.update(invDoc.ref, { quantity: currentQty + item.quantity });
                 } else {
