@@ -164,11 +164,11 @@
                     </div>
 
                     <form id="add-to-sale-form" class="space-y-4">
-                        <!-- Z-index fix for autocomplete -->
+                        <!-- Sales Item Search -->
                         <div id="inventory-selection" class="relative z-50">
                             <input type="text" id="sale-item-search" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Search item..." autocomplete="off">
                             <input type="hidden" id="sale-item-id">
-                            <ul id="sale-item-suggestions" class="absolute left-0 right-0 z-50 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden mt-2"></ul>
+                            <ul id="sale-item-suggestions" style="display: none;" class="absolute left-0 right-0 z-[9999] w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto mt-2"></ul>
                         </div>
                         
                         <div id="cosmetic-name-div" class="hidden relative z-40">
@@ -225,11 +225,13 @@
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative z-50">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Add Purchase</h3>
                     <form id="purchase-form" class="space-y-4">
-                        <!-- Z-index fix for autocomplete -->
+                        
+                        <!-- Purchase Item Search -->
                         <div class="relative z-50">
                             <input type="text" id="purchase-item-name" class="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none text-sm" placeholder="Search or Type New Item..." autocomplete="off" required>
-                            <ul id="purchase-item-suggestions" class="absolute left-0 right-0 z-50 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden mt-2"></ul>
+                            <ul id="purchase-item-suggestions" style="display: none;" class="absolute left-0 right-0 z-[9999] w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto mt-2"></ul>
                         </div>
+                        
                         <div class="grid grid-cols-2 gap-3 relative z-30">
                             <div>
                                 <input type="number" step="0.01" id="purchase-rate" class="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl text-sm outline-none" placeholder="Cost Rate (₹)" required>
