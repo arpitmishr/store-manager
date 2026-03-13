@@ -1,4 +1,3 @@
-
 import { db } from './firebase-config.js';
 import { collection, setDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -16,7 +15,6 @@ export async function processJSONUpload(file, statusElement) {
                 for (let item of data.inventory) {
                     await addDoc(invRef, {
                         name: item.particulars,
-                        nameLower: (item.particulars || "").toLowerCase(), // ADDED for optimized search
                         quantity: Number(item.quantity),
                         price: Number(item.rate),
                         createdAt: new Date().toISOString()
@@ -42,6 +40,7 @@ export async function processJSONUpload(file, statusElement) {
                         paidAmount: Number(t.paidAmount),
                         status: "Completed", 
                         items: t.items.map(i => ({
+                            // Maps your exact JSON fields
                             particulars: i.particulars || i.name || "Unknown Item",
                             quantity: i.quantity,
                             sellingRate: i.sellingRate || 0,
@@ -63,4 +62,3 @@ export async function processJSONUpload(file, statusElement) {
     
     reader.readAsText(file);
 }
-
