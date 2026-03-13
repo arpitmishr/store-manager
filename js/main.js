@@ -89,7 +89,7 @@ if (purchaseNameInput) {
         const uniqueMatches =[];
         const seen = new Set();
         matches.forEach(m => {
-            const key = m.name + m.price; // Group by name and price
+            const key = m.name + m.price; 
             if(!seen.has(key)) {
                 seen.add(key);
                 uniqueMatches.push(m);
@@ -166,7 +166,7 @@ if (purchaseForm) {
                 year: new Date().getFullYear(),
                 total: total,
                 paidAmount: total,
-                items: [{ particulars: name, quantity: qty, rate: rate }]
+                items:[{ particulars: name, quantity: qty, rate: rate }]
             });
 
             await batch.commit();
@@ -420,7 +420,6 @@ function updateDashboard() {
 }
 
 // --- 6. JSON IMPORT LOGIC ---
-import { processJSONUpload } from './import.js';
 let selectedFile = null;
 const uploadInput = document.getElementById('json-upload');
 const importBtn = document.getElementById('import-btn');
