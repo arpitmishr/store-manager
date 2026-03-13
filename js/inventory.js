@@ -1,4 +1,4 @@
---- START OF FILE inventory.js ---
+
 import { db } from './firebase-config.js';
 import { collection, query, orderBy, limit, startAfter, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -22,4 +22,4 @@ export async function searchInventoryByName(searchText) {
     );
     return await getDocs(q);
 }
---- END OF FILE inventory.js ---
+
