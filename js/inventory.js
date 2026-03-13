@@ -1,14 +1,15 @@
-
 import { db } from './firebase-config.js';
-import { collection, query, orderBy, limit, startAfter, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// Fetch paginated inventory (limits reads massively)
-export async function getInventoryPage(cursorDoc = null, pageSize = 15) {
-    let q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'), limit(pageSize));
-    if (cursorDoc) {
-        q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'), startAfter(cursorDoc), limit(pageSize));
-    }
-    return await getDocs(q);
+// Listen to inventory changes in REAL-TIME (Keeps search fast and accurate)
+export function listenToInventory(callback) {
+    return onSnapshot(collection(db, 'inventory'), (snapshot) => {
+        const items =[];
+        snapshot.forEach(doc => {
+            items.push({ id: doc.id, ...doc.data() });
+        });
+        callback(items);
+    });
 }
 
 // Optimized Search via prefix querying
