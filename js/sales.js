@@ -63,7 +63,7 @@ export async function returnTransaction(transactionId) {
 
         const tData = tSnap.data();
         if(tData.status === 'Returned') throw new Error("This sale was already returned.");
-        if(tData.type !== 'Sale') throw new Error("Only sales can be returned.");
+        if(String(tData.type).toLowerCase() !== 'sale') throw new Error("Only sales can be returned.");
 
         for(let item of tData.items) {
             const itemName = item.particulars || item.name;
