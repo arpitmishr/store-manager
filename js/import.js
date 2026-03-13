@@ -1,5 +1,5 @@
 import { db } from './firebase-config.js';
-import { collection, addDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, setDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 export async function processJSONUpload(file, statusElement) {
     const reader = new FileReader();
@@ -7,7 +7,7 @@ export async function processJSONUpload(file, statusElement) {
     reader.onload = async (e) => {
         try {
             const data = JSON.parse(e.target.result);
-            statusElement.textContent = "Data read successfully. Uploading to database... Do not close window.";
+            statusElement.textContent = "Uploading Inventory... Please do not close window.";
             
             // 1. Upload Inventory
             if(data.inventory && data.inventory.length > 0) {
@@ -22,37 +22,40 @@ export async function processJSONUpload(file, statusElement) {
                 }
             }
 
-            // 2. Upload Transactions (Sales, Purchases, Credit)
+            statusElement.textContent = "Uploading Transaction History... Please wait.";
+            
+            // 2. Upload Transactions
             if(data.transactions && data.transactions.length > 0) {
                 const transRef = collection(db, 'transactions');
                 for (let t of data.transactions) {
-                    // Extract year for easy filtering later
                     const dateObj = new Date(t.date);
-                    const year = dateObj.getFullYear();
-
+                    
                     await setDoc(doc(transRef, t.id.toString()), {
-                        type: t.type, // "Sale" or "Purchase"
+                        type: t.type,
                         saleType: t.saleType || "Cash", 
                         partyName: t.partyName || null,
                         date: t.date,
-                        year: year, // Storing year explicitly
+                        year: dateObj.getFullYear(),
                         total: Number(t.total),
                         paidAmount: Number(t.paidAmount),
+                        status: "Completed", 
                         items: t.items.map(i => ({
-                            name: i.particulars,
+                            // Maps your exact JSON fields
+                            particulars: i.particulars || i.name || "Unknown Item",
                             quantity: i.quantity,
                             sellingRate: i.sellingRate || 0,
-                            costRate: i.costRate || i.rate || 0
+                            costRate: i.costRate || i.rate || 0,
+                            type: (i.particulars && i.particulars.toLowerCase().includes('cosmetic')) ? 'cosmetic' : 'inventory'
                         }))
                     });
                 }
             }
             
-            statusElement.textContent = "✅ Import Complete! Refresh the page to see your data.";
+            statusElement.textContent = "✅ Import Complete! Refresh the page to see History.";
             statusElement.className = "mt-4 font-bold text-green-600";
         } catch (error) {
             console.error(error);
-            statusElement.textContent = "❌ Error parsing JSON or uploading data.";
+            statusElement.textContent = "❌ Error: " + error.message;
             statusElement.className = "mt-4 font-bold text-red-600";
         }
     };
