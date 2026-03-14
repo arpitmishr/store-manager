@@ -2,440 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Store Manager Pro</title>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store POS Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* Page Entrance Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .page-section:not(.hidden) { animation: fadeIn 0.3s ease-out forwards; }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen w-screen flex overflow-hidden selection:bg-indigo-100 selection:text-indigo-900">
+<body class="bg-gray-100 text-gray-800">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="flex w-full h-full items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-900 absolute inset-0 z-50 p-4">
-        <div class="bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/20">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-white text-3xl">
-                    <i class="fas fa-store"></i>
-                </div>
-                <h1 class="text-3xl font-extrabold text-white tracking-tight">Store Manager<span class="text-indigo-400">Pro</span></h1>
-                <p class="text-indigo-200 mt-2 text-sm font-medium">Log in to manage your inventory</p>
-            </div>
-            
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label class="block text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-2">Email Address</label>
-                    <div class="relative">
-                        <i class="fas fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-300"></i>
-                        <input type="email" id="email" class="w-full bg-slate-900/50 border border-white/10 text-white pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all placeholder-slate-400" placeholder="admin@store.com" required>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-2">Password</label>
-                    <div class="relative">
-                        <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-300"></i>
-                        <input type="password" id="password" class="w-full bg-slate-900/50 border border-white/10 text-white pl-11 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-transparent outline-none transition-all placeholder-slate-400" placeholder="••••••••" required>
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-indigo-500 text-white py-3.5 rounded-xl hover:bg-indigo-600 focus:ring-4 focus:ring-indigo-500/50 transition-all font-bold tracking-wide shadow-lg flex items-center justify-center gap-2 mt-2">
-                    <span>Access Dashboard</span> <i class="fas fa-arrow-right"></i>
-                </button>
-            </form>
-            <p id="auth-error" class="text-red-400 text-sm mt-4 text-center font-medium bg-red-900/30 py-2 rounded-lg hidden"></p>
+    <!-- LOGIN SECTION -->
+    <div id="auth-section" class="flex items-center justify-center min-h-screen bg-gray-200">
+        <div class="p-8 bg-white rounded shadow-lg text-center">
+            <h1 class="text-2xl font-bold mb-4">Store Manager POS</h1>
+            <p class="mb-6 text-gray-500">Please sign in to access the system</p>
+            <button id="login-btn" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">Sign in with Google</button>
         </div>
     </div>
 
-    <!-- APP WRAPPER -->
-    <div id="app-wrapper" class="w-full h-full flex hidden">
-        
-        <!-- DESKTOP SIDEBAR -->
-        <aside class="w-72 bg-slate-900 text-slate-300 hidden md:flex flex-col shadow-2xl z-20 h-full">
-            <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-                    <i class="fas fa-store"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-white tracking-tight">Store<span class="text-indigo-400">Pro</span></h2>
-                    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mt-0.5">Management System</p>
-                </div>
+    <!-- MAIN APP SECTION -->
+    <div id="app-section" class="hidden">
+        <!-- Navbar -->
+        <nav class="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center">
+            <div class="font-bold text-xl">My Store POS</div>
+            <div class="space-x-2">
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded bg-gray-800" data-target="dashboard-page">Dashboard</button>
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded" data-target="sale-page">🛒 POS Sale</button>
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded" data-target="purchase-page">📦 Purchase/Add</button>
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded" data-target="inventory-page">Inventory</button>
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded" data-target="history-page">History & Returns</button>
+                <button class="nav-btn hover:bg-gray-800 px-3 py-1 rounded" data-target="import-page">Import Data</button>
+                <button id="logout-btn" class="text-red-300 hover:text-red-500 ml-4 border border-red-400 px-2 py-1 rounded">Logout</button>
             </div>
-            
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-                <button class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium hover:bg-slate-800 hover:text-white data-[active=true]:bg-indigo-600 data-[active=true]:text-white data-[active=true]:shadow-lg" data-target="dashboard" data-active="true">
-                    <i class="fas fa-chart-pie w-6 text-center text-lg"></i> Overview
-                </button>
-                <button class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium hover:bg-slate-800 hover:text-white data-[active=true]:bg-indigo-600 data-[active=true]:text-white data-[active=true]:shadow-lg" data-target="inventory">
-                    <i class="fas fa-boxes w-6 text-center text-lg"></i> Inventory
-                </button>
-                <button class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium hover:bg-slate-800 hover:text-white data-[active=true]:bg-indigo-600 data-[active=true]:text-white data-[active=true]:shadow-lg" data-target="sales">
-                    <i class="fas fa-shopping-cart w-6 text-center text-lg"></i> Record Sale
-                </button>
-                <button class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium hover:bg-slate-800 hover:text-white data-[active=true]:bg-indigo-600 data-[active=true]:text-white data-[active=true]:shadow-lg" data-target="transactions-section">
-                    <i class="fas fa-history w-6 text-center text-lg"></i> History
-                </button>
-                <button class="nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-medium hover:bg-slate-800 hover:text-white data-[active=true]:bg-indigo-600 data-[active=true]:text-white data-[active=true]:shadow-lg" data-target="settings">
-                    <i class="fas fa-cog w-6 text-center text-lg"></i> Settings
-                </button>
-            </nav>
-            
-            <div class="p-5 border-t border-slate-800 bg-slate-900/50">
-                <button id="logout-btn" class="w-full flex items-center justify-center gap-2 bg-slate-800 text-slate-300 p-3 rounded-xl hover:bg-red-500 hover:text-white transition-all font-semibold border border-slate-700 hover:border-red-500">
-                    <i class="fas fa-sign-out-alt"></i> Sign Out
-                </button>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50/50">
-            
-            <!-- Mobile Top Header -->
-            <header class="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100 p-4 md:hidden flex justify-between items-center sticky top-0 z-30">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow">
-                        <i class="fas fa-store text-sm"></i>
-                    </div>
-                    <h1 class="text-lg font-extrabold text-slate-800">Store<span class="text-indigo-600">Pro</span></h1>
-                </div>
-                <button id="logout-btn-mobile" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors">
-                    <i class="fas fa-power-off"></i>
-                </button>
-            </header>
-
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8">
-                
-                <!-- DASHBOARD SECTION -->
-                <section id="dashboard" class="page-section max-w-7xl mx-auto">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                        <div>
-                            <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Dashboard</h2>
-                            <p class="text-slate-500 text-sm mt-1">Welcome back, here's what's happening today.</p>
-                        </div>
-                        <div class="relative w-full sm:w-auto">
-                            <i class="fas fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-500"></i>
-                            <select id="year-filter" class="w-full sm:w-auto appearance-none bg-white border border-gray-200 text-slate-700 font-semibold rounded-xl pl-10 pr-10 py-2.5 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer">
-                                <option value="All">All Time</option>
-                            </select>
-                            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Stat Card 1 -->
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out -z-10"></div>
-                            <div class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl shadow-inner z-10">
-                                <i class="fas fa-box-open"></i>
-                            </div>
-                            <div class="z-10">
-                                <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-1">Products in Stock</h3>
-                                <p id="stat-products" class="text-4xl font-extrabold text-slate-800">0</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Stat Card 2 -->
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out -z-10"></div>
-                            <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl shadow-inner z-10">
-                                <i class="fas fa-wallet"></i>
-                            </div>
-                            <div class="z-10">
-                                <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-1">Net Sales (<span id="display-year">All Time</span>)</h3>
-                                <p id="stat-sales" class="text-4xl font-extrabold text-slate-800">₹0</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- PURCHASE & INVENTORY SECTION -->
-                <section id="inventory" class="page-section hidden max-w-7xl mx-auto">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Inventory</h2>
-                        <p class="text-slate-500 text-sm mt-1">Add new stock and view current product levels.</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                        <!-- Purchase Form -->
-                        <div class="lg:col-span-2">
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-0">
-                                <h3 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2"><i class="fas fa-plus-circle text-indigo-500"></i> Record Purchase</h3>
-                                
-                                <form id="purchase-form" class="space-y-5">
-                                    <div class="relative">
-                                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Item Name</label>
-                                        <div class="relative">
-                                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                                            <input type="text" id="purchase-item-name" class="w-full bg-slate-50 border border-slate-200 text-slate-700 pl-10 pr-4 py-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="Search or type new..." autocomplete="off" required>
-                                        </div>
-                                        <ul id="purchase-item-suggestions" class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto hidden"></ul>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cost Rate (₹)</label>
-                                            <input type="number" step="0.01" id="purchase-rate" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="0.00" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Quantity</label>
-                                            <input type="number" id="purchase-qty" min="1" value="1" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" required>
-                                        </div>
-                                    </div>
-                                    
-                                    <button type="submit" id="record-purchase-btn" class="w-full bg-slate-900 text-white py-3.5 rounded-xl hover:bg-indigo-600 focus:ring-4 focus:ring-indigo-200 transition-all font-bold tracking-wide flex items-center justify-center gap-2 mt-2 shadow-md hover:shadow-lg">
-                                        <i class="fas fa-save"></i> Save to Inventory
-                                    </button>
-                                    <p id="purchase-msg" class="mt-3 text-sm font-semibold text-center h-5"></p>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Current Stock Table -->
-                        <div class="lg:col-span-3">
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px] overflow-hidden">
-                                <div class="px-6 py-4 border-b border-gray-100 bg-slate-50/50 flex justify-between items-center">
-                                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-boxes text-indigo-500"></i> Current Stock</h3>
-                                </div>
-                                <div class="flex-1 overflow-y-auto">
-                                    <table class="w-full text-left text-sm border-collapse">
-                                        <thead class="bg-white sticky top-0 z-10 shadow-sm">
-                                            <tr>
-                                                <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-gray-100">Item Name</th>
-                                                <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-gray-100 text-right">Stock</th>
-                                                <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-gray-100 text-right">Rate</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-50">
-                                            <!-- JS populated -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- SALES SECTION -->
-                <section id="sales" class="page-section hidden max-w-7xl mx-auto">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Point of Sale</h2>
-                        <p class="text-slate-500 text-sm mt-1">Add items to cart and process transactions.</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                        
-                        <!-- POS Form -->
-                        <div class="lg:col-span-2">
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-0">
-                                
-                                <!-- Segmented Control for Item Type -->
-                                <div class="flex gap-2 p-1.5 bg-slate-100 rounded-xl mb-6">
-                                    <label class="flex-1 cursor-pointer">
-                                        <input type="radio" name="item-type" value="inventory" checked class="peer sr-only">
-                                        <div class="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:shadow-sm peer-checked:text-indigo-600 text-slate-500 font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                                            <i class="fas fa-box"></i> Inventory
-                                        </div>
-                                    </label>
-                                    <label class="flex-1 cursor-pointer">
-                                        <input type="radio" name="item-type" value="cosmetic" class="peer sr-only">
-                                        <div class="text-center py-2.5 rounded-lg peer-checked:bg-white peer-checked:shadow-sm peer-checked:text-purple-600 text-slate-500 font-semibold text-sm transition-all flex items-center justify-center gap-2">
-                                            <i class="fas fa-spray-can"></i> Cosmetic
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <form id="add-to-sale-form" class="space-y-5">
-                                    <div id="inventory-selection" class="relative">
-                                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Search Product</label>
-                                        <div class="relative">
-                                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                                            <input type="text" id="sale-item-search" class="w-full bg-slate-50 border border-slate-200 text-slate-700 pl-10 pr-4 py-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Type to search..." autocomplete="off" required>
-                                        </div>
-                                        <input type="hidden" id="sale-item-id">
-                                        <ul id="sale-item-suggestions" class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto hidden"></ul>
-                                    </div>
-                                    
-                                    <div id="cosmetic-name-div" class="hidden">
-                                        <label class="block text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">Cosmetic Item Name</label>
-                                        <input type="text" id="cosmetic-name" class="w-full bg-purple-50/50 border border-purple-200 text-slate-700 px-4 py-3 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all" placeholder="e.g., Lipstick">
-                                    </div>
-
-                                    <div class="grid grid-cols-3 gap-3">
-                                        <div>
-                                            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 truncate">Cost (₹)</label>
-                                            <input type="number" step="0.01" id="sale-cost-rate" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2.5 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2 truncate">Sell (₹)</label>
-                                            <input type="number" step="0.01" id="sale-sales-rate" class="w-full bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2.5 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-sm" required>
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 truncate">Qty</label>
-                                            <input type="number" id="sale-qty" min="1" value="1" class="w-full bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2.5 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm" required>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-800 py-3.5 rounded-xl transition-all font-bold tracking-wide flex items-center justify-center gap-2 mt-4 shadow-sm">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- Current Cart -->
-                        <div class="lg:col-span-3">
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
-                                <div class="px-6 py-4 border-b border-gray-100 bg-slate-50/50 flex justify-between items-center">
-                                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-receipt text-indigo-500"></i> Current Order</h3>
-                                </div>
-                                
-                                <div class="flex-1 overflow-y-auto bg-slate-50/30">
-                                    <table class="w-full text-left text-sm border-collapse">
-                                        <thead class="bg-white sticky top-0 z-10 shadow-sm border-b border-gray-100">
-                                            <tr>
-                                                <th class="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
-                                                <th class="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Qty</th>
-                                                <th class="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Rate</th>
-                                                <th class="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Total</th>
-                                                <th class="p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-12"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="sale-cart-body" class="bg-white divide-y divide-gray-50">
-                                            <!-- JS Populated -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <div class="p-6 border-t border-gray-100 bg-white rounded-b-2xl shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10">
-                                    <div class="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100 flex justify-between items-center">
-                                        <span class="text-slate-500 font-semibold uppercase tracking-wider text-sm">Grand Total</span>
-                                        <span class="text-3xl font-extrabold text-emerald-600 tracking-tight" id="sale-grand-total">₹0</span>
-                                    </div>
-                                    <button id="record-sale-btn" class="w-full bg-emerald-500 text-white py-4 rounded-xl hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-200 transition-all font-bold text-lg flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <i class="fas fa-check-circle"></i> Complete Sale
-                                    </button>
-                                    <p id="sale-msg" class="mt-3 text-sm font-semibold text-center h-5"></p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </section>
-
-                <!-- TRANSACTION HISTORY SECTION -->
-                <section id="transactions-section" class="page-section hidden max-w-7xl mx-auto">
-                    <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Transactions</h2>
-                            <p class="text-slate-500 text-sm mt-1">View history and process returns.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead class="bg-slate-50 border-b border-gray-100">
-                                    <tr>
-                                        <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date & Time</th>
-                                        <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-                                        <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Included</th>
-                                        <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
-                                        <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="transactions-table-body" class="divide-y divide-gray-50">
-                                    <!-- JS Loaded -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- SETTINGS & IMPORT SECTION -->
-                <section id="settings" class="page-section hidden max-w-3xl mx-auto">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Settings</h2>
-                        <p class="text-slate-500 text-sm mt-1">Manage your application data.</p>
-                    </div>
-
-                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-full -z-10"></div>
-                        
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl">
-                                <i class="fas fa-file-import"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800">Import Legacy Data</h3>
-                                <p class="text-sm text-slate-500">Upload JSON file to restore history.</p>
-                            </div>
-                        </div>
-
-                        <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:bg-slate-50 transition-colors relative">
-                            <input type="file" id="json-upload" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                            <i class="fas fa-cloud-upload-alt text-4xl text-slate-300 mb-3"></i>
-                            <p class="text-sm font-medium text-slate-600">Click or drag JSON file to upload</p>
-                            <p class="text-xs text-slate-400 mt-1">Only .json files supported</p>
-                        </div>
-                        
-                        <div class="mt-6 flex flex-col items-center">
-                            <button id="import-btn" class="bg-purple-600 text-white px-8 py-3 rounded-xl hover:bg-purple-700 focus:ring-4 focus:ring-purple-200 font-bold transition-all shadow-md flex items-center gap-2 hidden">
-                                <i class="fas fa-play"></i> Start Import Process
-                            </button>
-                            <p id="import-status" class="mt-4 text-sm text-center"></p>
-                        </div>
-                    </div>
-                </section>
-
-            </div>
-        </main>
-        
-        <!-- MOBILE BOTTOM NAVIGATION -->
-        <nav class="md:hidden fixed bottom-0 w-full bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-around p-2 pb-safe z-40 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] pb-6">
-            <button class="nav-btn flex flex-col items-center p-2 text-slate-400 data-[active=true]:text-indigo-600 transition-colors w-16" data-target="dashboard" data-active="true">
-                <i class="fas fa-chart-pie text-xl mb-1 data-[active=true]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-bold tracking-wide">Dash</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center p-2 text-slate-400 data-[active=true]:text-indigo-600 transition-colors w-16" data-target="inventory">
-                <i class="fas fa-boxes text-xl mb-1 data-[active=true]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-bold tracking-wide">Stock</span>
-            </button>
-            <div class="relative -top-6">
-                <button class="nav-btn w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors border-4 border-slate-50" data-target="sales">
-                    <i class="fas fa-plus text-xl"></i>
-                </button>
-            </div>
-            <button class="nav-btn flex flex-col items-center p-2 text-slate-400 data-[active=true]:text-indigo-600 transition-colors w-16" data-target="transactions-section">
-                <i class="fas fa-history text-xl mb-1 data-[active=true]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-bold tracking-wide">History</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center p-2 text-slate-400 data-[active=true]:text-indigo-600 transition-colors w-16" data-target="settings">
-                <i class="fas fa-cog text-xl mb-1 data-[active=true]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-bold tracking-wide">Menu</span>
-            </button>
         </nav>
-        
+
+        <div class="p-6 max-w-6xl mx-auto">
+            
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page-section">
+                <h2 class="text-2xl font-bold mb-4">Dashboard overview for <span id="display-year">All Time</span></h2>
+                <select id="year-filter" class="mb-6 p-2 border rounded"><option value="All">All Time</option></select>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded shadow border-l-4 border-blue-500">
+                        <h3 class="text-gray-500 text-sm font-bold uppercase">Total Unique Products</h3>
+                        <p id="stat-products" class="text-3xl font-bold">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow border-l-4 border-green-500">
+                        <h3 class="text-gray-500 text-sm font-bold uppercase">Total Sales</h3>
+                        <p id="stat-sales" class="text-3xl font-bold text-green-600">₹0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sale / POS Page -->
+            <div id="sale-page" class="page-section hidden">
+                <h2 class="text-2xl font-bold mb-4">New POS Sale</h2>
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="col-span-1 bg-white p-6 shadow rounded">
+                        <form id="add-to-sale-form">
+                            <div class="mb-4 flex space-x-4">
+                                <label><input type="radio" name="item-type" value="inventory" checked> Inventory Stock</label>
+                                <label><input type="radio" name="item-type" value="cosmetic"> Cosmetic (No Stock)</label>
+                            </div>
+
+                            <div id="inventory-selection" class="relative mb-4">
+                                <label class="block text-sm font-bold mb-1">Search Item (Autofill)</label>
+                                <input type="text" id="sale-item-search" class="w-full border p-2 rounded" placeholder="Start typing...">
+                                <input type="hidden" id="sale-item-id">
+                                <ul id="sale-item-suggestions" class="absolute bg-white border w-full mt-1 max-h-48 overflow-y-auto hidden z-10 shadow-xl"></ul>
+                            </div>
+
+                            <div id="cosmetic-name-div" class="mb-4 hidden">
+                                <label class="block text-sm font-bold mb-1">Cosmetic Service/Item Name</label>
+                                <input type="text" id="cosmetic-name" class="w-full border p-2 rounded">
+                            </div>
+
+                            <div class="flex space-x-2 mb-4">
+                                <div class="w-1/2">
+                                    <label class="block text-sm font-bold mb-1">Cost Rate (₹)</label>
+                                    <input type="number" id="sale-cost-rate" class="w-full border p-2 rounded bg-gray-100" readonly>
+                                </div>
+                                <div class="w-1/2">
+                                    <label class="block text-sm font-bold mb-1">Selling Rate (₹)</label>
+                                    <input type="number" id="sale-sales-rate" class="w-full border p-2 rounded" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-bold mb-1">Quantity</label>
+                                <input type="number" id="sale-qty" value="1" min="1" class="w-full border p-2 rounded" required>
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700">+ Add to Cart</button>
+                        </form>
+                    </div>
+                    
+                    <div class="col-span-2 bg-white p-6 shadow rounded relative">
+                        <h3 class="text-lg font-bold mb-4 border-b pb-2">Current Cart</h3>
+                        <table class="w-full text-left mb-16">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-600 text-sm">
+                                    <th class="p-2">Item Name</th><th class="p-2">Qty</th><th class="p-2">Rate</th><th class="p-2 text-right">Total</th><th class="p-2 text-center">X</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sale-cart-body">
+                                <tr><td colspan="5" class="text-center py-4 text-gray-400">Cart is empty</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="absolute bottom-4 left-6 right-6 flex justify-between items-center border-t pt-4 bg-white">
+                            <p class="text-xl font-bold">Grand Total: <span id="sale-grand-total" class="text-green-600">₹0</span></p>
+                            <button id="record-sale-btn" class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700" disabled>Complete Sale</button>
+                        </div>
+                        <p id="sale-msg" class="absolute bottom-16 right-6"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase / Add Stock Page -->
+            <div id="purchase-page" class="page-section hidden">
+                <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
+                    <h2 class="text-2xl font-bold mb-4 border-b pb-2">Record Purchase (Add Stock)</h2>
+                    <form id="purchase-form">
+                        <div class="relative mb-4">
+                            <label class="block text-sm font-bold mb-1">Item Name</label>
+                            <input type="text" id="purchase-item-name" class="w-full border p-2 rounded" required autocomplete="off" placeholder="Search or create new...">
+                            <ul id="purchase-item-suggestions" class="absolute bg-white border w-full mt-1 max-h-48 overflow-y-auto hidden z-10 shadow-xl"></ul>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-1">Cost Rate (₹)</label>
+                            <input type="number" id="purchase-rate" class="w-full border p-2 rounded" required>
+                            <p class="text-xs text-gray-500 mt-1">If rate is different from history, it creates a new Batch.</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-1">Quantity</label>
+                            <input type="number" id="purchase-qty" class="w-full border p-2 rounded" required>
+                        </div>
+                        <button type="submit" id="record-purchase-btn" class="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700">Record Purchase</button>
+                        <p id="purchase-msg"></p>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Inventory Page -->
+            <div id="inventory-page" class="page-section hidden bg-white p-6 shadow rounded">
+                <h2 class="text-2xl font-bold mb-4">Current Active Inventory</h2>
+                <table class="w-full text-left border">
+                    <thead class="bg-gray-800 text-white">
+                        <tr><th class="p-3 border">Item Name</th><th class="p-3 border text-right">In Stock (Qty)</th><th class="p-3 border text-right">Cost Rate</th></tr>
+                    </thead>
+                    <tbody id="inventory-table-body" class="divide-y text-sm"></tbody>
+                </table>
+            </div>
+
+            <!-- History Page -->
+            <div id="history-page" class="page-section hidden bg-white p-6 shadow rounded">
+                <h2 class="text-2xl font-bold mb-4">Transaction History & Returns</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border">
+                        <thead class="bg-gray-100 border-b">
+                            <tr><th class="p-4">Date & Time</th><th class="p-4">Type</th><th class="p-4">Items / Particulars</th><th class="p-4">Total Amount</th><th class="p-4">Action</th></tr>
+                        </thead>
+                        <tbody id="transactions-table-body" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Import Page -->
+            <div id="import-page" class="page-section hidden bg-white p-6 shadow rounded max-w-lg mx-auto text-center">
+                <h2 class="text-2xl font-bold mb-4">Import Old Data (JSON)</h2>
+                <p class="mb-4 text-gray-600 text-sm">Upload your previous JSON ledger to merge it with your new POS system.</p>
+                <input type="file" id="json-upload" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                <button id="import-btn" class="bg-blue-600 text-white px-4 py-2 rounded hidden">Upload Database</button>
+                <p id="import-status" class="hidden mt-3 text-sm"></p>
+            </div>
+
+        </div>
     </div>
 
-    <!-- Main Logic -->
+    <!-- Essential: Type Module tells browser to support modern JS imports -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>
