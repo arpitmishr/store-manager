@@ -113,16 +113,31 @@
         </section>
 
         <!-- TRANSACTIONS -->
-        <section id="transactions" class="page-section hidden">
+        <!-- TRANSACTIONS -->
+        <section id="transactions" class="page-section hidden flex-col h-full">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-bold">Transactions</h2>
-                <button id="export-excel" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">⬇ Export to Excel</button>
+                <div class="flex gap-2">
+                    <input type="text" id="tx-search" placeholder="Search Customer..." class="p-2 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm">
+                    <button id="btn-tx-search" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-bold shadow">Search</button>
+                    <button id="export-excel" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm font-bold shadow">⬇ Export Year</button>
+                </div>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto mb-4">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100 dark:bg-gray-700"><tr><th class="p-3">Date</th><th class="p-3">Type</th><th class="p-3">Items</th><th class="p-3">Revenue</th><th class="p-3">Profit</th><th class="p-3">Actions</th></tr></thead>
+                    <thead class="bg-gray-100 dark:bg-gray-700">
+                        <tr><th class="p-3">Date</th><th class="p-3">Type</th><th class="p-3">Items</th><th class="p-3">Revenue</th><th class="p-3">Profit</th><th class="p-3">Actions</th></tr>
+                    </thead>
                     <tbody id="tx-table"></tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow flex justify-between items-center">
+                <button id="btn-prev-page" class="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded font-bold disabled:opacity-50 hover:bg-gray-300 dark:hover:bg-gray-600 transition">Previous</button>
+                <span id="page-info" class="font-bold text-sm">Page 1</span>
+                <button id="btn-next-page" class="bg-blue-600 text-white px-4 py-2 rounded font-bold disabled:opacity-50 hover:bg-blue-700 transition">Next Page</button>
             </div>
         </section>
 
