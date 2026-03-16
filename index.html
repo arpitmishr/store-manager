@@ -27,10 +27,18 @@
 
     <!-- SIDEBAR -->
     <aside id="sidebar" class="hidden w-64 bg-white dark:bg-gray-800 shadow-md flex-col border-r dark:border-gray-700 z-10">
-        <div class="p-6 border-b dark:border-gray-700">
-            <h2 class="text-xl font-bold text-blue-600">Tinny Fashion</h2>
-            <p class="text-xs text-gray-500">Business Manager</p>
-        </div>
+        <!-- Inside the Sidebar, right after the title -->
+<div class="p-6 border-b dark:border-gray-700">
+    <h2 class="text-xl font-bold text-blue-600">Tinny Fashion</h2>
+    <p class="text-xs text-gray-500 mb-3">Business Manager</p>
+    
+    <!-- YEAR SELECTOR -->
+    <select id="global-year-filter" class="w-full p-2 text-sm border rounded bg-gray-50 dark:bg-gray-700 dark:border-gray-600 font-bold text-blue-600">
+        <option value="All">All Years</option>
+        <option value="2026" selected>2026</option>
+        <option value="2025">2025</option>
+    </select>
+</div>
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
             <button class="nav-btn active-nav w-full text-left p-3 rounded font-semibold" data-target="dashboard">📊 Dashboard</button>
             <button class="nav-btn w-full text-left p-3 rounded" data-target="sales">🛒 Sales (POS)</button>
