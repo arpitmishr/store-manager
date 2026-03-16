@@ -1,0 +1,20 @@
+/* Hide scrollbar for cleaner UI but keep functionality */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+/* Stock Warning Colors */
+.stock-good { background-color: #dcfce7 !important; color: #166534; }
+.stock-warning { background-color: #fef08a !important; color: #854d0e; }
+.stock-danger { background-color: #fee2e2 !important; color: #991b1b; }
