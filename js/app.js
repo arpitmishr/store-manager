@@ -4,22 +4,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     navButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Remove active styles from all buttons
-            navButtons.forEach(b => {
-                b.classList.remove('bg-blue-50', 'text-blue-600', 'dark:bg-gray-700', 'dark:text-blue-400', 'font-semibold');
-                b.classList.add('hover:bg-gray-100', 'dark:hover:bg-gray-700');
-            });
-
-            // Add active styles to clicked button
-            btn.classList.add('bg-blue-50', 'text-blue-600', 'dark:bg-gray-700', 'dark:text-blue-400', 'font-semibold');
-            btn.classList.remove('hover:bg-gray-100');
-
-            // Hide all pages
-            pages.forEach(page => page.classList.add('hidden'));
-
-            // Show target page
-            const targetId = btn.getAttribute('data-target');
-            document.getElementById(targetId).classList.remove('hidden');
+            navButtons.forEach(b => b.classList.remove('active-nav'));
+            btn.classList.add('active-nav');
+            pages.forEach(p => p.classList.add('hidden'));
+            document.getElementById(btn.getAttribute('data-target')).classList.remove('hidden');
         });
     });
+
+    // Theme logic
+    const themeBtn = document.getElementById('toggle-theme');
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+    
+    if(themeBtn){
+        themeBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+    }
 });
