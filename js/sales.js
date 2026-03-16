@@ -96,6 +96,7 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
 
     const txData = {
         date: new Date().toISOString().split('T')[0],
+        year: new Date().getFullYear().toString(), // <-- THIS LINE IS ADDED
         timestamp: new Date().toISOString(),
         items: cart.map(c => ({ id: c.id, name: c.name, qty: c.sellQty, price: c.sellPrice, cost: c.avgCost, isCosmetic: c.isCosmetic })),
         total: totalRevenue,
