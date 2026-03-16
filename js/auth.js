@@ -1,24 +1,41 @@
-// js/auth.js
 import { auth } from './firebase-config.js';
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-export function setupAuth(onLogin, onLogout) {
-    const provider = new GoogleAuthProvider();
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
+const loginForm = document.getElementById('login-form');
+const logoutBtn = document.getElementById('logout-btn');
+const loginScreen = document.getElementById('login-screen');
+const appContainer = document.getElementById('app-container');
+const loginError = document.getElementById('login-error');
 
-    if(loginBtn) loginBtn.addEventListener('click', () => signInWithPopup(auth, provider));
-    if(logoutBtn) logoutBtn.addEventListener('click', () => signOut(auth));
+// Handle Login
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('app-section').classList.remove('hidden');
-            onLogin(user);
-        } else {
-            document.getElementById('auth-section').classList.remove('hidden');
-            document.getElementById('app-section').classList.add('hidden');
-            onLogout();
-        }
-    });
-}
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // UI updates automatically via onAuthStateChanged
+    } catch (error) {
+        loginError.textContent = "Invalid email or password.";
+        loginError.classList.remove('hidden');
+    }
+});
+
+// Handle Logout
+logoutBtn.addEventListener('click', async () => {
+    await signOut(auth);
+});
+
+// Listen to Auth State
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is logged in
+        loginScreen.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+    } else {
+        // User is logged out
+        loginScreen.classList.remove('hidden');
+        appContainer.classList.add('hidden');
+    }
+});
