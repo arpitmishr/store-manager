@@ -3,39 +3,31 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https:/
 
 const loginForm = document.getElementById('login-form');
 const logoutBtn = document.getElementById('logout-btn');
-const loginScreen = document.getElementById('login-screen');
-const appContainer = document.getElementById('app-container');
-const loginError = document.getElementById('login-error');
 
-// Handle Login
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // UI updates automatically via onAuthStateChanged
-    } catch (error) {
-        loginError.textContent = "Invalid email or password.";
-        loginError.classList.remove('hidden');
+    } catch (err) {
+        document.getElementById('login-error').textContent = "Invalid credentials.";
+        document.getElementById('login-error').classList.remove('hidden');
     }
 });
 
-// Handle Logout
-logoutBtn.addEventListener('click', async () => {
-    await signOut(auth);
-});
+logoutBtn.addEventListener('click', () => signOut(auth));
 
-// Listen to Auth State
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // User is logged in
-        loginScreen.classList.add('hidden');
-        appContainer.classList.remove('hidden');
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('sidebar').classList.remove('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+        document.getElementById('sidebar').classList.add('flex');
     } else {
-        // User is logged out
-        loginScreen.classList.remove('hidden');
-        appContainer.classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('main-content').classList.add('hidden');
+        document.getElementById('sidebar').classList.remove('flex');
     }
 });
