@@ -1,732 +1,119 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tinny Fashion - Manager</title>
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinny Fashion - Business Manager</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans:['Poppins', 'sans-serif'] },
-                    colors: { brand: { 500: '#DD6B20', 600: '#C05621' } }
-                }
-            }
-        }
+        tailwind.config = { darkMode: 'class' }
     </script>
-
-    <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        /* Hide scrollbars for cleaner mobile look */
-        ::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .page { display: none; animation: fadeIn 0.3s ease-out; }
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .nav-btn.active { color: #DD6B20; font-weight: 600; }
-        .nav-btn.active svg { stroke-width: 2.5; }
-
-        /* Custom Toast */
-        #toast {
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            transform: translateY(150%);
-        }
-        #toast.show { transform: translateY(0); }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel Export/Import -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300 antialiased pb-20">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-200">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-        <div class="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-center border border-gray-100 dark:border-gray-700">
-            <div class="w-16 h-16 bg-brand-500 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-lg">
-                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-            </div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tinny Fashion</h1>
-            <p class="text-gray-500 dark:text-gray-400 mb-8">Your business manager. Sign in to continue.</p>
-            <button id="signin-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 py-3 px-4 rounded-xl font-semibold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition disabled:opacity-50">
-                <svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.012 35.841 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-                Sign in with Google
-            </button>
+    <!-- LOGIN SCREEN (Visible by default until authenticated) -->
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+        <div class="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-xl w-96">
+            <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Tinny Fashion Login</h1>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-1">Email</label>
+                    <input type="email" id="email" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700" required>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Password</label>
+                    <input type="password" id="password" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold">Log In</button>
+            </form>
+            <p id="login-error" class="text-red-500 text-sm mt-3 hidden"></p>
         </div>
     </div>
 
-    <!-- MAIN APP -->
-    <div id="app-wrapper" class="hidden min-h-screen relative">
+    <!-- MAIN APPLICATION (Hidden until authenticated) -->
+    <div id="app-container" class="hidden flex h-screen overflow-hidden">
         
-        <!-- HEADER -->
-        <header class="sticky top-0 z-40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-brand-500">Tinny Fashion</h1>
-            <select id="year-selector" class="bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:bg-gray-700">
-                <option value="current">Loading...</option>
-            </select>
-        </header>
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-white dark:bg-gray-800 shadow-md flex flex-col">
+            <div class="p-6 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold text-blue-600">Tinny Fashion</h2>
+                <p class="text-xs text-gray-500">Business Manager</p>
+            </div>
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <button class="nav-btn w-full text-left p-3 rounded bg-blue-50 text-blue-600 dark:bg-gray-700 dark:text-blue-400 font-semibold" data-target="dashboard">📊 Dashboard</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="sales">🛒 Sales</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="inventory">📦 Inventory</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="transactions">📝 Transactions</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="analytics">📈 Analytics</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="credit">💳 Credit Mgmt</button>
+                <button class="nav-btn w-full text-left p-3 rounded hover:bg-gray-100 dark:hover:bg-gray-700" data-target="settings">⚙️ Settings</button>
+            </nav>
+            <div class="p-4 border-t dark:border-gray-700">
+                <button id="logout-btn" class="w-full p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 font-bold">Logout</button>
+            </div>
+        </aside>
 
-        <!-- CONTENT -->
-        <main id="main-content" class="p-4 max-w-5xl mx-auto space-y-6">
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-8 relative">
             
-            <!-- DASHBOARD -->
-            <div id="dashboard" class="page active">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold">Dashboard</h2>
-                    <p class="text-gray-500 dark:text-gray-400 text-sm">Quick overview of your performance.</p>
-                </div>
-                
-                <!-- KPI Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Today Sales</h3>
-                        <p id="today-sales" class="text-2xl font-bold text-brand-500">₹0</p>
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="page-section">
+                <h2 class="text-3xl font-bold mb-6">Today's Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-blue-500">
+                        <p class="text-sm text-gray-500">Today's Sales</p>
+                        <h3 class="text-2xl font-bold" id="today-sales">₹0.00</h3>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Today Profit</h3>
-                        <p id="today-profit" class="text-2xl font-bold text-green-500">₹0</p>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-green-500">
+                        <p class="text-sm text-gray-500">Today's Profit</p>
+                        <h3 class="text-2xl font-bold" id="today-profit">₹0.00</h3>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Overall Revenue</h3>
-                        <p id="dashboard-revenue" class="text-2xl font-bold">₹0</p>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-yellow-500">
+                        <p class="text-sm text-gray-500">Low Stock Items</p>
+                        <h3 class="text-2xl font-bold text-yellow-600" id="low-stock-count">0</h3>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Low Stock</h3>
-                        <p id="dashboard-low-stock" class="text-2xl font-bold text-red-500">0</p>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border-l-4 border-purple-500">
+                        <p class="text-sm text-gray-500">Trending Item</p>
+                        <h3 class="text-xl font-bold" id="trending-item">-</h3>
                     </div>
                 </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-4">Sales Trend</h3>
+                    <canvas id="salesTrendChart" height="100"></canvas>
+                </div>
+            </section>
 
-                <!-- Chart Card -->
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                        <h3 class="font-bold text-lg">Sales Trend</h3>
-                        <div class="flex gap-2 text-sm">
-                            <input type="date" id="dashboard-start-date" class="border rounded-lg px-2 py-1 dark:bg-gray-700 dark:border-gray-600">
-                            <input type="date" id="dashboard-end-date" class="border rounded-lg px-2 py-1 dark:bg-gray-700 dark:border-gray-600">
-                            <button id="dashboard-filter-btn" class="bg-brand-500 text-white px-3 py-1 rounded-lg">Filter</button>
-                        </div>
+            <!-- Sales Section (Scaffold) -->
+            <section id="sales" class="page-section hidden">
+                <h2 class="text-3xl font-bold mb-6">Sales Management</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-4">New Bill</h3>
+                    <!-- Search & Auto-complete -->
+                    <input type="text" id="item-search" placeholder="Search inventory..." class="w-full p-3 border rounded mb-4 dark:bg-gray-700 dark:border-gray-600">
+                    <div id="cart-items" class="space-y-3 mb-4">
+                        <!-- Cart items injected via JS -->
                     </div>
-                    <canvas id="salesTrendChart" class="w-full h-64"></canvas>
+                    <button class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">Complete Sale</button>
                 </div>
-            </div>
+            </section>
 
-            <!-- SALES PAGE -->
-            <div id="sales" class="page">
-                <div class="mb-6"><h2 class="text-2xl font-bold">Record Sale</h2></div>
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                    <h3 class="font-semibold text-lg mb-4 text-brand-500">Inventory Sale</h3>
-                    <form id="sales-form">
-                        <div id="sales-items-container" class="space-y-4"></div>
-                        <div class="mt-6 flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                            <button type="button" id="add-sale-item-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium">+ Add Item</button>
-                            <button type="submit" class="px-6 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium ml-auto shadow-md">Complete Sale</button>
-                        </div>
-                    </form>
-                </div>
-                <!-- Cosmetic Sale -->
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <h3 class="font-semibold text-lg mb-4">Cosmetic Sale</h3>
-                    <form id="cosmetic-sale-form" class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2"><input type="text" id="cosmetic-particulars" placeholder="Item Name" class="w-full border rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-brand-500" required></div>
-                        <div><input type="number" id="cosmetic-quantity" placeholder="Quantity" min="1" class="w-full border rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600" required></div>
-                        <div><input type="number" id="cosmetic-cost-rate" placeholder="Cost Rate" step="0.01" class="w-full border rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600" required></div>
-                        <div class="col-span-2"><input type="number" id="cosmetic-sell-rate" placeholder="Sale Rate" step="0.01" class="w-full border rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600" required></div>
-                        <button type="submit" class="col-span-2 bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 py-3 rounded-xl font-bold">Record Cosmetic</button>
-                    </form>
-                </div>
-                <datalist id="inventory-datalist"></datalist>
-            </div>
-
-            <!-- STOCKS -->
-            <div id="stocks" class="page">
-                <div class="mb-6"><h2 class="text-2xl font-bold">Inventory</h2></div>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse" id="inventory-table">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
-                                <tr><th class="p-4 font-semibold">Item</th><th class="p-4 font-semibold">Qty</th><th class="p-4 font-semibold">Cost</th><th class="p-4 font-semibold">Act</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ANALYTICS -->
-            <div id="analytics" class="page">
-                <div class="mb-6"><h2 class="text-2xl font-bold">Analytics</h2></div>
-                <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-2">
-                    <button class="analytics-tab bg-brand-500 text-white px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap" data-target="analytics-trends">Trends</button>
-                    <button class="analytics-tab bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap" data-target="analytics-fsn">FSN Matrix</button>
-                    <button class="analytics-tab bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap" data-target="analytics-abc">ABC Analysis</button>
-                </div>
-                
-                <div id="analytics-trends" class="analytics-section block">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                        <h3 class="font-bold mb-4">Monthly Overview</h3>
-                        <canvas id="monthlySalesProfitChart" class="w-full h-64"></canvas>
-                    </div>
-                </div>
-
-                <div id="analytics-fsn" class="analytics-section hidden">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="font-bold mb-2">FSN x HMV Analysis</h3>
-                        <p class="text-xs text-gray-500 mb-4">Fast/Slow/Non-moving vs High/Medium/Low Value</p>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm" id="fsn-hmv-analysis-table">
-                                <thead class="border-b dark:border-gray-700"><tr><th class="pb-2">Item</th><th class="pb-2">FSN</th><th class="pb-2">Priority</th></tr></thead>
-                                <tbody class="divide-y dark:divide-gray-700"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="analytics-abc" class="analytics-section hidden">
-                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="font-bold mb-4">ABC Classification</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm" id="abc-analysis-table">
-                                <thead class="border-b dark:border-gray-700"><tr><th class="pb-2">Item</th><th class="pb-2">Value</th><th class="pb-2">Cat</th></tr></thead>
-                                <tbody class="divide-y dark:divide-gray-700"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PURCHASE -->
-            <div id="purchase" class="page">
-                <div class="mb-6"><h2 class="text-2xl font-bold">Add Stock</h2></div>
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <form id="purchase-form">
-                        <div id="purchase-items-container" class="space-y-4"></div>
-                        <div class="mt-6 flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                            <button type="button" id="add-purchase-item-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium">+ Item</button>
-                            <button type="submit" class="px-6 py-2 bg-brand-500 text-white rounded-lg text-sm font-medium ml-auto">Save Stock</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- TRANSACTIONS -->
-            <div id="transactions" class="page">
-                <div class="mb-6 flex justify-between items-center">
-                    <h2 class="text-2xl font-bold">History</h2>
-                    <button id="export-tx-btn" class="p-2 bg-brand-50 text-brand-600 rounded-lg dark:bg-gray-800 border dark:border-gray-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden p-2">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left whitespace-nowrap" id="transactions-table"></table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SETTINGS -->
-            <div id="settings" class="page">
-                <div class="mb-6"><h2 class="text-2xl font-bold">Settings</h2></div>
-                <div class="space-y-4">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                        <div>
-                            <h3 class="font-semibold">Dark Mode</h3>
-                            <p class="text-xs text-gray-500">Toggle app theme</p>
-                        </div>
-                        <button id="theme-toggle-btn" class="w-12 h-6 bg-gray-300 dark:bg-brand-500 rounded-full relative transition-colors"><span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform dark:translate-x-6"></span></button>
-                    </div>
-                    
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <h3 class="font-semibold mb-3">Data Management</h3>
-                        <div class="flex flex-wrap gap-3">
-                            <button id="manual-sync-btn" class="flex-1 bg-gray-100 dark:bg-gray-700 py-2 rounded-lg text-sm font-medium">Force Sync</button>
-                            <button id="import-data-btn" class="flex-1 bg-gray-100 dark:bg-gray-700 py-2 rounded-lg text-sm font-medium">Import Excel</button>
-                            <input type="file" id="excel-file" accept=".xlsx, .xls" class="hidden">
-                        </div>
-                    </div>
-
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <h3 class="font-semibold mb-3">Authentication</h3>
-                        <button id="signout-btn" class="w-full bg-red-50 dark:bg-red-900/30 text-red-600 border border-red-200 dark:border-red-800 py-3 rounded-xl font-bold">Sign Out</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Add additional sections (inventory, transactions, analytics, etc.) similarly -->
+            <!-- ... -->
 
         </main>
-
-        <!-- BOTTOM NAVIGATION -->
-        <nav class="fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center h-16 z-50 pb-safe">
-            <button class="nav-btn active flex flex-col items-center w-full py-2 text-gray-400" data-page="dashboard">
-                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                <span class="text-[10px] font-medium">Home</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center w-full py-2 text-gray-400" data-page="sales">
-                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                <span class="text-[10px] font-medium">Sale</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center w-full py-2 text-gray-400" data-page="stocks">
-                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                <span class="text-[10px] font-medium">Stocks</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center w-full py-2 text-gray-400" data-page="analytics">
-                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                <span class="text-[10px] font-medium">Analytics</span>
-            </button>
-            <button id="more-menu-btn" class="nav-btn flex flex-col items-center w-full py-2 text-gray-400">
-                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                <span class="text-[10px] font-medium">Menu</span>
-            </button>
-        </nav>
-
-        <!-- MORE MENU DRAWER -->
-        <div id="more-drawer" class="fixed inset-0 z-[60] bg-black/50 hidden opacity-0 transition-opacity">
-            <div class="absolute bottom-16 w-full bg-white dark:bg-gray-800 rounded-t-3xl shadow-2xl p-6 transform translate-y-full transition-transform duration-300 drawer-content">
-                <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6"></div>
-                <div class="grid grid-cols-3 gap-4 text-center">
-                    <button class="nav-btn drawer-btn flex flex-col items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700" data-page="purchase">
-                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center mb-2"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
-                        <span class="text-xs font-medium">Purchase</span>
-                    </button>
-                    <button class="nav-btn drawer-btn flex flex-col items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700" data-page="transactions">
-                        <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full flex items-center justify-center mb-2"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-                        <span class="text-xs font-medium">History</span>
-                    </button>
-                    <button class="nav-btn drawer-btn flex flex-col items-center p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700" data-page="settings">
-                        <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full flex items-center justify-center mb-2"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-                        <span class="text-xs font-medium">Settings</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed bottom-24 right-4 left-4 md:left-auto md:w-80 bg-gray-900 text-white px-6 py-4 rounded-xl shadow-xl z-[9999] flex items-center font-medium"></div>
-
-    <!-- FIREBASE & LOGIC -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBtY97ItVEcZ7srTcpIDUsXmqf1ZBlW2ZQ",
-            authDomain: "store-manager-87634.firebaseapp.com",
-            projectId: "store-manager-87634",
-            storageBucket: "store-manager-87634.firebasestorage.app",
-            messagingSenderId: "620672866976",
-            appId: "1:620672866976:web:1ae1157027a2a0705f47c5"
-        };
-
-        const fbApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fbApp);
-        const db = getFirestore(fbApp);
-        const provider = new GoogleAuthProvider();
-
-        const myApp = {
-            user: null,
-            viewingYear: new Date().getFullYear().toString(),
-            state: { inventory: [], transactions: [], holidays:[] },
-            charts: {},
-            isSaving: false,
-            saveTimeout: null,
-
-            init() {
-                this.loadTheme();
-                this.attachEvents();
-                
-                // Auth Observer
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        this.user = user;
-                        document.getElementById('login-screen').classList.add('hidden');
-                        document.getElementById('app-wrapper').classList.remove('hidden');
-                        this.populateYearSelect();
-                        this.loadData(this.viewingYear);
-                    } else {
-                        document.getElementById('login-screen').classList.remove('hidden');
-                        document.getElementById('app-wrapper').classList.add('hidden');
-                    }
-                });
-
-                document.getElementById('signin-btn').addEventListener('click', () => {
-                    signInWithPopup(auth, provider).catch(e => this.showToast(e.message, 'error'));
-                });
-            },
-
-            async populateYearSelect() {
-                const selector = document.getElementById('year-selector');
-                try {
-                    const snap = await getDocs(collection(db, `users/${this.user.uid}/transactions`));
-                    const years = snap.docs.map(d => parseInt(d.id)).sort((a,b)=>b-a);
-                    const currentYear = new Date().getFullYear();
-                    if(!years.includes(currentYear)) years.unshift(currentYear);
-                    
-                    selector.innerHTML = `<option value="${currentYear}">(${currentYear})</option><option value="ALL">All Years</option>`;
-                    years.forEach(y => { if(y !== currentYear) selector.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`); });
-                    selector.onchange = (e) => this.loadData(e.target.value);
-                } catch(e) { console.error(e); }
-            },
-
-            async loadData(year) {
-                this.showToast(`Loading data...`, 'info');
-                this.viewingYear = year.toString();
-                const uid = this.user.uid;
-                
-                try {
-                    const invDoc = await getDoc(doc(db, `users/${uid}/storeData/inventory`));
-                    this.state.inventory = invDoc.exists() ? invDoc.data().items || [] :[];
-                    
-                    const setDocRes = await getDoc(doc(db, `users/${uid}/storeData/settings`));
-                    this.state.holidays = setDocRes.exists() ? setDocRes.data().holidays || [] :[];
-
-                    if (year === 'ALL') {
-                        const txSnap = await getDocs(collection(db, `users/${uid}/transactions`));
-                        this.state.transactions =[];
-                        txSnap.forEach(d => this.state.transactions.push(...(d.data().items ||[])));
-                    } else {
-                        const txDoc = await getDoc(doc(db, `users/${uid}/transactions/${year}`));
-                        this.state.transactions = txDoc.exists() ? txDoc.data().items || [] :[];
-                    }
-                    
-                    this.state.transactions = this.state.transactions.map(t => ({...t, date: new Date(t.date)}));
-                    this.renderPage(document.querySelector('.page.active').id);
-                    this.showToast('Data synced.', 'success');
-                } catch(e) {
-                    this.showToast('Load failed.', 'error');
-                }
-            },
-
-            triggerAutoSave() {
-                clearTimeout(this.saveTimeout);
-                this.saveTimeout = setTimeout(() => this.saveData(), 1500);
-            },
-
-            async saveData(isManual = false) {
-                if(this.viewingYear !== new Date().getFullYear().toString() && this.viewingYear !== 'current' && !isManual) return;
-                if(this.isSaving) return;
-                this.isSaving = true;
-                
-                try {
-                    const uid = this.user.uid;
-                    await setDoc(doc(db, `users/${uid}/storeData/inventory`), { items: this.state.inventory });
-                    await setDoc(doc(db, `users/${uid}/storeData/settings`), { holidays: this.state.holidays });
-
-                    const txByYear = this.state.transactions.reduce((acc, tx) => {
-                        const y = new Date(tx.date).getFullYear().toString();
-                        if (!acc[y]) acc[y] =[];
-                        acc[y].push({...tx, date: tx.date.toISOString()});
-                        return acc;
-                    }, {});
-
-                    for (const [y, txs] of Object.entries(txByYear)) {
-                        await setDoc(doc(db, `users/${uid}/transactions/${y}`), { items: txs });
-                    }
-                    if(isManual) this.showToast('Force Sync Complete!', 'success');
-                } catch(e) {
-                    this.showToast('Sync Failed!', 'error');
-                } finally {
-                    this.isSaving = false;
-                }
-            },
-
-            attachEvents() {
-                // Navigation
-                document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.renderPage(e.currentTarget.dataset.page);
-                        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                        if(!e.currentTarget.classList.contains('drawer-btn')) e.currentTarget.classList.add('active');
-                        this.closeDrawer();
-                    });
-                });
-
-                // Drawer
-                const drawer = document.getElementById('more-drawer');
-                const drawerContent = drawer.querySelector('.drawer-content');
-                document.getElementById('more-menu-btn').addEventListener('click', () => {
-                    drawer.classList.remove('hidden');
-                    setTimeout(() => { drawer.classList.remove('opacity-0'); drawerContent.classList.remove('translate-y-full'); }, 10);
-                });
-                drawer.addEventListener('click', (e) => {
-                    if (e.target === drawer) this.closeDrawer();
-                });
-
-                // Analytics Tabs
-                document.querySelectorAll('.analytics-tab').forEach(tab => {
-                    tab.addEventListener('click', (e) => {
-                        document.querySelectorAll('.analytics-section').forEach(s => s.classList.add('hidden'));
-                        document.getElementById(e.target.dataset.target).classList.remove('hidden');
-                        document.querySelectorAll('.analytics-tab').forEach(t => { t.classList.remove('bg-brand-500', 'text-white'); t.classList.add('bg-white', 'text-gray-600', 'dark:bg-gray-800', 'dark:text-gray-300'); });
-                        e.target.classList.remove('bg-white', 'text-gray-600', 'dark:bg-gray-800', 'dark:text-gray-300');
-                        e.target.classList.add('bg-brand-500', 'text-white');
-                    });
-                });
-
-                // Forms
-                document.getElementById('add-sale-item-btn').addEventListener('click', () => this.addFormRow('sales'));
-                document.getElementById('add-purchase-item-btn').addEventListener('click', () => this.addFormRow('purchase'));
-                document.getElementById('sales-form').addEventListener('submit', (e) => this.processSale(e));
-                document.getElementById('cosmetic-sale-form').addEventListener('submit', (e) => this.processCosmetic(e));
-                document.getElementById('purchase-form').addEventListener('submit', (e) => this.processPurchase(e));
-                
-                // Form interactions
-                document.getElementById('sales-items-container').addEventListener('input', e => {
-                    if (e.target.classList.contains('particulars')) {
-                        const item = this.state.inventory.find(i => i.particulars.toLowerCase() === e.target.value.trim().toLowerCase());
-                        const row = e.target.closest('.item-row');
-                        if (item) row.querySelector('.cost-rate').value = item.rate.toFixed(2);
-                    }
-                });
-
-                // Settings & Export
-                document.getElementById('theme-toggle-btn').addEventListener('click', () => this.toggleTheme());
-                document.getElementById('signout-btn').addEventListener('click', () => signOut(auth));
-                document.getElementById('manual-sync-btn').addEventListener('click', () => this.saveData(true));
-            },
-
-            closeDrawer() {
-                const drawer = document.getElementById('more-drawer');
-                drawer.querySelector('.drawer-content').classList.add('translate-y-full');
-                drawer.classList.add('opacity-0');
-                setTimeout(() => drawer.classList.add('hidden'), 300);
-            },
-
-            renderPage(pageId) {
-                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-                const page = document.getElementById(pageId);
-                if (page) page.classList.add('active');
-                
-                Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9CA3AF' : '#4B5563';
-                
-                if (pageId === 'dashboard') this.renderDashboard();
-                if (pageId === 'sales') { document.getElementById('sales-items-container').innerHTML = ''; this.addFormRow('sales'); this.renderDatalist(); }
-                if (pageId === 'purchase') { document.getElementById('purchase-items-container').innerHTML = ''; this.addFormRow('purchase'); }
-                if (pageId === 'stocks') this.renderInventory();
-                if (pageId === 'analytics') this.renderAnalytics();
-                if (pageId === 'transactions') this.renderTransactions();
-            },
-
-            addFormRow(type) {
-                const container = document.getElementById(`${type}-items-container`);
-                const div = document.createElement('div');
-                div.className = 'item-row grid grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl relative';
-                
-                if (type === 'sales') {
-                    div.innerHTML = `
-                        <div class="col-span-2"><input type="text" class="particulars w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600 focus:ring-1 focus:ring-brand-500" list="inventory-datalist" placeholder="Item Name" required></div>
-                        <div><input type="number" class="quantity w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600" placeholder="Qty" min="1" required></div>
-                        <div><input type="number" class="rate w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600" placeholder="Sale Rate" step="0.01" required></div>
-                        <input type="hidden" class="cost-rate">
-                        <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex justify-center items-center text-xs shadow hover:bg-red-600" onclick="this.parentElement.remove()">×</button>
-                    `;
-                } else {
-                    div.innerHTML = `
-                        <div class="col-span-2"><input type="text" class="particulars w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600" placeholder="Item Name" required></div>
-                        <div><input type="number" class="quantity w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600" placeholder="Qty" min="1" required></div>
-                        <div><input type="number" class="rate w-full p-2 rounded-lg border dark:bg-gray-800 dark:border-gray-600" placeholder="Cost Rate" step="0.01" required></div>
-                        <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex justify-center items-center text-xs shadow hover:bg-red-600" onclick="this.parentElement.remove()">×</button>
-                    `;
-                }
-                container.appendChild(div);
-            },
-
-            renderDatalist() {
-                document.getElementById('inventory-datalist').innerHTML = this.state.inventory.map(i => `<option value="${i.particulars}">`).join('');
-            },
-
-            renderDashboard() {
-                const todayStr = new Date().toDateString();
-                const todaySales = this.state.transactions.filter(t => t.type === 'Sale' && t.date.toDateString() === todayStr);
-                const revenue = todaySales.reduce((s, t) => s + t.total, 0);
-                const profit = todaySales.flatMap(t => t.items).reduce((s, i) => s + (i.sellingRate - i.costRate) * i.quantity, 0);
-                
-                document.getElementById('today-sales').textContent = `₹${this.fmt(revenue)}`;
-                document.getElementById('today-profit').textContent = `₹${this.fmt(profit)}`;
-                
-                const allSales = this.state.transactions.filter(t => t.type === 'Sale');
-                document.getElementById('dashboard-revenue').textContent = `₹${this.fmt(allSales.reduce((s, t) => s + t.total, 0))}`;
-                document.getElementById('dashboard-low-stock').textContent = this.state.inventory.filter(i => i.quantity > 0 && i.quantity <= 5).length;
-
-                this.renderSalesChart(new Date(Date.now() - 6*86400000), new Date());
-            },
-
-            renderSalesChart(start, end) {
-                const ctx = document.getElementById('salesTrendChart').getContext('2d');
-                const labels =[], data = {};
-                for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)) { 
-                    const k = d.toISOString().split('T')[0];
-                    labels.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric'})); 
-                    data[k] = 0; 
-                }
-                this.state.transactions.forEach(t => {
-                    if (t.type === 'Sale' && t.date >= start && t.date <= end) {
-                        const k = t.date.toISOString().split('T')[0];
-                        if (data[k] !== undefined) data[k] += t.total;
-                    }
-                });
-                
-                if(this.charts.sales) this.charts.sales.destroy();
-                this.charts.sales = new Chart(ctx, {
-                    type: 'line', data: { labels, datasets:[{ data: Object.values(data), borderColor: '#DD6B20', backgroundColor: 'rgba(221, 107, 32, 0.1)', fill: true, tension: 0.4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-            },
-
-            processSale(e) {
-                e.preventDefault();
-                const items =[];
-                for (const row of e.target.querySelectorAll('.item-row')) {
-                    const p = row.querySelector('.particulars').value.trim();
-                    const q = parseInt(row.querySelector('.quantity').value);
-                    const r = parseFloat(row.querySelector('.rate').value);
-                    const inv = this.state.inventory.find(i => i.particulars === p);
-                    
-                    if (!inv || inv.quantity < q) return this.showToast(`Insufficient stock for ${p}`, 'error');
-                    items.push({ particulars: p, quantity: q, sellingRate: r, costRate: inv.rate, invRef: inv });
-                }
-                if (!items.length) return;
-
-                const total = items.reduce((s, i) => s + (i.sellingRate * i.quantity), 0);
-                items.forEach(i => i.invRef.quantity -= i.quantity);
-                this.state.transactions.push({ id: Date.now(), type: 'Sale', date: new Date(), items: items.map(({invRef, ...rest}) => rest), total });
-                
-                this.triggerAutoSave();
-                document.getElementById('sales-items-container').innerHTML = '';
-                this.addFormRow('sales');
-                this.showToast(`Sale saved: ₹${this.fmt(total)}`);
-            },
-
-            processCosmetic(e) {
-                e.preventDefault();
-                const p = e.target.querySelector('#cosmetic-particulars').value;
-                const q = parseInt(e.target.querySelector('#cosmetic-quantity').value);
-                const cr = parseFloat(e.target.querySelector('#cosmetic-cost-rate').value);
-                const sr = parseFloat(e.target.querySelector('#cosmetic-sell-rate').value);
-                
-                this.state.transactions.push({ id: Date.now(), type: 'Sale', date: new Date(), items:[{ particulars: `(Cosmetic) ${p}`, quantity: q, costRate: cr, sellingRate: sr }], total: sr * q });
-                this.triggerAutoSave();
-                e.target.reset();
-                this.showToast('Cosmetic sale saved!');
-            },
-
-            processPurchase(e) {
-                e.preventDefault();
-                const items =[];
-                for (const row of e.target.querySelectorAll('.item-row')) {
-                    const p = row.querySelector('.particulars').value.trim();
-                    const q = parseInt(row.querySelector('.quantity').value);
-                    const r = parseFloat(row.querySelector('.rate').value);
-                    items.push({ particulars: p, quantity: q, rate: r });
-                }
-                
-                items.forEach(item => {
-                    const ex = this.state.inventory.find(i => i.particulars === item.particulars);
-                    if (ex) {
-                        ex.rate = ((ex.rate * ex.quantity) + (item.rate * item.quantity)) / (ex.quantity + item.quantity);
-                        ex.quantity += item.quantity;
-                    } else this.state.inventory.push(item);
-                });
-
-                this.state.transactions.push({ id: Date.now(), type: 'Purchase', date: new Date(), items, total: items.reduce((s,i) => s + (i.rate*i.quantity), 0) });
-                this.triggerAutoSave();
-                document.getElementById('purchase-items-container').innerHTML = '';
-                this.addFormRow('purchase');
-                this.showToast('Purchase added successfully!');
-            },
-
-            renderInventory() {
-                const tbody = document.querySelector('#inventory-table tbody');
-                tbody.innerHTML = this.state.inventory.sort((a,b)=>a.particulars.localeCompare(b.particulars)).map(i => `
-                    <tr>
-                        <td class="p-4">${i.particulars}</td>
-                        <td class="p-4"><span class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 ${i.quantity<=3?'text-red-500':''}">${i.quantity}</span></td>
-                        <td class="p-4">₹${this.fmt(i.rate)}</td>
-                        <td class="p-4 text-brand-500 font-bold" onclick="alert('Use Web version for advanced edit/delete features')">...</td>
-                    </tr>
-                `).join('') || `<tr><td colspan="4" class="p-4 text-center">No items</td></tr>`;
-            },
-
-            renderTransactions() {
-                const tbody = document.getElementById('transactions-table');
-                const sorted = [...this.state.transactions].sort((a,b)=>b.date-a.date).slice(0, 50); // limit for mobile
-                tbody.innerHTML = sorted.map(t => {
-                    const isSale = t.type === 'Sale';
-                    const prof = isSale ? t.items.reduce((s,i) => s + (i.sellingRate-i.costRate)*i.quantity, 0) : 0;
-                    return `
-                        <tr class="border-b dark:border-gray-700">
-                            <td class="py-3 px-2">
-                                <div class="font-medium">${t.date.toLocaleDateString('en-GB')}</div>
-                                <div class="text-xs text-gray-500">${t.items.map(i=>`${i.quantity}x ${i.particulars}`).join(', ')}</div>
-                            </td>
-                            <td class="py-3 px-2 text-right">
-                                <div class="font-bold ${isSale?'text-green-500':'text-red-500'}">₹${this.fmt(t.total)}</div>
-                                ${isSale ? `<div class="text-xs text-gray-400">Prof: ₹${this.fmt(prof)}</div>` : ''}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            },
-
-            renderAnalytics() {
-                // Monthly Chart
-                const monthlyData = {};
-                this.state.transactions.forEach(t => {
-                    const m = t.date.toISOString().slice(0, 7);
-                    if(!monthlyData[m]) monthlyData[m] = {s:0, p:0};
-                    if(t.type === 'Sale') {
-                        monthlyData[m].s += t.total;
-                        monthlyData[m].p += t.items.reduce((s,i) => s + (i.sellingRate-i.costRate)*i.quantity, 0);
-                    }
-                });
-                const sortedM = Object.keys(monthlyData).sort();
-                if(this.charts.monthly) this.charts.monthly.destroy();
-                this.charts.monthly = new Chart(document.getElementById('monthlySalesProfitChart'), {
-                    type: 'bar', data: {
-                        labels: sortedM.map(m => new Date(m+'-01').toLocaleString('en',{month:'short'})),
-                        datasets: [
-                            {label: 'Sales', data: sortedM.map(m=>monthlyData[m].s), backgroundColor: '#3182CE'},
-                            {label: 'Profit', data: sortedM.map(m=>monthlyData[m].p), backgroundColor: '#38A169'}
-                        ]
-                    }, options: { responsive: true, maintainAspectRatio: false }
-                });
-
-                // ABC Simple
-                let abcItems = this.state.inventory.map(i => ({...i, v: i.quantity * i.rate})).sort((a,b)=>b.v-a.v);
-                let cum = 0, tot = abcItems.reduce((s,i)=>s+i.v,0);
-                abcItems.forEach(i => { cum+=i.v; let p = (cum/tot)*100; i.cat = p<=70?'A':p<=90?'B':'C'; });
-                document.querySelector('#abc-analysis-table tbody').innerHTML = abcItems.map(i => `
-                    <tr><td class="py-2">${i.particulars}</td><td class="py-2">₹${this.fmt(i.v)}</td><td class="py-2 font-bold ${i.cat==='A'?'text-green-500':i.cat==='B'?'text-blue-500':'text-red-500'}">${i.cat}</td></tr>
-                `).join('');
-            },
-
-            loadTheme() {
-                if(localStorage.getItem('theme') === 'light') document.documentElement.classList.remove('dark');
-            },
-            toggleTheme() {
-                document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-                if(this.charts.sales) this.renderPage('dashboard');
-            },
-            fmt(n) { return Number(n||0).toLocaleString('en-IN', {maximumFractionDigits:0}); },
-            showToast(msg, type='success') {
-                const t = document.getElementById('toast');
-                t.textContent = msg;
-                t.className = `fixed bottom-24 right-4 left-4 md:left-auto md:w-80 px-6 py-4 rounded-xl shadow-xl z-[9999] flex items-center font-medium transition-transform duration-300 ${type==='error'?'bg-red-500 text-white':'bg-gray-900 dark:bg-gray-100 dark:text-gray-900 text-white'} show`;
-                setTimeout(() => t.classList.remove('show'), 3000);
-            }
-        };
-
-        window.myApp = myApp; // expose to window for inline handlers if needed
-        myApp.init();
-
-    </script>
+    <!-- Modular JS Imports -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
