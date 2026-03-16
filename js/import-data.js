@@ -1,18 +1,12 @@
 import { db } from './firebase-config.js';
 import { doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// Ensure the page is fully loaded before attaching events
 document.addEventListener('DOMContentLoaded', () => {
     const importBtn = document.getElementById('btn-import-json');
     
-    if (!importBtn) {
-        console.error("Migration button not found! Check if ID 'btn-import-json' exists in index.html");
-        return;
-    }
+    if (!importBtn) return;
 
     importBtn.addEventListener('click', () => {
-        console.log("Migration button clicked!");
-        
         const fileInput = document.getElementById('json-import-file');
         const statusText = document.getElementById('import-status');
         
@@ -22,13 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const file = fileInput.files[0];
-        console.log("File selected:", file.name);
-        
         const reader = new FileReader();
+        
         reader.onload = async (e) => {
             try {
                 statusText.innerText = "Parsing JSON...";
-                console.log("File read successfully, parsing JSON...");
                 const data = JSON.parse(e.target.result);
                 await processMigration(data, statusText);
             } catch (error) {
@@ -56,9 +48,9 @@ async function processMigration(data, statusText) {
         let operationCount = 0;
 
         const commitBatch = async () => {
-            console.log("Committing batch of 450 items...");
+            console.log("Committing batch of items...");
             await batch.commit();
-            batch = writeBatch(db);
+            batch = writeBatch(db); // Reinitialize batch safely
             operationCount = 0;
         };
 
@@ -66,7 +58,9 @@ async function processMigration(data, statusText) {
         const inventoryMap = {};
         if(data.inventory && Array.isArray(data.inventory)) {
             console.log(`Processing ${data.inventory.length} inventory items...`);
-            data.inventory.forEach(item => {
+            
+            // Map the inventory array first
+            for (const item of data.inventory) {
                 const nameTrim = item.particulars.trim();
                 const id = nameTrim.toLowerCase().replace(/[^a-z0-9]/g, '_');
                 
@@ -85,15 +79,14 @@ async function processMigration(data, statusText) {
                         isCosmetic: nameTrim.toLowerCase().includes("(cosmetic)") || nameTrim.toLowerCase().includes("abnormal profit")
                     };
                 }
-            });
+            }
 
+            // Now push mapped inventory to Firebase securely
             for (const [id, item] of Object.entries(inventoryMap)) {
                 batch.set(doc(db, "inventory", id), item);
                 operationCount++;
                 if (operationCount >= 450) await commitBatch();
             }
-        } else {
-            console.warn("No 'inventory' array found in JSON");
         }
         
         statusText.innerText = "Inventory mapped... processing transactions.";
@@ -103,7 +96,9 @@ async function processMigration(data, statusText) {
         
         if(data.transactions && Array.isArray(data.transactions)) {
             console.log(`Processing ${data.transactions.length} transactions...`);
-            data.transactions.forEach(tx => {
+            
+            // CHANGED TO FOR...OF LOOP TO PROPERLY HANDLE 'AWAIT'
+            for (const tx of data.transactions) {
                 const txId = tx.id.toString();
                 const txYear = tx.date ? tx.date.substring(0, 4) : new Date().getFullYear().toString();
                 
@@ -155,21 +150,24 @@ async function processMigration(data, statusText) {
                     }
                 }
 
-                if (operationCount >= 450) commitBatch(); 
-            });
-        } else {
-            console.warn("No 'transactions' array found in JSON");
+                // SECURE AWAIT COMMIT
+                if (operationCount >= 450) await commitBatch(); 
+            }
         }
 
         // 3. PROCESS CREDIT LEDGERS
         console.log("Processing Credit Ledgers...");
-        for (const[customerName, amount] of Object.entries(creditMap)) {
+        for (const [customerName, amount] of Object.entries(creditMap)) {
             batch.set(doc(db, "credit_ledgers", customerName), { name: customerName, amount: amount });
             operationCount++;
             if (operationCount >= 450) await commitBatch();
         }
 
-        await commitBatch(); // Final push
+        // Catch any remaining uncommitted operations in the final batch
+        if (operationCount > 0) {
+            await commitBatch(); 
+        }
+
         console.log("Migration completely finished!");
         statusText.innerText = "✅ Migration Complete! Data is now live.";
         alert("System Data Migrated Successfully. Please refresh the page.");
@@ -177,6 +175,6 @@ async function processMigration(data, statusText) {
     } catch (err) {
         console.error("Firebase Batch Error:", err);
         statusText.innerText = "❌ Firebase Error. Check Console.";
-        alert("Error connecting to Firebase. Make sure your Firestore rules allow writing.");
+        alert("Error connecting to Firebase. Check console for details.");
     }
-}
+}V.+
