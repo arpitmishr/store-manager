@@ -19,13 +19,28 @@ const auth = getAuth(app);
 
 let unsubInventory = null;
 let unsubTransactions = null;
-let allTransactions =[];
+let allTransactions = [];
 let allInventory =[]; // Save locally for analytics
 
 // Chart Instances
 let myChartMonthly = null;
 let myChartABC = null;
 let myChartFSN = null;
+
+// ----- THEME LOGIC -----
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+    btnThemeToggle.innerText = "Switch to Light Mode";
+}
+
+btnThemeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    btnThemeToggle.innerText = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    if(myChartMonthly) renderCharts(lastMonthlyData, lastAbcTotals, lastFsnTotals); // Refresh charts colors implicitly
+});
 
 // ----- AUTHENTICATION LOGIC -----
 onAuthStateChanged(auth, (user) => {
@@ -55,7 +70,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
 // ----- TAB NAVIGATION -----
-const tabs =['dashboard', 'analytics', 'sales', 'purchases', 'inventory'];
+const tabs =['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
@@ -136,10 +151,11 @@ document.getElementById('btn-ana-today').addEventListener('click', () => {
     runAnalytics();
 });
 document.getElementById('ana-class-filter').addEventListener('change', runAnalytics);
-
-// Adding Listeners for new Filters
 document.getElementById('filter-top-selling').addEventListener('change', runAnalytics);
 document.getElementById('filter-inv-status').addEventListener('change', runAnalytics);
+
+// Keep track of latest chart data for theme switching
+let lastMonthlyData = {}; let lastAbcTotals = {}; let lastFsnTotals = {};
 
 function runAnalytics() {
     if(!document.getElementById('tab-analytics').classList.contains('active')) return;
@@ -152,8 +168,8 @@ function runAnalytics() {
 
     // 2. Process Filtered Transactions
     let revenue = 0; let cogs = 0; 
-    let itemStats = {}; // FSN / HMV stats + Sale Tracking
-    let monthlyData = {}; // For Chart
+    let itemStats = {}; 
+    let monthlyData = {};
 
     allInventory.forEach(inv => {
         itemStats[inv.name] = { stock: inv.qty, unitCost: inv.price, invValue: (inv.qty * inv.price), qtySold: 0, totalRevenue: 0 };
@@ -194,7 +210,7 @@ function runAnalytics() {
 
     // 4. Calculate ABC Analysis
     let totalInvValue = 0;
-    let abcArray =[];
+    let abcArray = [];
     for (const [name, data] of Object.entries(itemStats)) {
         totalInvValue += data.invValue;
         abcArray.push({ name, value: data.invValue });
@@ -215,7 +231,6 @@ function runAnalytics() {
         else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; }
         else { abcTotals.C += item.value; category = 'C'; }
 
-        // Draw ABC Table rows
         let catColor = category === 'A' ? '#2ecc71' : (category === 'B' ? '#f1c40f' : '#e74c3c');
         tbodyABC.innerHTML += `
             <tr>
@@ -245,10 +260,10 @@ function runAnalytics() {
     tbodyInv.innerHTML = '';
     let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
     sortedInv.forEach(item => {
-        if (filterInv === 'Low' && item.stock > 3) return; // Hide standard stock if "Low" is filtered
+        if (filterInv === 'Low' && item.stock > 3) return; 
         tbodyInv.innerHTML += `<tr>
             <td>${item.name}</td>
-            <td style="color: ${item.stock <= 3 ? '#e74c3c' : '#2c3e50'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td>
+            <td style="color: ${item.stock <= 3 ? '#e74c3c' : 'inherit'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td>
         </tr>`;
     });
 
@@ -310,7 +325,9 @@ function runAnalytics() {
         `;
     });
 
-    // 9. Render Charts
+    lastMonthlyData = monthlyData;
+    lastAbcTotals = abcTotals;
+    lastFsnTotals = fsnTotals;
     renderCharts(monthlyData, abcTotals, fsnTotals);
 }
 
@@ -322,6 +339,10 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
     const labelsMonth = Object.keys(monthlyData).reverse();
     const dataSales = labelsMonth.map(m => monthlyData[m].sales);
     const dataProfit = labelsMonth.map(m => monthlyData[m].profit);
+    const isDark = document.body.classList.contains('dark-mode');
+    const chartTextColor = isDark ? '#e0e0e0' : '#2c3e50';
+
+    Chart.defaults.color = chartTextColor;
 
     myChartMonthly = new Chart(document.getElementById('chart-monthly'), {
         type: 'bar',
@@ -332,28 +353,27 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
                 { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#2ecc71' }
             ]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit' } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } } }
     });
 
     myChartABC = new Chart(document.getElementById('chart-abc'), {
         type: 'doughnut',
         data: {
             labels:['A (Top Value)', 'B (Medium)', 'C (Low)'],
-            datasets: [{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#2ecc71', '#f1c40f', '#e74c3c'] }]
+            datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#2ecc71', '#f1c40f', '#e74c3c'], borderWidth: 0 }]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC' } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } } }
     });
 
     myChartFSN = new Chart(document.getElementById('chart-fsn'), {
         type: 'pie',
         data: {
             labels: ['Fast Moving', 'Slow Moving', 'Non-Moving'],
-            datasets:[{ data: [fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3498db', '#e67e22', '#95a5a6'] }]
+            datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3498db', '#e67e22', '#95a5a6'], borderWidth: 0 }]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN' } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } } }
     });
 }
-
 
 // ==========================================
 // ====== EXISTING SALES & PURCHASES ========
@@ -466,5 +486,134 @@ document.querySelector('#table-inventory tbody').addEventListener('click', async
         document.getElementById('inv-form-title').innerText = `Editing: ${e.target.getAttribute('data-name')}`;
         document.getElementById('btn-inv-cancel').style.display = "inline-block";
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+});
+
+
+// ==========================================
+// ====== SETTINGS & DATA MANAGEMENT ========
+// ==========================================
+
+// 1. Excel Import Setup
+document.getElementById('btn-trigger-excel').addEventListener('click', () => {
+    document.getElementById('excel-file').click();
+});
+
+document.getElementById('excel-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+
+    if(!confirm("WARNING: This will DELETE all current inventory and replace it entirely with the data from the Excel file. Are you absolutely sure?")) {
+        e.target.value = ''; 
+        return; 
+    }
+
+    const btn = document.getElementById('btn-trigger-excel');
+    const ogText = btn.innerText;
+    btn.innerText = "Importing..."; btn.disabled = true;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet);
+
+            // Step A: Delete All Current Inventory
+            for (let item of allInventory) {
+                await deleteDoc(doc(db, "inventory", item.id));
+            }
+
+            // Step B: Import New Inventory
+            for(const row of json) {
+                const name = row['particulars'] || row['Particulars'] || row['Name'] || row['name'];
+                const qtyStr = row['quantity'] || row['Quantity'] || row['qty'];
+                const rateStr = row['rate'] || row['Rate'] || row['price'];
+
+                if(name && name.trim() !== '') {
+                    const qty = Number(qtyStr) || 0;
+                    const price = Number(rateStr) || 0;
+                    await addDoc(collection(db, "inventory"), { name: name.trim(), qty, price });
+                }
+            }
+
+            alert("Inventory successfully updated from Excel!");
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred during import. Check the console for details.");
+        } finally {
+            btn.innerText = ogText;
+            btn.disabled = false;
+            document.getElementById('excel-file').value = ''; 
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// 2. Sync to Drive Mock
+document.getElementById('btn-sync-drive').addEventListener('click', () => {
+    alert("Sync to Google Drive initiated.\n\n(Note: This is a placeholder. Connecting to Google Drive requires specific server-side OAuth 2.0 Client configurations to proceed securely.)");
+});
+
+// 3. Merge Duplicates
+document.getElementById('btn-merge-dup').addEventListener('click', async () => {
+    if(!confirm("Are you sure you want to scan and merge identical items? (Quantities will be summed, Prices will be averaged.)")) return;
+
+    const btn = document.getElementById('btn-merge-dup');
+    const ogText = btn.innerText;
+    btn.innerText = "Merging..."; btn.disabled = true;
+
+    try {
+        const itemsMap = {};
+        allInventory.forEach(item => {
+            const key = item.name.trim().toLowerCase(); // case-insensitive match
+            if(!itemsMap[key]) itemsMap[key] = [];
+            itemsMap[key].push(item);
+        });
+
+        let mergeCount = 0;
+
+        for(const key in itemsMap) {
+            if(itemsMap[key].length > 1) {
+                mergeCount++;
+                let totalQty = 0;
+                let totalPriceObj = 0;
+                
+                // Set the primary entry
+                let mainId = itemsMap[key][0].id;
+                
+                itemsMap[key].forEach(i => {
+                    let iQty = Number(i.qty) || 0;
+                    let iPrice = Number(i.price) || 0;
+                    totalQty += iQty;
+                    totalPriceObj += (iQty * iPrice);
+                });
+                
+                let avgPrice = totalQty > 0 ? (totalPriceObj / totalQty) : 0;
+
+                // Update the primary document
+                await updateDoc(doc(db, "inventory", mainId), { qty: totalQty, price: avgPrice });
+                
+                // Delete the duplicate documents
+                for(let i = 1; i < itemsMap[key].length; i++) {
+                    await deleteDoc(doc(db, "inventory", itemsMap[key][i].id));
+                }
+            }
+        }
+
+        if(mergeCount > 0) {
+            alert(`Success! Merged duplicates across ${mergeCount} item name(s).`);
+        } else {
+            alert("No duplicates found. Your inventory is clean!");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("An error occurred during merge.");
+    } finally {
+        btn.innerText = ogText;
+        btn.disabled = false;
     }
 });
