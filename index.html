@@ -91,12 +91,13 @@
         <div id="tab-inventory" class="tab">
             <h1>Inventory</h1>
             <div class="form-container">
-                <h3>Add New Item</h3>
+                <h3 id="inv-form-title">Add New Item</h3>
                 <form id="form-inventory">
                     <input type="text" id="inv-name" placeholder="Item Name" required>
-                    <input type="number" id="inv-qty" placeholder="Starting Quantity" required>
-                    <input type="number" id="inv-price" placeholder="Unit Price (₹)" required>
-                    <button type="submit">Add Item</button>
+                    <input type="number" id="inv-qty" placeholder="Quantity" required>
+                    <input type="number" id="inv-price" placeholder="Cost Price (₹)" step="0.01" required>
+                    <button type="submit" id="btn-inv-submit">Add Item</button>
+                    <button type="button" id="btn-inv-cancel" style="display:none; background-color: #95a5a6;">Cancel</button>
                 </form>
             </div>
             <h3>Current Stock</h3>
@@ -105,7 +106,8 @@
                     <tr>
                         <th>Item Name</th>
                         <th>Quantity</th>
-                        <th>Unit Price</th>
+                        <th>Unit Cost (₹)</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
