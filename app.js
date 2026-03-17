@@ -19,7 +19,7 @@ const auth = getAuth(app);
 
 let unsubInventory = null;
 let unsubTransactions = null;
-let allTransactions = [];
+let allTransactions =[];
 let allInventory =[]; // Save locally for analytics
 
 // Chart Instances
@@ -137,6 +137,10 @@ document.getElementById('btn-ana-today').addEventListener('click', () => {
 });
 document.getElementById('ana-class-filter').addEventListener('change', runAnalytics);
 
+// Adding Listeners for new Filters
+document.getElementById('filter-top-selling').addEventListener('change', runAnalytics);
+document.getElementById('filter-inv-status').addEventListener('change', runAnalytics);
+
 function runAnalytics() {
     if(!document.getElementById('tab-analytics').classList.contains('active')) return;
 
@@ -148,7 +152,7 @@ function runAnalytics() {
 
     // 2. Process Filtered Transactions
     let revenue = 0; let cogs = 0; 
-    let itemStats = {}; // To hold FSN / HMV stats
+    let itemStats = {}; // FSN / HMV stats + Sale Tracking
     let monthlyData = {}; // For Chart
 
     allInventory.forEach(inv => {
@@ -167,7 +171,6 @@ function runAnalytics() {
             revenue += trans.amount;
             monthlyData[monthKey].sales += trans.amount;
 
-            // Lookup cost to calculate profit
             let cost = 0;
             if(itemStats[trans.item]) {
                 cost = itemStats[trans.item].unitCost * trans.qty;
@@ -189,9 +192,9 @@ function runAnalytics() {
     document.getElementById('ana-margin').innerText = `${margin}%`;
     document.getElementById('ana-stock').innerText = totalStock;
 
-    // 4. Calculate ABC Analysis (Based on total Inventory Value)
+    // 4. Calculate ABC Analysis
     let totalInvValue = 0;
-    let abcArray = [];
+    let abcArray =[];
     for (const [name, data] of Object.entries(itemStats)) {
         totalInvValue += data.invValue;
         abcArray.push({ name, value: data.invValue });
@@ -200,39 +203,76 @@ function runAnalytics() {
     
     let cumValue = 0;
     let abcTotals = { A: 0, B: 0, C: 0 };
+    const tbodyABC = document.querySelector('#table-abc tbody');
+    tbodyABC.innerHTML = '';
+
     abcArray.forEach(item => {
         cumValue += item.value;
-        let pct = cumValue / totalInvValue;
-        if(pct <= 0.70) abcTotals.A += item.value;
-        else if (pct <= 0.90) abcTotals.B += item.value;
-        else abcTotals.C += item.value;
+        let pct = totalInvValue > 0 ? cumValue / totalInvValue : 0;
+        let category = 'C';
+
+        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; }
+        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; }
+        else { abcTotals.C += item.value; category = 'C'; }
+
+        // Draw ABC Table rows
+        let catColor = category === 'A' ? '#2ecc71' : (category === 'B' ? '#f1c40f' : '#e74c3c');
+        tbodyABC.innerHTML += `
+            <tr>
+                <td>${item.name}</td>
+                <td>₹${item.value.toFixed(2)}</td>
+                <td>${(pct * 100).toFixed(1)}%</td>
+                <td style="color:${catColor}; font-weight:bold;">${category}</td>
+            </tr>
+        `;
     });
 
-    // 5. Calculate FSN (Frequency/Qty Sold) & HMV (Revenue)
+    // 5. Render Top Selling Products
+    const filterTop = document.getElementById('filter-top-selling').value;
+    const tbodyTop = document.getElementById('tbody-top-selling');
+    tbodyTop.innerHTML = '';
+    let sortedTop = Object.keys(itemStats).map(k => ({name: k, sold: itemStats[k].qtySold})).sort((a,b) => b.sold - a.sold);
+    if(filterTop === 'Top10') sortedTop = sortedTop.slice(0, 10);
+    sortedTop.forEach(item => {
+        if(item.sold > 0 || filterTop === 'All') {
+            tbodyTop.innerHTML += `<tr><td>${item.name}</td><td>${item.sold}</td></tr>`;
+        }
+    });
+
+    // 6. Render Inventory Status
+    const filterInv = document.getElementById('filter-inv-status').value;
+    const tbodyInv = document.getElementById('tbody-inv-status');
+    tbodyInv.innerHTML = '';
+    let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
+    sortedInv.forEach(item => {
+        if (filterInv === 'Low' && item.stock > 3) return; // Hide standard stock if "Low" is filtered
+        tbodyInv.innerHTML += `<tr>
+            <td>${item.name}</td>
+            <td style="color: ${item.stock <= 3 ? '#e74c3c' : '#2c3e50'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td>
+        </tr>`;
+    });
+
+    // 7. Calculate FSN & HMV
     let fsnTotals = { F: 0, S: 0, N: 0 };
     let matrixRows =[];
 
-    // Identify thresholds
     let maxQtySold = Math.max(...Object.values(itemStats).map(i => i.qtySold), 0);
     let maxRev = Math.max(...Object.values(itemStats).map(i => i.totalRevenue), 0);
 
     for (const[name, data] of Object.entries(itemStats)) {
-        // FSN Logic
         let FSN = 'N';
         if (data.qtySold > 0) {
-            if (data.qtySold >= (maxQtySold * 0.5)) FSN = 'F'; // Top 50% velocity
-            else FSN = 'S'; // Slow
+            if (data.qtySold >= (maxQtySold * 0.5)) FSN = 'F'; 
+            else FSN = 'S';
         }
         fsnTotals[FSN] += data.stock;
 
-        // HMV Logic
-        let HMV = 'V'; // Low Value
+        let HMV = 'V'; 
         if (data.totalRevenue > 0) {
-            if (data.totalRevenue >= (maxRev * 0.5)) HMV = 'H'; // Top 50% rev
+            if (data.totalRevenue >= (maxRev * 0.5)) HMV = 'H'; 
             else HMV = 'M';
         }
 
-        // Actionable Class Definition
         let actClass = "";
         if(FSN==='F' && HMV==='H') actClass = "⭐ Stars";
         else if(FSN==='S' && HMV==='H') actClass = "💰 Cash Cows";
@@ -247,7 +287,7 @@ function runAnalytics() {
         matrixRows.push({ name, stock: data.stock, invValue: data.invValue, rev: data.totalRevenue, FSN, HMV, actClass });
     }
 
-    // 6. Render Matrix Table
+    // 8. Render Matrix Table
     const filterClass = document.getElementById('ana-class-filter').value;
     const tbodyMatrix = document.querySelector('#table-matrix tbody');
     tbodyMatrix.innerHTML = '';
@@ -270,22 +310,19 @@ function runAnalytics() {
         `;
     });
 
-    // 7. Render Charts
+    // 9. Render Charts
     renderCharts(monthlyData, abcTotals, fsnTotals);
 }
 
 function renderCharts(monthlyData, abcTotals, fsnTotals) {
-    // Safely destroy old charts
     if(myChartMonthly) myChartMonthly.destroy();
     if(myChartABC) myChartABC.destroy();
     if(myChartFSN) myChartFSN.destroy();
 
-    // Setup Data
-    const labelsMonth = Object.keys(monthlyData).reverse(); // Oldest to Newest if sorted
+    const labelsMonth = Object.keys(monthlyData).reverse();
     const dataSales = labelsMonth.map(m => monthlyData[m].sales);
     const dataProfit = labelsMonth.map(m => monthlyData[m].profit);
 
-    // 1. Monthly Bar Chart
     myChartMonthly = new Chart(document.getElementById('chart-monthly'), {
         type: 'bar',
         data: {
@@ -298,17 +335,15 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
         options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit' } } }
     });
 
-    // 2. ABC Doughnut
     myChartABC = new Chart(document.getElementById('chart-abc'), {
         type: 'doughnut',
         data: {
-            labels: ['A (Top Value)', 'B (Medium)', 'C (Low)'],
-            datasets: [{ data: [abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor: ['#2ecc71', '#f1c40f', '#e74c3c'] }]
+            labels:['A (Top Value)', 'B (Medium)', 'C (Low)'],
+            datasets: [{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#2ecc71', '#f1c40f', '#e74c3c'] }]
         },
         options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC' } } }
     });
 
-    // 3. FSN Pie
     myChartFSN = new Chart(document.getElementById('chart-fsn'), {
         type: 'pie',
         data: {
