@@ -10,115 +10,112 @@
     <!-- Hidden datalist to show inventory suggestions in Sales/Purchases -->
     <datalist id="inventory-items-list"></datalist>
 
-    <div class="sidebar">
-        <h2>Store Manager</h2>
-        <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
-        <button id="btn-sales" class="nav-btn">Sales</button>
-        <button id="btn-purchases" class="nav-btn">Purchases</button>
-        <button id="btn-inventory" class="nav-btn">Inventory</button>
-    </div>
-
-    <div class="main-content">
-        <!-- DASHBOARD TAB -->
-        <div id="tab-dashboard" class="tab active">
-            <h1>Dashboard</h1>
-            <div class="cards">
-                <div class="card">
-                    <h3>Total Sales</h3>
-                    <p id="dash-sales">₹0.00</p>
-                </div>
-                <div class="card">
-                    <h3>Total Purchases</h3>
-                    <p id="dash-purchases">₹0.00</p>
-                </div>
-                <div class="card">
-                    <h3>Items in Stock</h3>
-                    <p id="dash-inventory">0</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SALES TAB -->
-        <div id="tab-sales" class="tab">
-            <h1>Sales Transactions</h1>
-            <div class="form-container">
-                <h3>Record a Sale (Stock goes DOWN)</h3>
-                <form id="form-sale">
-                    <input type="text" id="sale-item" list="inventory-items-list" placeholder="Item Name" required>
-                    <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
-                    <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
-                    <button type="submit">Record Sale</button>
-                </form>
-            </div>
-            <h3>Sales History</h3>
-            <table id="table-sales">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Item</th>
-                        <th>Qty Sold</th>
-                        <th>Amount Received</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- PURCHASES TAB -->
-        <div id="tab-purchases" class="tab">
-            <h1>Purchase Transactions</h1>
-            <div class="form-container">
-                <h3>Record a Purchase (Stock goes UP)</h3>
-                <form id="form-purchase">
-                    <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" required>
-                    <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
-                    <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
-                    <button type="submit" style="background-color: #e74c3c;">Record Purchase</button>
-                </form>
-            </div>
-            <h3>Purchase History</h3>
-            <table id="table-purchases">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Item</th>
-                        <th>Qty Bought</th>
-                        <th>Amount Paid</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- INVENTORY TAB -->
-        <div id="tab-inventory" class="tab">
-            <h1>Inventory</h1>
-            <div class="form-container">
-                <h3 id="inv-form-title">Add New Item</h3>
-                <form id="form-inventory">
-                    <input type="text" id="inv-name" placeholder="Item Name" required>
-                    <input type="number" id="inv-qty" placeholder="Quantity" required>
-                    <input type="number" id="inv-price" placeholder="Unit Cost Price (₹)" step="0.01" required>
-                    <button type="submit" id="btn-inv-submit">Add Item</button>
-                    <button type="button" id="btn-inv-cancel" style="display:none; background-color: #95a5a6;">Cancel</button>
-                </form>
-            </div>
-            <h3>Current Stock</h3>
-            <table id="table-inventory">
-                <thead>
-                    <tr>
-                        <th>Item Name</th>
-                        <th>Quantity</th>
-                        <th>Unit Cost (₹)</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+    <!-- LOGIN SCREEN -->
+    <div id="login-container" class="login-container">
+        <div class="login-box">
+            <h2>Admin Login</h2>
+            <form id="form-login">
+                <input type="email" id="login-email" placeholder="Email Address" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <p id="login-error" style="color: #e74c3c; display: none; margin-top: 10px; font-size: 14px;"></p>
+            </form>
         </div>
     </div>
 
-    <!-- Load JavaScript as a Module -->
+    <!-- MAIN APP (Hidden until logged in) -->
+    <div id="app-container" style="display: none;">
+        <div class="sidebar">
+            <h2>Store Manager</h2>
+            <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
+            <button id="btn-sales" class="nav-btn">Sales</button>
+            <button id="btn-purchases" class="nav-btn">Purchases</button>
+            <button id="btn-inventory" class="nav-btn">Inventory</button>
+            
+            <div style="flex-grow: 1;"></div> <!-- Spacer -->
+            <button id="btn-logout" class="nav-btn" style="background-color: #c0392b; margin-top: 20px;">Logout</button>
+        </div>
+
+        <div class="main-content">
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="tab active">
+                <h1>Dashboard</h1>
+                <div class="cards">
+                    <div class="card">
+                        <h3>Total Sales</h3>
+                        <p id="dash-sales">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Total Purchases</h3>
+                        <p id="dash-purchases">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Items in Stock</h3>
+                        <p id="dash-inventory">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SALES TAB -->
+            <div id="tab-sales" class="tab">
+                <h1>Sales Transactions</h1>
+                <div class="form-container">
+                    <h3>Record a Sale (Stock goes DOWN)</h3>
+                    <form id="form-sale">
+                        <input type="text" id="sale-item" list="inventory-items-list" placeholder="Item Name" required>
+                        <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
+                        <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
+                        <button type="submit">Record Sale</button>
+                    </form>
+                </div>
+                <h3>Sales History</h3>
+                <table id="table-sales">
+                    <thead><tr><th>Date</th><th>Item</th><th>Qty Sold</th><th>Amount</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- PURCHASES TAB -->
+            <div id="tab-purchases" class="tab">
+                <h1>Purchase Transactions</h1>
+                <div class="form-container">
+                    <h3>Record a Purchase (Stock goes UP)</h3>
+                    <form id="form-purchase">
+                        <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" required>
+                        <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
+                        <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
+                        <button type="submit" style="background-color: #e74c3c;">Record Purchase</button>
+                    </form>
+                </div>
+                <h3>Purchase History</h3>
+                <table id="table-purchases">
+                    <thead><tr><th>Date</th><th>Item</th><th>Qty Bought</th><th>Amount</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- INVENTORY TAB -->
+            <div id="tab-inventory" class="tab">
+                <h1>Inventory</h1>
+                <div class="form-container">
+                    <h3 id="inv-form-title">Add New Item</h3>
+                    <form id="form-inventory">
+                        <input type="text" id="inv-name" placeholder="Item Name" required>
+                        <input type="number" id="inv-qty" placeholder="Quantity" required>
+                        <input type="number" id="inv-price" placeholder="Unit Cost Price (₹)" step="0.01" required>
+                        <button type="submit" id="btn-inv-submit">Add Item</button>
+                        <button type="button" id="btn-inv-cancel" style="display:none; background-color: #95a5a6;">Cancel</button>
+                    </form>
+                </div>
+                <h3>Current Stock</h3>
+                <table id="table-inventory">
+                    <thead><tr><th>Item Name</th><th>Quantity</th><th>Unit Cost (₹)</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
