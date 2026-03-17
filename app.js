@@ -18,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ----- TAB NAVIGATION LOGIC -----
-const tabs = ['dashboard', 'transactions', 'inventory'];
+const tabs =['dashboard', 'sales', 'purchases', 'inventory']; // Updated tabs
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         // Hide all tabs & remove active class from buttons
@@ -43,7 +43,7 @@ inventoryForm.addEventListener('submit', async (e) => {
     try {
         await addDoc(collection(db, "inventory"), { name, qty, price });
         inventoryForm.reset();
-        alert("Item added successfully!");
+        alert("Item added to inventory!");
     } catch (e) {
         console.error("Error adding document: ", e);
     }
@@ -71,32 +71,54 @@ onSnapshot(collection(db, "inventory"), (snapshot) => {
 });
 
 
-// ----- TRANSACTIONS LOGIC -----
-const transactionForm = document.getElementById('form-transaction');
-transactionForm.addEventListener('submit', async (e) => {
+// ----- SALES LOGIC -----
+const saleForm = document.getElementById('form-sale');
+saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const type = document.getElementById('trans-type').value;
-    const item = document.getElementById('trans-item').value;
-    const qty = parseInt(document.getElementById('trans-qty').value);
-    const amount = parseFloat(document.getElementById('trans-amount').value);
+    const item = document.getElementById('sale-item').value;
+    const qty = parseInt(document.getElementById('sale-qty').value);
+    const amount = parseFloat(document.getElementById('sale-amount').value);
     const date = new Date().toISOString();
 
     try {
-        await addDoc(collection(db, "transactions"), { type, item, qty, amount, date });
-        transactionForm.reset();
-        alert("Transaction recorded!");
-        // Note: For a fully complete system, this step should also automatically 
-        // query the inventory collection and update the stock levels.
+        // Save as type "Sale"
+        await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, amount, date });
+        saleForm.reset();
+        alert("Sale recorded successfully!");
     } catch (e) {
-        console.error("Error recording transaction: ", e);
+        console.error("Error recording sale: ", e);
     }
 });
 
-// Real-time Transaction Updates & Dashboard Calculation
+// ----- PURCHASES LOGIC -----
+const purchaseForm = document.getElementById('form-purchase');
+purchaseForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const item = document.getElementById('purchase-item').value;
+    const qty = parseInt(document.getElementById('purchase-qty').value);
+    const amount = parseFloat(document.getElementById('purchase-amount').value);
+    const date = new Date().toISOString();
+
+    try {
+        // Save as type "Purchase"
+        await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date });
+        purchaseForm.reset();
+        alert("Purchase recorded successfully!");
+    } catch (e) {
+        console.error("Error recording purchase: ", e);
+    }
+});
+
+// ----- REAL-TIME TRANSACTIONS (SALES & PURCHASES) & DASHBOARD -----
 const q = query(collection(db, "transactions"), orderBy("date", "desc"));
 onSnapshot(q, (snapshot) => {
-    const tbody = document.querySelector('#table-transactions tbody');
-    tbody.innerHTML = '';
+    // Get both tables
+    const salesTbody = document.querySelector('#table-sales tbody');
+    const purchasesTbody = document.querySelector('#table-purchases tbody');
+    
+    // Clear both tables
+    salesTbody.innerHTML = '';
+    purchasesTbody.innerHTML = '';
     
     let totalSales = 0;
     let totalPurchases = 0;
@@ -105,18 +127,24 @@ onSnapshot(q, (snapshot) => {
         const trans = doc.data();
         const dateStr = new Date(trans.date).toLocaleDateString();
         
-        if(trans.type === 'Sale') totalSales += trans.amount;
-        if(trans.type === 'Purchase') totalPurchases += trans.amount;
-
-        tbody.innerHTML += `
+        // Generate the row HTML
+        const rowHtml = `
             <tr>
                 <td>${dateStr}</td>
-                <td style="color: ${trans.type === 'Sale' ? 'green' : 'red'}">${trans.type}</td>
                 <td>${trans.item}</td>
                 <td>${trans.qty}</td>
                 <td>₹${trans.amount.toFixed(2)}</td>
             </tr>
         `;
+        
+        // Put in correct table and add to dashboard totals
+        if(trans.type === 'Sale') {
+            totalSales += trans.amount;
+            salesTbody.innerHTML += rowHtml;
+        } else if (trans.type === 'Purchase') {
+            totalPurchases += trans.amount;
+            purchasesTbody.innerHTML += rowHtml;
+        }
     });
 
     // Update Dashboard
