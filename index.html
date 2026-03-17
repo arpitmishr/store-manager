@@ -10,7 +10,8 @@
     <div class="sidebar">
         <h2>Store Manager</h2>
         <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
-        <button id="btn-transactions" class="nav-btn">Transactions</button>
+        <button id="btn-sales" class="nav-btn">Sales</button>
+        <button id="btn-purchases" class="nav-btn">Purchases</button>
         <button id="btn-inventory" class="nav-btn">Inventory</button>
     </div>
 
@@ -34,31 +35,52 @@
             </div>
         </div>
 
-        <!-- TRANSACTIONS TAB -->
-        <div id="tab-transactions" class="tab">
-            <h1>Transactions</h1>
+        <!-- SALES TAB -->
+        <div id="tab-sales" class="tab">
+            <h1>Sales Transactions</h1>
             <div class="form-container">
-                <h3>Record Transaction</h3>
-                <form id="form-transaction">
-                    <select id="trans-type" required>
-                        <option value="Sale">Sale (Out)</option>
-                        <option value="Purchase">Purchase (In)</option>
-                    </select>
-                    <input type="text" id="trans-item" placeholder="Item Name" required>
-                    <input type="number" id="trans-qty" placeholder="Quantity" required>
-                    <input type="number" id="trans-amount" placeholder="Total Amount (₹)" required>
-                    <button type="submit">Add Transaction</button>
+                <h3>Record a Sale (Money In)</h3>
+                <form id="form-sale">
+                    <input type="text" id="sale-item" placeholder="Item Name" required>
+                    <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
+                    <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
+                    <button type="submit">Record Sale</button>
                 </form>
             </div>
-            <h3>Transaction History</h3>
-            <table id="table-transactions">
+            <h3>Sales History</h3>
+            <table id="table-sales">
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Type</th>
                         <th>Item</th>
-                        <th>Qty</th>
-                        <th>Amount</th>
+                        <th>Qty Sold</th>
+                        <th>Amount Received</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- PURCHASES TAB -->
+        <div id="tab-purchases" class="tab">
+            <h1>Purchase Transactions</h1>
+            <div class="form-container">
+                <h3>Record a Purchase (Money Out / Restock)</h3>
+                <form id="form-purchase">
+                    <input type="text" id="purchase-item" placeholder="Item Name" required>
+                    <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
+                    <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
+                    <button type="submit" style="background-color: #e74c3c;">Record Purchase</button>
+                </form>
+            </div>
+            <h3>Purchase History</h3>
+            <table id="table-purchases">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Qty Bought</th>
+                        <th>Amount Paid</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
