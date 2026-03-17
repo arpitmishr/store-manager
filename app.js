@@ -4,6 +4,9 @@ import {
     getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
     doc, deleteDoc, updateDoc, getDocs, where 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { 
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -15,12 +18,61 @@ const firebaseConfig = {
   appId: "1:620672866976:web:1ae1157027a2a0705f47c5"
 };
 
-// Initialize Firebase & Firestore
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Variables to hold Database Listeners (so we can turn them off when logged out)
+let unsubInventory = null;
+let unsubTransactions = null;
+
+// ----- AUTHENTICATION LOGIC -----
+const loginContainer = document.getElementById('login-container');
+const appContainer = document.getElementById('app-container');
+const loginForm = document.getElementById('form-login');
+const loginError = document.getElementById('login-error');
+const btnLogout = document.getElementById('btn-logout');
+
+// Watch user state (Logged In vs Logged Out)
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is logged in -> Show App, Start Database
+        loginContainer.style.display = 'none';
+        appContainer.style.display = 'flex';
+        startDatabaseListeners();
+    } else {
+        // User is logged out -> Show Login Screen, Stop Database
+        loginContainer.style.display = 'flex';
+        appContainer.style.display = 'none';
+        stopDatabaseListeners();
+    }
+});
+
+// Handle Login Button Click
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginError.style.display = 'none';
+        loginForm.reset();
+    } catch (error) {
+        loginError.style.display = 'block';
+        loginError.innerText = "Error: Invalid Email or Password.";
+        console.error("Login Failed:", error.message);
+    }
+});
+
+// Handle Logout Button Click
+btnLogout.addEventListener('click', () => {
+    signOut(auth);
+});
 
 // ----- TAB NAVIGATION LOGIC -----
-const tabs = ['dashboard', 'sales', 'purchases', 'inventory'];
+const tabs =['dashboard', 'sales', 'purchases', 'inventory'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
@@ -32,7 +84,96 @@ tabs.forEach(tab => {
     });
 });
 
-// ----- INVENTORY LOGIC (ADD, EDIT, DELETE) -----
+// ----- DATABASE LISTENERS (ONLY RUN WHEN LOGGED IN) -----
+function startDatabaseListeners() {
+    // 1. Listen to Inventory
+    unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
+        try {
+            const tbody = document.querySelector('#table-inventory tbody');
+            const datalist = document.getElementById('inventory-items-list'); 
+            
+            tbody.innerHTML = '';
+            datalist.innerHTML = ''; 
+            let totalItems = 0;
+
+            snapshot.forEach((docSnap) => {
+                const item = docSnap.data();
+                const id = docSnap.id;
+                
+                const itemName = item.name || "Unknown Item";
+                const itemQty = Number(item.qty) || 0;
+                const itemPrice = Number(item.price) || 0;
+
+                totalItems += itemQty;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${itemName}</td>
+                        <td>${itemQty}</td>
+                        <td>₹${itemPrice.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;" 
+                                data-id="${id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
+                            <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-left:5px;" 
+                                data-id="${id}">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                datalist.innerHTML += `<option value="${itemName}"></option>`;
+            });
+            
+            document.getElementById('dash-inventory').innerText = totalItems;
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    // 2. Listen to Transactions
+    const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
+    unsubTransactions = onSnapshot(qTrans, (snapshot) => {
+        try {
+            const salesTbody = document.querySelector('#table-sales tbody');
+            const purchasesTbody = document.querySelector('#table-purchases tbody');
+            
+            salesTbody.innerHTML = '';
+            purchasesTbody.innerHTML = '';
+            
+            let totalSales = 0;
+            let totalPurchases = 0;
+
+            snapshot.forEach((docSnap) => {
+                const trans = docSnap.data();
+                const dateStr = new Date(trans.date).toLocaleDateString();
+                const tItem = trans.item || "Unknown";
+                const tQty = Number(trans.qty) || 0;
+                const tAmount = Number(trans.amount) || 0;
+
+                const rowHtml = `<tr><td>${dateStr}</td><td>${tItem}</td><td>${tQty}</td><td>₹${tAmount.toFixed(2)}</td></tr>`;
+                
+                if(trans.type === 'Sale') {
+                    totalSales += tAmount;
+                    salesTbody.innerHTML += rowHtml;
+                } else if (trans.type === 'Purchase') {
+                    totalPurchases += tAmount;
+                    purchasesTbody.innerHTML += rowHtml;
+                }
+            });
+
+            document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
+            document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
+        } catch (error) {
+            console.error(error);
+        }
+    });
+}
+
+function stopDatabaseListeners() {
+    // Detach listeners so they don't crash when user logs out
+    if (unsubInventory) { unsubInventory(); unsubInventory = null; }
+    if (unsubTransactions) { unsubTransactions(); unsubTransactions = null; }
+}
+
+// ----- INVENTORY ADD/EDIT/DELETE -----
 const inventoryForm = document.getElementById('form-inventory');
 const btnInvSubmit = document.getElementById('btn-inv-submit');
 const btnInvCancel = document.getElementById('btn-inv-cancel');
@@ -41,23 +182,25 @@ const invFormTitle = document.getElementById('inv-form-title');
 inventoryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('inv-name').value.trim();
-    const qty = parseInt(document.getElementById('inv-qty').value);
-    const price = parseFloat(document.getElementById('inv-price').value);
+    let qty = parseInt(document.getElementById('inv-qty').value);
+    let price = parseFloat(document.getElementById('inv-price').value);
+    
+    if (isNaN(qty)) qty = 0;
+    if (isNaN(price)) price = 0;
+
     const editId = inventoryForm.getAttribute('data-edit-id'); 
 
     try {
         if (editId) {
             await updateDoc(doc(db, "inventory", editId), { name, qty, price });
-            alert("Item updated successfully!");
             resetInventoryForm();
         } else {
             await addDoc(collection(db, "inventory"), { name, qty, price });
-            alert("Item added to stock!");
             inventoryForm.reset();
         }
     } catch (error) {
         console.error("Error saving item: ", error);
-        alert("Error saving item. Check your database permissions.");
+        alert("Action Denied! Make sure you are logged in.");
     }
 });
 
@@ -71,47 +214,10 @@ function resetInventoryForm() {
     btnInvCancel.style.display = "none";
 }
 
-// Real-time Inventory Updates & Table Generation
-onSnapshot(collection(db, "inventory"), (snapshot) => {
-    const tbody = document.querySelector('#table-inventory tbody');
-    const datalist = document.getElementById('inventory-items-list'); // Dropdown suggestions
-    
-    tbody.innerHTML = '';
-    datalist.innerHTML = ''; 
-    let totalItems = 0;
-
-    snapshot.forEach((docSnap) => {
-        const item = docSnap.data();
-        const id = docSnap.id;
-        totalItems += item.qty;
-        
-        // Add to Table
-        tbody.innerHTML += `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.qty}</td>
-                <td>₹${item.price.toFixed(2)}</td>
-                <td>
-                    <button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;" 
-                        data-id="${id}" data-name="${item.name}" data-qty="${item.qty}" data-price="${item.price}">Edit</button>
-                    <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-left:5px;" 
-                        data-id="${id}">Delete</button>
-                </td>
-            </tr>
-        `;
-
-        // Add to Search Suggestions
-        datalist.innerHTML += `<option value="${item.name}">`;
-    });
-    
-    document.getElementById('dash-inventory').innerText = totalItems;
-});
-
-// Edit & Delete Clicks
 document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-delete')) {
         const id = e.target.getAttribute('data-id');
-        if (confirm("Are you sure you want to delete this item?")) {
+        if (confirm("Delete this item?")) {
             await deleteDoc(doc(db, "inventory", id));
         }
     }
@@ -130,111 +236,57 @@ document.querySelector('#table-inventory tbody').addEventListener('click', async
     }
 });
 
-
-// ----- SALES LOGIC (Decreases Inventory) -----
+// ----- TRANSACTIONS LOGIC -----
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const item = document.getElementById('sale-item').value.trim();
-    const qty = parseInt(document.getElementById('sale-qty').value);
-    const amount = parseFloat(document.getElementById('sale-amount').value);
+    let qty = parseInt(document.getElementById('sale-qty').value);
+    let amount = parseFloat(document.getElementById('sale-amount').value);
+    if (isNaN(qty)) qty = 0; if (isNaN(amount)) amount = 0;
     const date = new Date().toISOString();
 
     try {
-        // 1. Record the Sale Transaction
         await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, amount, date });
-        
-        // 2. Decrease Stock in Inventory
         const q = query(collection(db, "inventory"), where("name", "==", item));
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
             const invDoc = querySnapshot.docs[0];
-            let newQty = invDoc.data().qty - qty;
-            if(newQty < 0) newQty = 0; // Prevent negative stock numbers
+            let newQty = Number(invDoc.data().qty) - qty;
+            if(newQty < 0) newQty = 0; 
             await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
-            alert("Sale recorded and Stock Decreased!");
-        } else {
-            alert("Sale recorded! (Note: Item wasn't found in Inventory, so stock wasn't updated).");
         }
-
         saleForm.reset();
     } catch (e) {
         console.error("Error recording sale: ", e);
     }
 });
 
-// ----- PURCHASES LOGIC (Increases Inventory) -----
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const item = document.getElementById('purchase-item').value.trim();
-    const qty = parseInt(document.getElementById('purchase-qty').value);
-    const amount = parseFloat(document.getElementById('purchase-amount').value);
+    let qty = parseInt(document.getElementById('purchase-qty').value);
+    let amount = parseFloat(document.getElementById('purchase-amount').value);
+    if (isNaN(qty)) qty = 0; if (isNaN(amount)) amount = 0;
     const date = new Date().toISOString();
 
     try {
-        // 1. Record the Purchase Transaction
         await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date });
-        
-        // 2. Increase Stock in Inventory
         const q = query(collection(db, "inventory"), where("name", "==", item));
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
-            // Item exists, add to quantity
             const invDoc = querySnapshot.docs[0];
-            const newQty = invDoc.data().qty + qty;
+            const newQty = Number(invDoc.data().qty) + qty;
             await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
-            alert("Purchase recorded and Stock Increased!");
         } else {
-            // Item is completely new, create it in inventory automatically
-            const price = amount / qty; // Guessing the unit price based on amount paid
+            let price = (qty > 0) ? (amount / qty) : 0; 
             await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: price });
-            alert("Purchase recorded and New Item added to Inventory!");
         }
-
         purchaseForm.reset();
     } catch (e) {
         console.error("Error recording purchase: ", e);
     }
-});
-
-// ----- REAL-TIME TRANSACTIONS HISTORY & DASHBOARD -----
-const q = query(collection(db, "transactions"), orderBy("date", "desc"));
-onSnapshot(q, (snapshot) => {
-    const salesTbody = document.querySelector('#table-sales tbody');
-    const purchasesTbody = document.querySelector('#table-purchases tbody');
-    
-    salesTbody.innerHTML = '';
-    purchasesTbody.innerHTML = '';
-    
-    let totalSales = 0;
-    let totalPurchases = 0;
-
-    snapshot.forEach((docSnap) => {
-        const trans = docSnap.data();
-        const dateStr = new Date(trans.date).toLocaleDateString();
-        
-        const rowHtml = `
-            <tr>
-                <td>${dateStr}</td>
-                <td>${trans.item}</td>
-                <td>${trans.qty}</td>
-                <td>₹${trans.amount.toFixed(2)}</td>
-            </tr>
-        `;
-        
-        if(trans.type === 'Sale') {
-            totalSales += trans.amount;
-            salesTbody.innerHTML += rowHtml;
-        } else if (trans.type === 'Purchase') {
-            totalPurchases += trans.amount;
-            purchasesTbody.innerHTML += rowHtml;
-        }
-    });
-
-    // Update Dashboard Money values
-    document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
-    document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
 });
