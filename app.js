@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, onSnapshot, query, orderBy, 
-    doc, deleteDoc, updateDoc 
+    doc, deleteDoc, updateDoc, getDocs, where 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Your Firebase configuration
@@ -38,35 +38,30 @@ const btnInvSubmit = document.getElementById('btn-inv-submit');
 const btnInvCancel = document.getElementById('btn-inv-cancel');
 const invFormTitle = document.getElementById('inv-form-title');
 
-// Handle Add / Update Submit
 inventoryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('inv-name').value;
+    const name = document.getElementById('inv-name').value.trim();
     const qty = parseInt(document.getElementById('inv-qty').value);
     const price = parseFloat(document.getElementById('inv-price').value);
-    const editId = inventoryForm.getAttribute('data-edit-id'); // Check if we are editing
+    const editId = inventoryForm.getAttribute('data-edit-id'); 
 
     try {
         if (editId) {
-            // Update existing item
             await updateDoc(doc(db, "inventory", editId), { name, qty, price });
             alert("Item updated successfully!");
             resetInventoryForm();
         } else {
-            // Add new item
             await addDoc(collection(db, "inventory"), { name, qty, price });
-            alert("Item added to inventory!");
+            alert("Item added to stock!");
             inventoryForm.reset();
         }
     } catch (error) {
         console.error("Error saving item: ", error);
+        alert("Error saving item. Check your database permissions.");
     }
 });
 
-// Cancel Edit Button
-btnInvCancel.addEventListener('click', () => {
-    resetInventoryForm();
-});
+btnInvCancel.addEventListener('click', resetInventoryForm);
 
 function resetInventoryForm() {
     inventoryForm.reset();
@@ -79,15 +74,18 @@ function resetInventoryForm() {
 // Real-time Inventory Updates & Table Generation
 onSnapshot(collection(db, "inventory"), (snapshot) => {
     const tbody = document.querySelector('#table-inventory tbody');
+    const datalist = document.getElementById('inventory-items-list'); // Dropdown suggestions
+    
     tbody.innerHTML = '';
+    datalist.innerHTML = ''; 
     let totalItems = 0;
 
     snapshot.forEach((docSnap) => {
         const item = docSnap.data();
-        const id = docSnap.id; // Firebase Document ID
+        const id = docSnap.id;
         totalItems += item.qty;
         
-        // Build the table row with Edit and Delete buttons
+        // Add to Table
         tbody.innerHTML += `
             <tr>
                 <td>${item.name}</td>
@@ -101,87 +99,108 @@ onSnapshot(collection(db, "inventory"), (snapshot) => {
                 </td>
             </tr>
         `;
+
+        // Add to Search Suggestions
+        datalist.innerHTML += `<option value="${item.name}">`;
     });
     
-    // Update Dashboard Inventory Count
     document.getElementById('dash-inventory').innerText = totalItems;
 });
 
-// Handle Edit and Delete Button Clicks inside the Table
+// Edit & Delete Clicks
 document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
-    // DELETE ACTION
     if (e.target.classList.contains('btn-delete')) {
         const id = e.target.getAttribute('data-id');
         if (confirm("Are you sure you want to delete this item?")) {
-            try {
-                await deleteDoc(doc(db, "inventory", id));
-            } catch (error) {
-                console.error("Error deleting item: ", error);
-            }
+            await deleteDoc(doc(db, "inventory", id));
         }
     }
     
-    // EDIT ACTION
     if (e.target.classList.contains('btn-edit')) {
         const id = e.target.getAttribute('data-id');
-        const name = e.target.getAttribute('data-name');
-        const qty = e.target.getAttribute('data-qty');
-        const price = e.target.getAttribute('data-price');
+        document.getElementById('inv-name').value = e.target.getAttribute('data-name');
+        document.getElementById('inv-qty').value = e.target.getAttribute('data-qty');
+        document.getElementById('inv-price').value = e.target.getAttribute('data-price');
 
-        // Populate the form with the item's current details
-        document.getElementById('inv-name').value = name;
-        document.getElementById('inv-qty').value = qty;
-        document.getElementById('inv-price').value = price;
-
-        // Change the form into "Edit Mode"
         inventoryForm.setAttribute('data-edit-id', id);
         btnInvSubmit.innerText = "Update Item";
-        invFormTitle.innerText = `Editing: ${name}`;
+        invFormTitle.innerText = `Editing: ${e.target.getAttribute('data-name')}`;
         btnInvCancel.style.display = "inline-block";
-        
-        // Scroll to top smoothly so the user sees the form
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 });
 
 
-// ----- SALES LOGIC -----
+// ----- SALES LOGIC (Decreases Inventory) -----
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const item = document.getElementById('sale-item').value;
+    const item = document.getElementById('sale-item').value.trim();
     const qty = parseInt(document.getElementById('sale-qty').value);
     const amount = parseFloat(document.getElementById('sale-amount').value);
     const date = new Date().toISOString();
 
     try {
+        // 1. Record the Sale Transaction
         await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, amount, date });
+        
+        // 2. Decrease Stock in Inventory
+        const q = query(collection(db, "inventory"), where("name", "==", item));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            const invDoc = querySnapshot.docs[0];
+            let newQty = invDoc.data().qty - qty;
+            if(newQty < 0) newQty = 0; // Prevent negative stock numbers
+            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
+            alert("Sale recorded and Stock Decreased!");
+        } else {
+            alert("Sale recorded! (Note: Item wasn't found in Inventory, so stock wasn't updated).");
+        }
+
         saleForm.reset();
-        alert("Sale recorded successfully!");
     } catch (e) {
         console.error("Error recording sale: ", e);
     }
 });
 
-// ----- PURCHASES LOGIC -----
+// ----- PURCHASES LOGIC (Increases Inventory) -----
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const item = document.getElementById('purchase-item').value;
+    const item = document.getElementById('purchase-item').value.trim();
     const qty = parseInt(document.getElementById('purchase-qty').value);
     const amount = parseFloat(document.getElementById('purchase-amount').value);
     const date = new Date().toISOString();
 
     try {
+        // 1. Record the Purchase Transaction
         await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date });
+        
+        // 2. Increase Stock in Inventory
+        const q = query(collection(db, "inventory"), where("name", "==", item));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            // Item exists, add to quantity
+            const invDoc = querySnapshot.docs[0];
+            const newQty = invDoc.data().qty + qty;
+            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
+            alert("Purchase recorded and Stock Increased!");
+        } else {
+            // Item is completely new, create it in inventory automatically
+            const price = amount / qty; // Guessing the unit price based on amount paid
+            await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: price });
+            alert("Purchase recorded and New Item added to Inventory!");
+        }
+
         purchaseForm.reset();
-        alert("Purchase recorded successfully!");
     } catch (e) {
         console.error("Error recording purchase: ", e);
     }
 });
 
-// ----- REAL-TIME TRANSACTIONS (SALES & PURCHASES) & DASHBOARD -----
+// ----- REAL-TIME TRANSACTIONS HISTORY & DASHBOARD -----
 const q = query(collection(db, "transactions"), orderBy("date", "desc"));
 onSnapshot(q, (snapshot) => {
     const salesTbody = document.querySelector('#table-sales tbody');
@@ -215,7 +234,7 @@ onSnapshot(q, (snapshot) => {
         }
     });
 
-    // Update Dashboard
+    // Update Dashboard Money values
     document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
     document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
 });
