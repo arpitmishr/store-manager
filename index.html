@@ -82,6 +82,66 @@
                     <div class="chart-container" style="flex: 1;"><canvas id="chart-fsn"></canvas></div>
                 </div>
 
+                <!-- Top Selling & Inventory Status Grid -->
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+                    <!-- Top Selling -->
+                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Top Selling Products (All Time)</h3>
+                            <select id="filter-top-selling" style="padding: 8px;">
+                                <option value="All">All Items</option>
+                                <option value="Top10">Top 10 Selling</option>
+                            </select>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ITEM</th>
+                                    <th>SOLD QTY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-top-selling"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Inventory Status -->
+                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Inventory Status</h3>
+                            <select id="filter-inv-status" style="padding: 8px;">
+                                <option value="All">All Stock</option>
+                                <option value="Low">Low Stock (<= 3)</option>
+                            </select>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ITEM</th>
+                                    <th>AVAILABLE QTY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-inv-status"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ABC Analysis Table -->
+                <div class="form-container">
+                    <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
+                    <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Items are classified by value: A (Top 70%), B (Next 20%), C (Bottom 10%).</p>
+                    <table id="table-abc">
+                        <thead>
+                            <tr>
+                                <th>ITEM</th>
+                                <th>INVENTORY VALUE</th>
+                                <th>CUMULATIVE %</th>
+                                <th>CATEGORY</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
                 <!-- FSN x HMV Matrix Table -->
                 <div class="form-container">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
