@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Load Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load SheetJS for Excel Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <datalist id="inventory-items-list"></datalist>
@@ -35,7 +37,8 @@
             <button id="btn-analytics" class="nav-btn" style="background-color: #8e44ad; margin-top: 10px;">Analytics 📊</button>
             
             <div style="flex-grow: 1;"></div> 
-            <button id="btn-logout" class="nav-btn" style="background-color: #c0392b; margin-top: 20px;">Logout</button>
+            <button id="btn-settings" class="nav-btn" style="background-color: #7f8c8d; margin-top: 10px;">Settings ⚙️</button>
+            <button id="btn-logout" class="nav-btn" style="background-color: #c0392b; margin-top: 10px;">Logout</button>
         </div>
 
         <div class="main-content">
@@ -54,16 +57,16 @@
                 <h1>Business Analytics & Insights</h1>
                 
                 <!-- Date Filter -->
-                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #8e44ad; margin-bottom: 20px;">
+                <div class="form-container" style="border-left: 5px solid #8e44ad; margin-bottom: 20px;">
                     <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Performance Snapshot</h3>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <label style="font-weight: bold;">Start Date:</label>
                         <input type="date" id="ana-start" style="max-width: 150px;">
                         <label style="font-weight: bold;">End Date:</label>
                         <input type="date" id="ana-end" style="max-width: 150px;">
-                        <button id="btn-ana-filter" style="padding: 10px 15px; background-color: #8e44ad; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filter</button>
-                        <button id="btn-ana-today" style="padding: 10px 15px; background-color: #2980b9; color: white; border: none; border-radius: 4px; cursor: pointer;">Today</button>
-                        <button id="btn-ana-clear" style="padding: 10px 15px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear All Time</button>
+                        <button id="btn-ana-filter" class="btn-action" style="background-color: #8e44ad;">Apply Filter</button>
+                        <button id="btn-ana-today" class="btn-action" style="background-color: #2980b9;">Today</button>
+                        <button id="btn-ana-clear" class="btn-action" style="background-color: #95a5a6;">Clear All Time</button>
                     </div>
                 </div>
 
@@ -84,7 +87,6 @@
 
                 <!-- Top Selling & Inventory Status Grid -->
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
-                    <!-- Top Selling -->
                     <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0;">Top Selling Products (All Time)</h3>
@@ -94,17 +96,11 @@
                             </select>
                         </div>
                         <table>
-                            <thead>
-                                <tr>
-                                    <th>ITEM</th>
-                                    <th>SOLD QTY</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>ITEM</th><th>SOLD QTY</th></tr></thead>
                             <tbody id="tbody-top-selling"></tbody>
                         </table>
                     </div>
 
-                    <!-- Inventory Status -->
                     <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0;">Inventory Status</h3>
@@ -114,12 +110,7 @@
                             </select>
                         </div>
                         <table>
-                            <thead>
-                                <tr>
-                                    <th>ITEM</th>
-                                    <th>AVAILABLE QTY</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>ITEM</th><th>AVAILABLE QTY</th></tr></thead>
                             <tbody id="tbody-inv-status"></tbody>
                         </table>
                     </div>
@@ -130,14 +121,7 @@
                     <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
                     <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Items are classified by value: A (Top 70%), B (Next 20%), C (Bottom 10%).</p>
                     <table id="table-abc">
-                        <thead>
-                            <tr>
-                                <th>ITEM</th>
-                                <th>INVENTORY VALUE</th>
-                                <th>CUMULATIVE %</th>
-                                <th>CATEGORY</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>ITEM</th><th>INVENTORY VALUE</th><th>CUMULATIVE %</th><th>CATEGORY</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -161,17 +145,7 @@
                     </div>
                     <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Classifies items by sales frequency (Fast, Slow, Non-moving) and their contribution to revenue (High, Medium, Low Value).</p>
                     <table id="table-matrix">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Stock</th>
-                                <th>Inv. Value</th>
-                                <th>Revenue</th>
-                                <th>FSN</th>
-                                <th>HMV</th>
-                                <th>Actionable Class</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Item</th><th>Stock</th><th>Inv. Value</th><th>Revenue</th><th>FSN</th><th>HMV</th><th>Actionable Class</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -189,12 +163,11 @@
                         <button type="submit">Save Sale</button>
                     </form>
                 </div>
-                <!-- Sales Date Filter -->
-                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #27ae60; margin-bottom: 20px;">
+                <div class="form-container" style="border-left: 5px solid #27ae60; margin-bottom: 20px;">
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input type="date" id="filter-sale-start"><input type="date" id="filter-sale-end">
-                        <button id="btn-sale-filter" style="padding: 10px; background: #27ae60; color: white; border: none;">Filter</button>
-                        <button id="btn-sale-clear" style="padding: 10px; background: #95a5a6; color: white; border: none;">Clear</button>
+                        <button id="btn-sale-filter" class="btn-action" style="background: #27ae60;">Filter</button>
+                        <button id="btn-sale-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
                     </div>
                 </div>
                 <table id="table-sales">
@@ -215,12 +188,11 @@
                         <button type="submit" style="background-color: #e74c3c;">Save Purchase</button>
                     </form>
                 </div>
-                <!-- Purchases Date Filter -->
-                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #e74c3c; margin-bottom: 20px;">
+                <div class="form-container" style="border-left: 5px solid #e74c3c; margin-bottom: 20px;">
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <input type="date" id="filter-purchase-start"><input type="date" id="filter-purchase-end">
-                        <button id="btn-purchase-filter" style="padding: 10px; background: #e74c3c; color: white; border: none;">Filter</button>
-                        <button id="btn-purchase-clear" style="padding: 10px; background: #95a5a6; color: white; border: none;">Clear</button>
+                        <button id="btn-purchase-filter" class="btn-action" style="background: #e74c3c;">Filter</button>
+                        <button id="btn-purchase-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
                     </div>
                 </div>
                 <table id="table-purchases">
@@ -248,6 +220,31 @@
                     <tbody></tbody>
                 </table>
             </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="tab">
+                <h1>Settings</h1>
+                
+                <div class="form-container">
+                    <h3>Theme</h3>
+                    <p style="color: var(--text-muted); margin-top: -10px;">Switch between light and dark themes.</p>
+                    <button id="btn-theme-toggle" class="btn-action" style="background-color: #34495e;">Switch to Dark Mode</button>
+                </div>
+
+                <div class="form-container">
+                    <h3>Data Management</h3>
+                    <p style="color: var(--text-muted); margin-top: -10px;">Load inventory from an Excel file (columns: 'particulars', 'quantity', 'rate'). This will overwrite your current inventory.</p>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                        <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+                        <button id="btn-trigger-excel" class="btn-action" style="background-color: #27ae60;">Import from Excel</button>
+                        
+                        <button id="btn-sync-drive" class="btn-action" style="background-color: #2980b9;">Sync to Drive</button>
+                        <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates Entries</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
