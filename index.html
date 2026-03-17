@@ -27,7 +27,8 @@
         <div class="sidebar">
             <h2>Store Manager</h2>
             <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
-            <button id="btn-transactions" class="nav-btn">Transactions</button>
+            <button id="btn-sales" class="nav-btn">Sales</button>
+            <button id="btn-purchases" class="nav-btn">Purchases</button>
             <button id="btn-inventory" class="nav-btn">Inventory</button>
             
             <div style="flex-grow: 1;"></div> 
@@ -54,49 +55,72 @@
                 </div>
             </div>
 
-            <!-- UNIFIED TRANSACTIONS TAB -->
-            <div id="tab-transactions" class="tab">
-                <h1>Transactions (Sales & Purchases)</h1>
+            <!-- SALES TAB -->
+            <div id="tab-sales" class="tab">
+                <h1>Sales Transactions</h1>
                 
-                <!-- Add Transaction Form -->
+                <!-- Add Sale Form -->
                 <div class="form-container">
-                    <h3>Record a Transaction</h3>
-                    <form id="form-transaction">
-                        <select id="trans-type" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                            <option value="Sale">Sale (Money In, Stock Out)</option>
-                            <option value="Purchase">Purchase (Money Out, Stock In)</option>
-                        </select>
-                        <input type="text" id="trans-item" list="inventory-items-list" placeholder="Item Name" required>
-                        <input type="number" id="trans-qty" placeholder="Quantity" required>
-                        <input type="number" id="trans-amount" placeholder="Total Amount (₹)" required>
-                        <button type="submit">Save Transaction</button>
+                    <h3>Record a Sale (Money In, Stock Goes Down)</h3>
+                    <form id="form-sale">
+                        <input type="text" id="sale-item" list="inventory-items-list" placeholder="Item Name" required>
+                        <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
+                        <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
+                        <button type="submit">Save Sale</button>
                     </form>
                 </div>
 
-                <!-- Date Range Filter -->
-                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #3498db; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Filter by Date Range</h3>
+                <!-- Sales Date Filter -->
+                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #27ae60; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Filter Sales by Date</h3>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <label style="font-weight: bold;">From:</label>
-                        <input type="date" id="filter-start" style="max-width: 150px;">
+                        <input type="date" id="filter-sale-start" style="max-width: 150px;">
                         <label style="font-weight: bold;">To:</label>
-                        <input type="date" id="filter-end" style="max-width: 150px;">
-                        <button id="btn-filter" style="padding: 10px 15px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filter</button>
-                        <button id="btn-clear-filter" style="padding: 10px 15px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
+                        <input type="date" id="filter-sale-end" style="max-width: 150px;">
+                        <button id="btn-sale-filter" style="padding: 10px 15px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filter</button>
+                        <button id="btn-sale-clear" style="padding: 10px 15px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
                     </div>
                 </div>
 
-                <!-- Transactions History Table -->
-                <table id="table-transactions">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Item Name</th>
-                            <th>Qty</th>
-                            <th>Amount Paid/Received</th>
-                        </tr>
-                    </thead>
+                <!-- Sales History Table -->
+                <table id="table-sales">
+                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Sold</th><th>Amount Received</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- PURCHASES TAB -->
+            <div id="tab-purchases" class="tab">
+                <h1>Purchase Transactions</h1>
+                
+                <!-- Add Purchase Form -->
+                <div class="form-container">
+                    <h3>Record a Purchase (Money Out, Stock Goes Up)</h3>
+                    <form id="form-purchase">
+                        <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" required>
+                        <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
+                        <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
+                        <button type="submit" style="background-color: #e74c3c;">Save Purchase</button>
+                    </form>
+                </div>
+
+                <!-- Purchases Date Filter -->
+                <div class="form-container" style="background: #ecf0f1; border-left: 5px solid #e74c3c; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Filter Purchases by Date</h3>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: bold;">From:</label>
+                        <input type="date" id="filter-purchase-start" style="max-width: 150px;">
+                        <label style="font-weight: bold;">To:</label>
+                        <input type="date" id="filter-purchase-end" style="max-width: 150px;">
+                        <button id="btn-purchase-filter" style="padding: 10px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filter</button>
+                        <button id="btn-purchase-clear" style="padding: 10px 15px; background-color: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Purchases History Table -->
+                <table id="table-purchases">
+                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Bought</th><th>Amount Paid</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
