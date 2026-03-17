@@ -25,7 +25,7 @@ const auth = getAuth(app);
 
 let unsubInventory = null;
 let unsubTransactions = null;
-let allTransactions =[]; // Holds all transactions for quick date filtering
+let allTransactions =[]; // Memory vault to hold data for fast date filtering
 
 // ----- AUTHENTICATION LOGIC -----
 const loginContainer = document.getElementById('login-container');
@@ -50,7 +50,6 @@ loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
-    
     try {
         await signInWithEmailAndPassword(auth, email, password);
         loginError.style.display = 'none';
@@ -64,7 +63,7 @@ loginForm.addEventListener('submit', async (e) => {
 btnLogout.addEventListener('click', () => signOut(auth));
 
 // ----- TAB NAVIGATION LOGIC -----
-const tabs = ['dashboard', 'transactions', 'inventory'];
+const tabs =['dashboard', 'sales', 'purchases', 'inventory'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
@@ -80,66 +79,57 @@ tabs.forEach(tab => {
 function startDatabaseListeners() {
     // 1. Inventory Updates
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        try {
-            const tbody = document.querySelector('#table-inventory tbody');
-            const datalist = document.getElementById('inventory-items-list'); 
+        const tbody = document.querySelector('#table-inventory tbody');
+        const datalist = document.getElementById('inventory-items-list'); 
+        tbody.innerHTML = ''; datalist.innerHTML = ''; 
+        let totalItems = 0;
+
+        snapshot.forEach((docSnap) => {
+            const item = docSnap.data();
+            const id = docSnap.id;
+            const itemName = item.name || "Unknown";
+            const itemQty = Number(item.qty) || 0;
+            const itemPrice = Number(item.price) || 0;
+
+            totalItems += itemQty;
             
-            tbody.innerHTML = '';
-            datalist.innerHTML = ''; 
-            let totalItems = 0;
-
-            snapshot.forEach((docSnap) => {
-                const item = docSnap.data();
-                const id = docSnap.id;
-                const itemName = item.name || "Unknown Item";
-                const itemQty = Number(item.qty) || 0;
-                const itemPrice = Number(item.price) || 0;
-
-                totalItems += itemQty;
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${itemName}</td>
-                        <td>${itemQty}</td>
-                        <td>₹${itemPrice.toFixed(2)}</td>
-                        <td>
-                            <button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;" 
-                                data-id="${id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
-                            <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-left:5px;" 
-                                data-id="${id}">Delete</button>
-                        </td>
-                    </tr>
-                `;
-                datalist.innerHTML += `<option value="${itemName}"></option>`;
-            });
-            document.getElementById('dash-inventory').innerText = totalItems;
-        } catch (error) { console.error(error); }
+            tbody.innerHTML += `
+                <tr>
+                    <td>${itemName}</td>
+                    <td>${itemQty}</td>
+                    <td>₹${itemPrice.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;" data-id="${id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
+                        <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-left:5px;" data-id="${id}">Delete</button>
+                    </td>
+                </tr>`;
+            datalist.innerHTML += `<option value="${itemName}"></option>`;
+        });
+        document.getElementById('dash-inventory').innerText = totalItems;
     });
 
     // 2. Transactions Updates
     const qTrans = query(collection(db, "transactions"), orderBy("date", "desc"));
     unsubTransactions = onSnapshot(qTrans, (snapshot) => {
-        try {
-            allTransactions =[];
-            let totalSales = 0;
-            let totalPurchases = 0;
+        allTransactions =[];
+        let totalSales = 0; let totalPurchases = 0;
 
-            snapshot.forEach((docSnap) => {
-                const trans = docSnap.data();
-                allTransactions.push(trans);
-                
-                const tAmount = Number(trans.amount) || 0;
-                if(trans.type === 'Sale') totalSales += tAmount;
-                else if (trans.type === 'Purchase') totalPurchases += tAmount;
-            });
+        snapshot.forEach((docSnap) => {
+            const trans = docSnap.data();
+            allTransactions.push(trans);
+            
+            const tAmount = Number(trans.amount) || 0;
+            if(trans.type === 'Sale') totalSales += tAmount;
+            else if (trans.type === 'Purchase') totalPurchases += tAmount;
+        });
 
-            // Update Dashboard with Grand Totals
-            document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
-            document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
+        // Update Dashboard
+        document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
+        document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
 
-            // Render the table 
-            renderTransactionsTable();
-        } catch (error) { console.error(error); }
+        // Render both tables
+        renderSalesTable();
+        renderPurchasesTable();
     });
 }
 
@@ -149,105 +139,121 @@ function stopDatabaseListeners() {
     allTransactions =[];
 }
 
-// ----- UNIFIED TRANSACTIONS LOGIC -----
-const transForm = document.getElementById('form-transaction');
-transForm.addEventListener('submit', async (e) => {
+// ----- SALES LOGIC -----
+const saleForm = document.getElementById('form-sale');
+saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const type = document.getElementById('trans-type').value; // 'Sale' or 'Purchase'
-    const item = document.getElementById('trans-item').value.trim();
-    let qty = parseInt(document.getElementById('trans-qty').value);
-    let amount = parseFloat(document.getElementById('trans-amount').value);
-    
-    if (isNaN(qty)) qty = 0; 
-    if (isNaN(amount)) amount = 0;
+    const item = document.getElementById('sale-item').value.trim();
+    let qty = parseInt(document.getElementById('sale-qty').value);
+    let amount = parseFloat(document.getElementById('sale-amount').value);
+    if (isNaN(qty)) qty = 0; if (isNaN(amount)) amount = 0;
     const date = new Date().toISOString();
 
     try {
-        // 1. Record the transaction
-        await addDoc(collection(db, "transactions"), { type, item, qty, amount, date });
-        
-        // 2. Find the item in Inventory
+        await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, amount, date });
         const q = query(collection(db, "inventory"), where("name", "==", item));
         const querySnapshot = await getDocs(q);
         
-        if (type === 'Sale') {
-            // Decrease Stock
-            if (!querySnapshot.empty) {
-                const invDoc = querySnapshot.docs[0];
-                let newQty = Number(invDoc.data().qty) - qty;
-                if(newQty < 0) newQty = 0; 
-                await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
-            }
-        } else if (type === 'Purchase') {
-            // Increase Stock or Add New
-            if (!querySnapshot.empty) {
-                const invDoc = querySnapshot.docs[0];
-                const newQty = Number(invDoc.data().qty) + qty;
-                await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
-            } else {
-                let price = (qty > 0) ? (amount / qty) : 0; 
-                await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: price });
-            }
+        if (!querySnapshot.empty) {
+            const invDoc = querySnapshot.docs[0];
+            let newQty = Number(invDoc.data().qty) - qty;
+            if(newQty < 0) newQty = 0; 
+            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
         }
-        
-        transForm.reset();
-        alert(`${type} saved successfully!`);
-    } catch (e) {
-        console.error("Error recording transaction: ", e);
-    }
+        saleForm.reset();
+        alert("Sale saved successfully!");
+    } catch (e) { console.error("Error recording sale: ", e); }
 });
 
-// ----- DATE FILTER & RENDER TRANSACTIONS TABLE -----
-const btnFilter = document.getElementById('btn-filter');
-const btnClearFilter = document.getElementById('btn-clear-filter');
-
-btnFilter.addEventListener('click', () => {
-    renderTransactionsTable();
+// Sales Date Filter
+document.getElementById('btn-sale-filter').addEventListener('click', renderSalesTable);
+document.getElementById('btn-sale-clear').addEventListener('click', () => {
+    document.getElementById('filter-sale-start').value = '';
+    document.getElementById('filter-sale-end').value = '';
+    renderSalesTable();
 });
 
-btnClearFilter.addEventListener('click', () => {
-    document.getElementById('filter-start').value = '';
-    document.getElementById('filter-end').value = '';
-    renderTransactionsTable();
-});
-
-function renderTransactionsTable() {
-    const tbody = document.querySelector('#table-transactions tbody');
+function renderSalesTable() {
+    const tbody = document.querySelector('#table-sales tbody');
     tbody.innerHTML = '';
-
-    // Get Filter Dates
-    const startVal = document.getElementById('filter-start').value;
-    const endVal = document.getElementById('filter-end').value;
-    
-    // Set Time ranges properly to start of day and end of day
+    const startVal = document.getElementById('filter-sale-start').value;
+    const endVal = document.getElementById('filter-sale-end').value;
     let startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
     let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
 
     allTransactions.forEach((trans) => {
+        if (trans.type !== 'Sale') return; // ONLY show sales here
         const transDate = new Date(trans.date);
-
-        // Filter Logic: Skip this row if it doesn't match the date range
         if (startDate && transDate < startDate) return;
         if (endDate && transDate > endDate) return;
 
-        // Render matching rows
-        const dateStr = transDate.toLocaleDateString();
-        const tItem = trans.item || "Unknown";
-        const tQty = Number(trans.qty) || 0;
-        const tAmount = Number(trans.amount) || 0;
+        tbody.innerHTML += `
+            <tr>
+                <td>${transDate.toLocaleDateString()}</td>
+                <td>${trans.item || "Unknown"}</td>
+                <td>${Number(trans.qty) || 0}</td>
+                <td>₹${(Number(trans.amount) || 0).toFixed(2)}</td>
+            </tr>`;
+    });
+}
+
+// ----- PURCHASES LOGIC -----
+const purchaseForm = document.getElementById('form-purchase');
+purchaseForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const item = document.getElementById('purchase-item').value.trim();
+    let qty = parseInt(document.getElementById('purchase-qty').value);
+    let amount = parseFloat(document.getElementById('purchase-amount').value);
+    if (isNaN(qty)) qty = 0; if (isNaN(amount)) amount = 0;
+    const date = new Date().toISOString();
+
+    try {
+        await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date });
+        const q = query(collection(db, "inventory"), where("name", "==", item));
+        const querySnapshot = await getDocs(q);
         
-        // Color coding for visual separation
-        const typeColor = trans.type === 'Sale' ? '#27ae60' : '#e74c3c';
+        if (!querySnapshot.empty) {
+            const invDoc = querySnapshot.docs[0];
+            const newQty = Number(invDoc.data().qty) + qty;
+            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty });
+        } else {
+            let price = (qty > 0) ? (amount / qty) : 0; 
+            await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: price });
+        }
+        purchaseForm.reset();
+        alert("Purchase saved successfully!");
+    } catch (e) { console.error("Error recording purchase: ", e); }
+});
+
+// Purchases Date Filter
+document.getElementById('btn-purchase-filter').addEventListener('click', renderPurchasesTable);
+document.getElementById('btn-purchase-clear').addEventListener('click', () => {
+    document.getElementById('filter-purchase-start').value = '';
+    document.getElementById('filter-purchase-end').value = '';
+    renderPurchasesTable();
+});
+
+function renderPurchasesTable() {
+    const tbody = document.querySelector('#table-purchases tbody');
+    tbody.innerHTML = '';
+    const startVal = document.getElementById('filter-purchase-start').value;
+    const endVal = document.getElementById('filter-purchase-end').value;
+    let startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
+    let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+    allTransactions.forEach((trans) => {
+        if (trans.type !== 'Purchase') return; // ONLY show purchases here
+        const transDate = new Date(trans.date);
+        if (startDate && transDate < startDate) return;
+        if (endDate && transDate > endDate) return;
 
         tbody.innerHTML += `
             <tr>
-                <td>${dateStr}</td>
-                <td style="color: ${typeColor}; font-weight: bold;">${trans.type}</td>
-                <td>${tItem}</td>
-                <td>${tQty}</td>
-                <td>₹${tAmount.toFixed(2)}</td>
-            </tr>
-        `;
+                <td>${transDate.toLocaleDateString()}</td>
+                <td>${trans.item || "Unknown"}</td>
+                <td>${Number(trans.qty) || 0}</td>
+                <td>₹${(Number(trans.amount) || 0).toFixed(2)}</td>
+            </tr>`;
     });
 }
 
@@ -262,10 +268,7 @@ inventoryForm.addEventListener('submit', async (e) => {
     const name = document.getElementById('inv-name').value.trim();
     let qty = parseInt(document.getElementById('inv-qty').value);
     let price = parseFloat(document.getElementById('inv-price').value);
-    
-    if (isNaN(qty)) qty = 0;
-    if (isNaN(price)) price = 0;
-
+    if (isNaN(qty)) qty = 0; if (isNaN(price)) price = 0;
     const editId = inventoryForm.getAttribute('data-edit-id'); 
 
     try {
@@ -276,10 +279,7 @@ inventoryForm.addEventListener('submit', async (e) => {
             await addDoc(collection(db, "inventory"), { name, qty, price });
             inventoryForm.reset();
         }
-    } catch (error) {
-        console.error("Error saving item: ", error);
-        alert("Action Denied! Make sure you are logged in.");
-    }
+    } catch (error) { console.error(error); alert("Make sure you are logged in."); }
 });
 
 btnInvCancel.addEventListener('click', resetInventoryForm);
@@ -295,11 +295,8 @@ function resetInventoryForm() {
 document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-delete')) {
         const id = e.target.getAttribute('data-id');
-        if (confirm("Delete this item?")) {
-            await deleteDoc(doc(db, "inventory", id));
-        }
+        if (confirm("Delete this item?")) await deleteDoc(doc(db, "inventory", id));
     }
-    
     if (e.target.classList.contains('btn-edit')) {
         const id = e.target.getAttribute('data-id');
         document.getElementById('inv-name').value = e.target.getAttribute('data-name');
