@@ -33,6 +33,7 @@
             <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
             <button id="btn-sales" class="nav-btn">Sales</button>
             <button id="btn-purchases" class="nav-btn">Purchases</button>
+            <button id="btn-trans-history" class="nav-btn" style="background-color: #f39c12; margin-top: 10px;">Transactions </button>
             <button id="btn-inventory" class="nav-btn">Inventory</button>
             <button id="btn-analytics" class="nav-btn" style="background-color: #8e44ad; margin-top: 10px;">Analytics 📊</button>
             
@@ -51,6 +52,45 @@
                     <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
                 </div>
             </div>
+
+
+
+
+
+<!-- TRANSACTION HISTORY TAB -->
+<div id="tab-trans-history" class="tab">
+    <h1>All Transaction History</h1>
+    
+    <div class="form-container" style="border-left: 5px solid #f39c12; margin-bottom: 20px;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Search History</h3>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="font-weight: bold;">From:</label>
+            <input type="date" id="filter-all-start">
+            <label style="font-weight: bold;">To:</label>
+            <input type="date" id="filter-all-end">
+            <button id="btn-all-filter" class="btn-action" style="background-color: #f39c12;">Show Records</button>
+            <button id="btn-all-today" class="btn-action" style="background-color: #3498db;">Today Only</button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">* Showing recent 1 day by default to maintain speed.</p>
+    </div>
+
+    <table id="table-all-transactions">
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Type</th>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-all-transactions"></tbody>
+    </table>
+</div>
+
+
+            
+            
 
             <!-- ANALYTICS TAB -->
             <div id="tab-analytics" class="tab">
