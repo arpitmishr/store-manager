@@ -100,7 +100,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
 // 6. NAVIGATION LOGIC
-const tabs = ['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
+const tabs = ['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings', 'trans-history'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
