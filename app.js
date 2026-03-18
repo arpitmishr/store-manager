@@ -378,58 +378,107 @@ function renderCharts(monthlyData, abc, fsn) {
 }
 
 // 9. SALES TRANSACTIONS
-const saleForm = document.getElementById('form-sale');
-saleForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const item = document.getElementById('sale-item').value.trim();
-    let qty = parseInt(document.getElementById('sale-qty').value);
-    let amount = parseFloat(document.getElementById('sale-amount').value);
+// ==========================================
+// ====== ADVANCED MULTI-ITEM SALES =========
+// ==========================================
+
+// 1. Add new row to the sale form
+document.getElementById('btn-add-sale-row').addEventListener('click', () => {
+    const container = document.getElementById('sale-rows-container');
+    const firstRow = container.querySelector('.sale-item-row');
+    const newRow = firstRow.cloneNode(true);
     
-    try {
-        await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, amount, date: new Date().toISOString() });
-        const q = query(collection(db, "inventory"), where("name", "==", item));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-            let invDoc = snap.docs[0];
-            let newQty = Number(invDoc.data().qty) - qty;
-            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
-        }
-        saleForm.reset();
-    } catch (err) { console.error(err); }
+    // Clear inputs in the new row
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    newRow.querySelector('.btn-remove-row').style.display = 'inline-block';
+    
+    container.appendChild(newRow);
+    attachRowListeners(newRow); // Attach dynamic calculations to new row
 });
 
-function renderSalesTable() {
-    const tbody = document.querySelector('#table-sales tbody'); 
-    tbody.innerHTML = '';
-    
-    // Get filter dates - Default to Today if empty
-    let startVal = document.getElementById('filter-sale-start').value;
-    let endVal = document.getElementById('filter-sale-end').value;
-    
-    if(!startVal) startVal = new Date().toISOString().split('T')[0];
-    if(!endVal) endVal = new Date().toISOString().split('T')[0];
-
-    const sD = new Date(startVal + 'T00:00:00');
-    const eD = new Date(endVal + 'T23:59:59');
-
-    let html = '';
-    // Optimized loop
-    for (let i = 0; i < allTransactions.length; i++) {
-        const t = allTransactions[i];
-        if (t.type !== 'Sale') continue;
-
-        const tDate = new Date(t.date);
-        if (tDate >= sD && tDate <= eD) {
-            html += `<tr>
-                <td>${tDate.toLocaleDateString()}</td>
-                <td>${t.item || "Unknown"}</td>
-                <td>${t.qty}</td>
-                <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
-            </tr>`;
-        }
+// 2. Remove row logic
+document.getElementById('sale-rows-container').addEventListener('click', (e) => {
+    if(e.target.classList.contains('btn-remove-row')) {
+        e.target.closest('.sale-item-row').remove();
     }
-    tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No Sales found for this date.</td></tr>';
+});
+
+// 3. Calculation logic for each row (Cost & Avg Price Placeholder)
+function attachRowListeners(row) {
+    const nameInput = row.querySelector('.row-item-name');
+    const costInput = row.querySelector('.row-cost');
+    const totalInput = row.querySelector('.row-total');
+
+    nameInput.addEventListener('input', () => {
+        const itemName = nameInput.value.trim();
+        
+        // Fetch Cost from Inventory
+        const invItem = allInventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+        if(invItem) costInput.value = invItem.price;
+
+        // Calculate Average of last 3 sales for placeholder
+        const lastSales = allTransactions
+            .filter(t => t.type === 'Sale' && t.item.toLowerCase() === itemName.toLowerCase())
+            .slice(0, 3);
+
+        if(lastSales.length > 0) {
+            const avg = lastSales.reduce((acc, curr) => acc + (curr.amount / curr.qty), 0) / lastSales.length;
+            totalInput.placeholder = `Last 3 Avg: ₹${avg.toFixed(2)}`;
+        } else {
+            totalInput.placeholder = "Enter Amount";
+        }
+    });
 }
+
+// Attach listeners to the initial default row
+attachRowListeners(document.querySelector('.sale-item-row'));
+
+// 4. SAVE COMPLETE TRANSACTION (Multi-item)
+document.getElementById('form-sale-multi').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-save-multi-sale');
+    btn.innerText = "Saving..."; btn.disabled = true;
+
+    try {
+        const { writeBatch, doc, collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        const batch = writeBatch(db);
+        const rows = document.querySelectorAll('.sale-item-row');
+        const transactionDate = new Date().toISOString();
+
+        for (const row of rows) {
+            const item = row.querySelector('.row-item-name').value.trim();
+            const qty = parseInt(row.querySelector('.row-qty').value);
+            const amount = parseFloat(row.querySelector('.row-total').value);
+
+            // A. Create Transaction Record
+            const transRef = doc(collection(db, "transactions"));
+            batch.set(transRef, { type: "Sale", item, qty, amount, date: transactionDate });
+
+            // B. Update Stock (Search for item in Firestore)
+            const q = query(collection(db, "inventory"), where("name", "==", item));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                const invDoc = snap.docs[0];
+                const newQty = (Number(invDoc.data().qty) || 0) - qty;
+                batch.update(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
+            }
+        }
+
+        await batch.commit();
+        alert("Sale Recorded & Stock Updated Successfully!");
+        
+        // Reset Form to 1 row
+        const container = document.getElementById('sale-rows-container');
+        container.innerHTML = ''; // clear all
+        document.getElementById('btn-add-sale-row').click(); // add 1 clean row
+        
+    } catch (err) {
+        console.error(err);
+        alert("Error saving sale. Check console.");
+    } finally {
+        btn.innerText = "Save Complete Sale"; btn.disabled = false;
+    }
+});
 
 
 // 10. PURCHASE TRANSACTIONS
