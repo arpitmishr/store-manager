@@ -617,3 +617,104 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
         btn.disabled = false;
     }
 });
+
+
+
+
+
+
+// ==========================================
+// ====== JSON ERP IMPORT LOGIC =============
+// ==========================================
+
+document.getElementById('btn-trigger-json').addEventListener('click', () => {
+    document.getElementById('json-file').click();
+});
+
+document.getElementById('json-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!confirm("DANGER: This will WIPE OUT your entire Inventory and Transaction history to replace it with this JSON data. Proceed?")) {
+        e.target.value = '';
+        return;
+    }
+
+    const btn = document.getElementById('btn-trigger-json');
+    const ogText = btn.innerText;
+    btn.innerText = "Processing JSON..."; 
+    btn.disabled = true;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+
+            // 1. DELETE EXISTING DATA
+            // Clear Inventory
+            for (let item of allInventory) {
+                await deleteDoc(doc(db, "inventory", item.id));
+            }
+            // Clear Transactions
+            // (We need to fetch them all first since they might not all be in allTransactions due to filtering)
+            const transSnap = await getDocs(collection(db, "transactions"));
+            for (let tDoc of transSnap.docs) {
+                await deleteDoc(doc(db, "transactions", tDoc.id));
+            }
+
+            // 2. IMPORT INVENTORY
+            if (data.inventory && Array.isArray(data.inventory)) {
+                for (const item of data.inventory) {
+                    await addDoc(collection(db, "inventory"), {
+                        name: item.particulars,
+                        qty: Number(item.quantity) || 0,
+                        price: Number(item.rate) || 0
+                    });
+                }
+            }
+
+            // 3. IMPORT TRANSACTIONS
+            // Since your app expects 1 doc per item in transactions, we flatten the 'items' array
+            if (data.transactions && Array.isArray(data.transactions)) {
+                for (const trans of data.transactions) {
+                    for (const lineItem of trans.items) {
+                        
+                        // Determine Amount: 
+                        // For Sales: qty * sellingRate. For Purchases: qty * rate.
+                        let finalAmount = 0;
+                        if (trans.type === "Sale") {
+                            finalAmount = (lineItem.sellingRate || 0) * (lineItem.quantity || 0);
+                        } else {
+                            finalAmount = (lineItem.rate || 0) * (lineItem.quantity || 0);
+                        }
+
+                        const flatTransaction = {
+                            type: trans.type, // "Sale" or "Purchase"
+                            date: trans.date, // ISO String
+                            item: lineItem.particulars,
+                            qty: Number(lineItem.quantity) || 0,
+                            amount: finalAmount,
+                            // Metadata for credit tracking
+                            saleType: trans.saleType || "Cash",
+                            partyName: trans.partyName || null,
+                            paidAmount: trans.paidAmount !== undefined ? trans.paidAmount : finalAmount,
+                            transactionId: trans.id // Original Unix ID
+                        };
+                        
+                        await addDoc(collection(db, "transactions"), flatTransaction);
+                    }
+                }
+            }
+
+            alert("ERP Data successfully imported! Inventory and Transactions updated.");
+        } catch (error) {
+            console.error(error);
+            alert("Error parsing JSON. Please ensure it follows the correct format.");
+        } finally {
+            btn.innerText = ogText;
+            btn.disabled = false;
+            document.getElementById('json-file').value = '';
+        }
+    };
+    reader.readAsText(file);
+});
