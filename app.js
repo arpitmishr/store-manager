@@ -467,21 +467,65 @@ document.getElementById('form-sale-multi').addEventListener('submit', async (e) 
         await batch.commit();
         alert("Sale Recorded & Stock Updated Successfully!");
         
-        // Reset Form to 1 row
+        // --- FIXED RESET LOGIC ---
         const container = document.getElementById('sale-rows-container');
-        container.innerHTML = ''; // clear all
-        document.getElementById('btn-add-sale-row').click(); // add 1 clean row
+        const rows = container.querySelectorAll('.sale-item-row');
         
-    } catch (err) {
-        console.error(err);
-        alert("Error saving sale. Check console.");
-    } finally {
-        btn.innerText = "Save Complete Sale"; btn.disabled = false;
-    }
-});
+        // Keep only the first row, delete the rest
+        rows.forEach((row, index) => {
+            if (index === 0) {
+                row.querySelectorAll('input').forEach(input => input.value = '');
+                row.querySelector('.row-total').placeholder = "Enter Amount";
+            } else {
+                row.remove();
+            }
+        });
 
 
 // 10. PURCHASE TRANSACTIONS
+
+
+
+// FIXED: Added missing Sales Table Render function
+function renderSalesTable() {
+    const tbody = document.querySelector('#table-sales tbody'); 
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    let startVal = document.getElementById('filter-sale-start').value;
+    let endVal = document.getElementById('filter-sale-end').value;
+    
+    // Default to today if no date is picked
+    const todayStr = new Date().toISOString().split('T')[0];
+    if(!startVal) startVal = todayStr;
+    if(!endVal) endVal = todayStr;
+
+    const sD = new Date(startVal + 'T00:00:00');
+    const eD = new Date(endVal + 'T23:59:59');
+
+    let html = '';
+    for (let i = 0; i < allTransactions.length; i++) {
+        const t = allTransactions[i];
+        if (t.type !== 'Sale') continue;
+
+        const tDate = new Date(t.date);
+        if (tDate >= sD && tDate <= eD) {
+            html += `<tr>
+                <td>${tDate.toLocaleDateString()}</td>
+                <td>${t.item || "Unknown"}</td>
+                <td>${t.qty}</td>
+                <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            </tr>`;
+        }
+    }
+    tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No Sales found for this date.</td></tr>';
+}
+
+
+
+
+
+        
 function renderPurchasesTable() {
     const tbody = document.querySelector('#table-purchases tbody'); 
     tbody.innerHTML = '';
@@ -733,30 +777,31 @@ document.getElementById('btn-all-today').addEventListener('click', () => {
     renderAllTransactionsTable();
 });
 
-function renderAllTransactionsTable() {
-    const tbody = document.getElementById('tbody-all-transactions');
-    tbody.innerHTML = ''; // Clear table
 
-    // Get filter dates
-    const startVal = document.getElementById('filter-all-start').value;
-    const endVal = document.getElementById('filter-all-end').value;
+
+
+
+    function renderAllTransactionsTable() {
+    const tbody = document.getElementById('tbody-all-transactions');
+    if(!tbody) return;
+    tbody.innerHTML = ''; 
+
+    let startVal = document.getElementById('filter-all-start').value;
+    let endVal = document.getElementById('filter-all-end').value;
     
-    // Optimization: If no date selected, show nothing to prevent lag
-    if(!startVal || !endVal) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Please select a date range.</td></tr>';
-        return;
-    }
+    // If no dates, default to showing everything from today
+    const todayStr = new Date().toISOString().split('T')[0];
+    if(!startVal) startVal = todayStr;
+    if(!endVal) endVal = todayStr;
 
     const sD = new Date(startVal + 'T00:00:00');
     const eD = new Date(endVal + 'T23:59:59');
 
     let html = '';
-    // Use a standard for-loop for maximum speed with large history
     for (let i = 0; i < allTransactions.length; i++) {
         const t = allTransactions[i];
         const tDate = new Date(t.date);
 
-        // Date Filter Check
         if (tDate >= sD && tDate <= eD) {
             const typeColor = t.type === 'Sale' ? '#27ae60' : '#e74c3c';
             const displayDate = tDate.toLocaleDateString() + ' ' + tDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -772,9 +817,5 @@ function renderAllTransactionsTable() {
         }
     }
 
-    if(html === '') {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No records found for this date.</td></tr>';
-    } else {
-        tbody.innerHTML = html;
+    tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No records found for selected dates.</td></tr>';
     }
-}
