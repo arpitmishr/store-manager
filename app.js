@@ -399,56 +399,75 @@ saleForm.addEventListener('submit', async (e) => {
 });
 
 function renderSalesTable() {
-    const tbody = document.querySelector('#table-sales tbody'); tbody.innerHTML = '';
-    const startVal = document.getElementById('filter-sale-start').value;
-    const endVal = document.getElementById('filter-sale-end').value;
-    let sD = startVal ? new Date(startVal + 'T00:00:00') : null;
-    let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
+    const tbody = document.querySelector('#table-sales tbody'); 
+    tbody.innerHTML = '';
+    
+    // Get filter dates - Default to Today if empty
+    let startVal = document.getElementById('filter-sale-start').value;
+    let endVal = document.getElementById('filter-sale-end').value;
+    
+    if(!startVal) startVal = new Date().toISOString().split('T')[0];
+    if(!endVal) endVal = new Date().toISOString().split('T')[0];
 
-    allTransactions.forEach(t => {
-        if(t.type !== 'Sale') return;
+    const sD = new Date(startVal + 'T00:00:00');
+    const eD = new Date(endVal + 'T23:59:59');
+
+    let html = '';
+    // Optimized loop
+    for (let i = 0; i < allTransactions.length; i++) {
+        const t = allTransactions[i];
+        if (t.type !== 'Sale') continue;
+
         const tDate = new Date(t.date);
-        if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        tbody.innerHTML += `<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item}</td><td>${t.qty}</td><td>₹${t.amount.toFixed(2)}</td></tr>`;
-    });
+        if (tDate >= sD && tDate <= eD) {
+            html += `<tr>
+                <td>${tDate.toLocaleDateString()}</td>
+                <td>${t.item || "Unknown"}</td>
+                <td>${t.qty}</td>
+                <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            </tr>`;
+        }
+    }
+    tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No Sales found for this date.</td></tr>';
 }
+
 
 // 10. PURCHASE TRANSACTIONS
-const purchaseForm = document.getElementById('form-purchase');
-purchaseForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const item = document.getElementById('purchase-item').value.trim();
-    let qty = parseInt(document.getElementById('purchase-qty').value);
-    let amount = parseFloat(document.getElementById('purchase-amount').value);
-    
-    try {
-        await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date: new Date().toISOString() });
-        const q = query(collection(db, "inventory"), where("name", "==", item));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-            let invDoc = snap.docs[0];
-            await updateDoc(doc(db, "inventory", invDoc.id), { qty: (Number(invDoc.data().qty) + qty) });
-        } else {
-            await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: (amount/qty) });
-        }
-        purchaseForm.reset();
-    } catch (err) { console.error(err); }
-});
-
 function renderPurchasesTable() {
-    const tbody = document.querySelector('#table-purchases tbody'); tbody.innerHTML = '';
-    const startVal = document.getElementById('filter-purchase-start').value;
-    const endVal = document.getElementById('filter-purchase-end').value;
-    let sD = startVal ? new Date(startVal + 'T00:00:00') : null;
-    let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
+    const tbody = document.querySelector('#table-purchases tbody'); 
+    tbody.innerHTML = '';
+    
+    // Get filter dates - Default to Today if empty
+    let startVal = document.getElementById('filter-purchase-start').value;
+    let endVal = document.getElementById('filter-purchase-end').value;
+    
+    if(!startVal) startVal = new Date().toISOString().split('T')[0];
+    if(!endVal) endVal = new Date().toISOString().split('T')[0];
 
-    allTransactions.forEach(t => {
-        if(t.type !== 'Purchase') return;
+    const sD = new Date(startVal + 'T00:00:00');
+    const eD = new Date(endVal + 'T23:59:59');
+
+    let html = '';
+    // Optimized loop
+    for (let i = 0; i < allTransactions.length; i++) {
+        const t = allTransactions[i];
+        if (t.type !== 'Purchase') continue;
+
         const tDate = new Date(t.date);
-        if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        tbody.innerHTML += `<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item}</td><td>${t.qty}</td><td>₹${t.amount.toFixed(2)}</td></tr>`;
-    });
+        if (tDate >= sD && tDate <= eD) {
+            html += `<tr>
+                <td>${tDate.toLocaleDateString()}</td>
+                <td>${t.item || "Unknown"}</td>
+                <td>${t.qty}</td>
+                <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            </tr>`;
+        }
+    }
+    tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No Purchases found for this date.</td></tr>';
 }
+
+
+
 
 // 11. INVENTORY CRUD (Manual)
 const inventoryForm = document.getElementById('form-inventory');
