@@ -99,41 +99,36 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-// 6. NAVIGATION LOGIC
+// ----- UPDATED TAB NAVIGATION -----
 const tabs = ['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings', 'trans-history'];
-
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
-
-        // Deactivate all tabs and buttons
         tabs.forEach(t => {
             document.getElementById(`tab-${t}`).classList.remove('active');
             document.getElementById(`btn-${t}`).classList.remove('active');
         });
-
-        // Activate selected tab and button
         document.getElementById(`tab-${tab}`).classList.add('active');
         document.getElementById(`btn-${tab}`).classList.add('active');
+        
+        // AUTO-FILTER TO TODAY ON TAB CLICK
+        const today = new Date().toISOString().split('T')[0];
 
-        // LAG-FREE SWITCHING: Allow UI to render before running heavy logic
-        if (tab === 'analytics') {
-            requestAnimationFrame(() => {
-                setTimeout(runAnalytics, 60);
-            });
+        if(tab === 'sales') {
+            document.getElementById('filter-sale-start').value = today;
+            document.getElementById('filter-sale-end').value = today;
+            renderSalesTable();
         }
-
-        if (tab === 'trans-history') {
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    // Set default date filter to Today
-                    const today = new Date().toISOString().split('T')[0];
-                    document.getElementById('filter-all-start').value = today;
-                    document.getElementById('filter-all-end').value = today;
-                    renderAllTransactionsTable();
-                }, 60);
-            });
+        if(tab === 'purchases') {
+            document.getElementById('filter-purchase-start').value = today;
+            document.getElementById('filter-purchase-end').value = today;
+            renderPurchasesTable();
         }
-
+        if(tab === 'analytics') runAnalytics();
+        if(tab === 'trans-history') {
+            document.getElementById('filter-all-start').value = today;
+            document.getElementById('filter-all-end').value = today;
+            renderAllTransactionsTable();
+        }
     });
 });
 
