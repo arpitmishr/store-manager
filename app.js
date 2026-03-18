@@ -624,7 +624,7 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
 
 
 // ==========================================
-// ====== JSON ERP IMPORT LOGIC =============
+// ====== FAST SMART JSON IMPORT (MERGE) ====
 // ==========================================
 
 document.getElementById('btn-trigger-json').addEventListener('click', () => {
@@ -635,81 +635,109 @@ document.getElementById('json-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!confirm("DANGER: This will WIPE OUT your entire Inventory and Transaction history to replace it with this JSON data. Proceed?")) {
-        e.target.value = '';
-        return;
-    }
-
     const btn = document.getElementById('btn-trigger-json');
     const ogText = btn.innerText;
-    btn.innerText = "Processing JSON..."; 
+    btn.innerText = "Syncing Data..."; 
     btn.disabled = true;
 
     const reader = new FileReader();
     reader.onload = async (event) => {
         try {
             const data = JSON.parse(event.target.result);
+            const { writeBatch, doc, getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
 
-            // 1. DELETE EXISTING DATA
-            // Clear Inventory
-            for (let item of allInventory) {
-                await deleteDoc(doc(db, "inventory", item.id));
-            }
-            // Clear Transactions
-            // (We need to fetch them all first since they might not all be in allTransactions due to filtering)
-            const transSnap = await getDocs(collection(db, "transactions"));
-            for (let tDoc of transSnap.docs) {
-                await deleteDoc(doc(db, "transactions", tDoc.id));
-            }
+            // --- STEP 1: CACHE EXISTING DATA FOR DUPLICATE CHECKING ---
+            // Fetch existing inventory and transaction IDs once to make lookups instant
+            const existingInvSnap = await getDocs(collection(db, "inventory"));
+            const existingTransSnap = await getDocs(collection(db, "transactions"));
+            
+            const invMap = new Map(); // Name -> Firestore ID & Data
+            existingInvSnap.forEach(d => invMap.set(d.data().name.toLowerCase().trim(), {id: d.id, ...d.data()}));
+            
+            const transSet = new Set(); // Set of jsonIds already in DB
+            existingTransSnap.forEach(d => { if(d.data().jsonId) transSet.add(d.data().jsonId.toString()); });
 
-            // 2. IMPORT INVENTORY
+            let batch = writeBatch(db);
+            let count = 0;
+            let skippedTrans = 0;
+            let newItems = 0;
+            let mergedItems = 0;
+
+            // Helper to commit batch every 500 operations (Firestore limit)
+            const commitBatch = async () => {
+                if (count > 0) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    count = 0;
+                }
+            };
+
+            // --- STEP 2: PROCESS INVENTORY (MERGE QUANTITIES) ---
             if (data.inventory && Array.isArray(data.inventory)) {
                 for (const item of data.inventory) {
-                    await addDoc(collection(db, "inventory"), {
-                        name: item.particulars,
-                        qty: Number(item.quantity) || 0,
-                        price: Number(item.rate) || 0
-                    });
+                    const itemName = item.particulars.trim();
+                    const key = itemName.toLowerCase();
+                    const qty = Number(item.quantity) || 0;
+                    const price = Number(item.rate) || 0;
+
+                    if (invMap.has(key)) {
+                        // UPDATE EXISTING: Add quantities
+                        const existing = invMap.get(key);
+                        const newTotalQty = existing.qty + qty;
+                        const invRef = doc(db, "inventory", existing.id);
+                        batch.update(invRef, { qty: newTotalQty, price: price });
+                        mergedItems++;
+                    } else {
+                        // ADD NEW
+                        const newInvRef = doc(collection(db, "inventory"));
+                        batch.set(newInvRef, { name: itemName, qty: qty, price: price });
+                        newItems++;
+                    }
+                    count++;
+                    if (count >= 450) await commitBatch();
                 }
             }
 
-            // 3. IMPORT TRANSACTIONS
-            // Since your app expects 1 doc per item in transactions, we flatten the 'items' array
+            // --- STEP 3: PROCESS TRANSACTIONS (SKIP DUPLICATES) ---
             if (data.transactions && Array.isArray(data.transactions)) {
                 for (const trans of data.transactions) {
-                    for (const lineItem of trans.items) {
-                        
-                        // Determine Amount: 
-                        // For Sales: qty * sellingRate. For Purchases: qty * rate.
-                        let finalAmount = 0;
-                        if (trans.type === "Sale") {
-                            finalAmount = (lineItem.sellingRate || 0) * (lineItem.quantity || 0);
-                        } else {
-                            finalAmount = (lineItem.rate || 0) * (lineItem.quantity || 0);
-                        }
+                    const jsonId = trans.id.toString();
 
-                        const flatTransaction = {
-                            type: trans.type, // "Sale" or "Purchase"
-                            date: trans.date, // ISO String
+                    // SKIP if this specific transaction ID was already imported previously
+                    if (transSet.has(jsonId)) {
+                        skippedTrans++;
+                        continue;
+                    }
+
+                    for (const lineItem of trans.items) {
+                        let finalAmount = (trans.type === "Sale") 
+                            ? (lineItem.sellingRate || 0) * (lineItem.quantity || 0)
+                            : (lineItem.rate || 0) * (lineItem.quantity || 0);
+
+                        const transRef = doc(collection(db, "transactions"));
+                        batch.set(transRef, {
+                            jsonId: jsonId, // Store the original ID for future skip-checks
+                            type: trans.type,
+                            date: trans.date,
                             item: lineItem.particulars,
                             qty: Number(lineItem.quantity) || 0,
                             amount: finalAmount,
-                            // Metadata for credit tracking
                             saleType: trans.saleType || "Cash",
                             partyName: trans.partyName || null,
-                            paidAmount: trans.paidAmount !== undefined ? trans.paidAmount : finalAmount,
-                            transactionId: trans.id // Original Unix ID
-                        };
-                        
-                        await addDoc(collection(db, "transactions"), flatTransaction);
+                            paidAmount: trans.paidAmount !== undefined ? trans.paidAmount : finalAmount
+                        });
+                        count++;
+                        if (count >= 450) await commitBatch();
                     }
                 }
             }
 
-            alert("ERP Data successfully imported! Inventory and Transactions updated.");
+            await commitBatch(); // Final push
+            alert(`Sync Complete!\n- New Items: ${newItems}\n- Merged Stock: ${mergedItems}\n- Skipped Duplicates: ${skippedTrans}`);
+
         } catch (error) {
             console.error(error);
-            alert("Error parsing JSON. Please ensure it follows the correct format.");
+            alert("Error during import. Check console.");
         } finally {
             btn.innerText = ogText;
             btn.disabled = false;
