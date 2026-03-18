@@ -1,326 +1,327 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Shop Manager Pro</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Load Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS -->
+    <!-- Load SheetJS for Excel Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        /* Custom styles to handle tab visibility and dark mode transitions */
-        .tab { display: none; }
-        .tab.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        body.dark-mode { background-color: #121212; color: #e5e7eb; }
-        .dark-mode .bg-card { background-color: #1e1e1e; border-color: #374151; }
-        .dark-mode .bg-body { background-color: #121212; }
-        .dark-mode input, .dark-mode select { background-color: #2d2d2d; border-color: #4b5563; color: white; }
-        
-        /* Hide scrollbars for a cleaner app look */
-        ::-webkit-scrollbar { display: none; }
-        body { -ms-overflow-style: none; scrollbar-width: none; -webkit-tap-highlight-color: transparent; }
-        
-        /* Active state for bottom nav */
-        .nav-btn.active { color: #3b82f6; }
-        .nav-btn.active svg { fill: #3b82f6; }
-    </style>
 </head>
-<body class="bg-gray-50 bg-body font-sans pb-24 transition-colors duration-200">
+<body>
     <datalist id="inventory-items-list"></datalist>
 
     <!-- LOGIN SCREEN -->
-    <div id="login-container" class="fixed inset-0 z-50 flex items-center justify-center bg-blue-600 p-6">
-        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-            <div class="text-center mb-8">
-                <div class="bg-blue-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span class="text-4xl">🏪</span>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800">Shop Manager</h2>
-                <p class="text-gray-500">Sign in to manage your store</p>
-            </div>
-            <form id="form-login" class="space-y-4">
-                <input type="email" id="login-email" placeholder="Email Address" class="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none" required>
-                <input type="password" id="login-password" placeholder="Password" class="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none" required>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">Login</button>
-                <p id="login-error" class="text-red-500 text-center text-sm hidden"></p>
+    <div id="login-container" class="login-container">
+        <div class="login-box">
+            <h2>Admin Login</h2>
+            <form id="form-login">
+                <input type="email" id="login-email" placeholder="Email Address" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <p id="login-error" style="color: #e74c3c; display: none; margin-top: 10px; font-size: 14px;"></p>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
+    <!-- MAIN APP -->
     <div id="app-container" style="display: none;">
-        
-        <!-- TOP APP BAR -->
-        <header class="sticky top-0 z-40 bg-white bg-card border-b border-gray-100 p-4 flex justify-between items-center shadow-sm">
-            <h1 class="text-xl font-extrabold text-blue-600 tracking-tight">STORE PRO</h1>
-            <div class="flex gap-3">
-                <button id="btn-theme-toggle" class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition text-lg" title="Toggle Theme">🌓</button>
-                <button id="btn-logout" class="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition" title="Logout">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+        <div class="sidebar">
+            <h2>Store Manager</h2>
+            <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
+            <button id="btn-sales" class="nav-btn">Sales</button>
+            <button id="btn-purchases" class="nav-btn">Purchases</button>
+            <button id="btn-trans-history" class="nav-btn" style="background-color: #f39c12; margin-top: 10px;">Transactions </button>
+            <button id="btn-inventory" class="nav-btn">Inventory</button>
+            <button id="btn-analytics" class="nav-btn" style="background-color: #8e44ad; margin-top: 10px;">Analytics 📊</button>
+            
+            <div style="flex-grow: 1;"></div> 
+            <button id="btn-settings" class="nav-btn" style="background-color: #7f8c8d; margin-top: 10px;">Settings ⚙️</button>
+            <button id="btn-logout" class="nav-btn" style="background-color: #c0392b; margin-top: 10px;">Logout</button>
+        </div>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="p-4 max-w-lg mx-auto">
-
+        <div class="main-content">
             <!-- DASHBOARD TAB -->
-            <div id="tab-dashboard" class="tab active space-y-4">
-                <h2 class="text-2xl font-bold px-1">Overview</h2>
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="bg-blue-600 rounded-3xl p-6 text-white shadow-xl shadow-blue-100">
-                        <p class="text-blue-100 text-sm font-medium mb-1">Total Sales Today</p>
-                        <h3 id="dash-sales" class="text-3xl font-bold">₹0.00</h3>
-                        <div class="mt-4 flex items-center text-xs text-blue-100">
-                            <span class="bg-blue-500 px-2 py-1 rounded-lg">Live Sync</span>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white bg-card rounded-3xl p-5 border border-gray-100 shadow-sm">
-                            <p class="text-gray-400 text-xs font-bold uppercase mb-2">Purchases</p>
-                            <h3 id="dash-purchases" class="text-lg font-bold text-red-500">₹0.00</h3>
-                        </div>
-                        <div class="bg-white bg-card rounded-3xl p-5 border border-gray-100 shadow-sm">
-                            <p class="text-gray-400 text-xs font-bold uppercase mb-2">Stock Count</p>
-                            <h3 id="dash-inventory" class="text-lg font-bold text-green-500">0</h3>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white bg-card rounded-3xl p-5 border border-gray-100 shadow-sm mt-4">
-                    <h3 class="font-bold mb-4 flex items-center gap-2"><span>🚀</span> Quick Actions</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="document.getElementById('btn-sales').click()" class="bg-gray-50 p-4 rounded-2xl text-sm font-semibold hover:bg-blue-50 border border-gray-100">Add Sale</button>
-                        <button onclick="document.getElementById('btn-inventory').click()" class="bg-gray-50 p-4 rounded-2xl text-sm font-semibold hover:bg-green-50 border border-gray-100">Add Stock</button>
-                    </div>
+            <div id="tab-dashboard" class="tab active">
+                <h1>Dashboard</h1>
+                <div class="cards">
+                    <div class="card"><h3>Total Sales</h3><p id="dash-sales">₹0.00</p></div>
+                    <div class="card"><h3>Total Purchases</h3><p id="dash-purchases">₹0.00</p></div>
+                    <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
                 </div>
             </div>
 
-            <!-- SALES TAB (Multi-Item Card UI) -->
-            <div id="tab-sales" class="tab space-y-4">
-                <h2 class="text-2xl font-bold px-1">New Sale</h2>
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <form id="form-sale-multi" class="space-y-4">
-                        <div id="sale-rows-container" class="space-y-4">
-                            <!-- Single Sale Item Card -->
-                            <div class="sale-item-row bg-gray-50 p-4 rounded-2xl border border-gray-100 relative">
-                                <div class="space-y-3">
-                                    <input type="text" class="row-item-name w-full p-3 rounded-xl border border-gray-200 outline-none" list="inventory-items-list" placeholder="Product Name" required>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="relative">
-                                            <span class="absolute left-3 top-3 text-xs text-gray-400">Qty</span>
-                                            <input type="number" class="row-qty w-full p-3 pt-6 rounded-xl border border-gray-200 outline-none" placeholder="0" required>
-                                        </div>
-                                        <div class="relative">
-                                            <span class="absolute left-3 top-3 text-xs text-gray-400">Price ₹</span>
-                                            <input type="number" class="row-total w-full p-3 pt-6 rounded-xl border border-gray-200 outline-none" placeholder="0.00" required step="0.01">
-                                        </div>
-                                    </div>
-                                    <input type="hidden" class="row-cost">
-                                </div>
-                                <button type="button" class="btn-remove-row absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full shadow-lg hidden">×</button>
-                            </div>
-                        </div>
-                        <button type="button" id="btn-add-sale-row" class="w-full border-2 border-dashed border-gray-200 p-3 rounded-xl text-gray-400 font-medium hover:bg-gray-50">+ Add Item</button>
-                        <button type="submit" id="btn-save-multi-sale" class="w-full bg-green-500 text-white font-bold p-4 rounded-2xl shadow-lg shadow-green-100 transition hover:bg-green-600">Complete Sale</button>
-                    </form>
+
+
+
+
+<!-- TRANSACTION HISTORY TAB -->
+<div id="tab-trans-history" class="tab">
+    <h1>All Transaction History</h1>
+    
+    <div class="form-container" style="border-left: 5px solid #f39c12; margin-bottom: 20px;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Search History</h3>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <label style="font-weight: bold;">From:</label>
+            <input type="date" id="filter-all-start">
+            <label style="font-weight: bold;">To:</label>
+            <input type="date" id="filter-all-end">
+            <button id="btn-all-filter" class="btn-action" style="background-color: #f39c12;">Show Records</button>
+            <button id="btn-all-today" class="btn-action" style="background-color: #3498db;">Today Only</button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">* Showing recent 1 day by default to maintain speed.</p>
+    </div>
+
+    <table id="table-all-transactions">
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Type</th>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-all-transactions"></tbody>
+    </table>
+</div>
+
+
+            
+            
+
+            <!-- ANALYTICS TAB -->
+            <div id="tab-analytics" class="tab">
+                <h1>Business Analytics & Insights</h1>
+                
+                <!-- Date Filter -->
+                <div class="form-container" style="border-left: 5px solid #8e44ad; margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Performance Snapshot</h3>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: bold;">Start Date:</label>
+                        <input type="date" id="ana-start" style="max-width: 150px;">
+                        <label style="font-weight: bold;">End Date:</label>
+                        <input type="date" id="ana-end" style="max-width: 150px;">
+                        <button id="btn-ana-filter" class="btn-action" style="background-color: #8e44ad;">Apply Filter</button>
+                        <button id="btn-ana-today" class="btn-action" style="background-color: #2980b9;">Today</button>
+                        <button id="btn-ana-clear" class="btn-action" style="background-color: #95a5a6;">Clear All Time</button>
+                    </div>
                 </div>
 
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <h3 class="font-bold mb-4">Today's Sales</h3>
-                    <div class="overflow-hidden rounded-xl border border-gray-100">
-                        <table id="table-sales" class="w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-widest">
-                                <tr><th class="p-3">Item</th><th class="p-3">Qty</th><th class="p-3">Total</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50"></tbody>
+                <!-- Snapshot Cards -->
+                <div class="cards">
+                    <div class="card"><h3>Filtered Revenue</h3><p id="ana-revenue" style="color:#27ae60;">₹0.00</p></div>
+                    <div class="card"><h3>Filtered Profit</h3><p id="ana-profit" style="color:#2980b9;">₹0.00</p></div>
+                    <div class="card"><h3>Filtered Margin</h3><p id="ana-margin" style="color:#e67e22;">0.0%</p></div>
+                    <div class="card"><h3>Units in Stock</h3><p id="ana-stock" style="color:#8e44ad;">0</p></div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="chart-container" style="flex: 2;"><canvas id="chart-monthly"></canvas></div>
+                    <div class="chart-container" style="flex: 1;"><canvas id="chart-abc"></canvas></div>
+                    <div class="chart-container" style="flex: 1;"><canvas id="chart-fsn"></canvas></div>
+                </div>
+
+                <!-- Top Selling & Inventory Status Grid -->
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Top Selling Products (All Time)</h3>
+                            <select id="filter-top-selling" style="padding: 8px;">
+                                <option value="All">All Items</option>
+                                <option value="Top10">Top 10 Selling</option>
+                            </select>
+                        </div>
+                        <table>
+                            <thead><tr><th>ITEM</th><th>SOLD QTY</th></tr></thead>
+                            <tbody id="tbody-top-selling"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0;">Inventory Status</h3>
+                            <select id="filter-inv-status" style="padding: 8px;">
+                                <option value="All">All Stock</option>
+                                <option value="Low">Low Stock (<= 3)</option>
+                            </select>
+                        </div>
+                        <table>
+                            <thead><tr><th>ITEM</th><th>AVAILABLE QTY</th></tr></thead>
+                            <tbody id="tbody-inv-status"></tbody>
                         </table>
                     </div>
                 </div>
+
+                <!-- ABC Analysis Table -->
+                <div class="form-container">
+                    <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
+                    <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Items are classified by value: A (Top 70%), B (Next 20%), C (Bottom 10%).</p>
+                    <table id="table-abc">
+                        <thead><tr><th>ITEM</th><th>INVENTORY VALUE</th><th>CUMULATIVE %</th><th>CATEGORY</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- FSN x HMV Matrix Table -->
+                <div class="form-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">FSN x HMV Inventory Matrix</h3>
+                        <select id="ana-class-filter" style="padding: 8px; max-width: 250px;">
+                            <option value="All">All Classes</option>
+                            <option value="⭐ Stars">⭐ Stars (Prime Stock)</option>
+                            <option value="💰 Cash Cows">💰 Cash Cows (Slow/High Value)</option>
+                            <option value="🔥 Dead Weight">🔥 Dead Weight (No Sales/High Value)</option>
+                            <option value="🚀 Drivers">🚀 Drivers (Fast/Med Value)</option>
+                            <option value="🐢 Slugs">🐢 Slugs (Slow/Med Value)</option>
+                            <option value="💤 Sleepers">💤 Sleepers (No Sales/Med Value)</option>
+                            <option value="🏃 Runners">🏃 Runners (Fast/Low Value)</option>
+                            <option value="📦 Basics">📦 Basics (Slow/Low Value)</option>
+                            <option value="🗑️ Dead Stock">🗑️ Dead Stock (No Sales/Low Value)</option>
+                        </select>
+                    </div>
+                    <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Classifies items by sales frequency (Fast, Slow, Non-moving) and their contribution to revenue (High, Medium, Low Value).</p>
+                    <table id="table-matrix">
+                        <thead><tr><th>Item</th><th>Stock</th><th>Inv. Value</th><th>Revenue</th><th>FSN</th><th>HMV</th><th>Actionable Class</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- TRANSACTION HISTORY -->
-            <div id="tab-trans-history" class="tab space-y-4">
-                <h2 class="text-2xl font-bold px-1">History</h2>
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="date" id="filter-all-start" class="p-3 rounded-xl border border-gray-100 text-sm">
-                        <input type="date" id="filter-all-end" class="p-3 rounded-xl border border-gray-100 text-sm">
+            <!-- SALES TAB - MULTI-ITEM SUPPORT -->
+<div id="tab-sales" class="tab">
+    <h1>Sales Transactions</h1>
+    <div class="form-container" style="border-left: 5px solid #27ae60;">
+        <h3>Record a Sale (Money In, Stock Goes Down)</h3>
+        <form id="form-sale-multi">
+            <div id="sale-rows-container">
+                <!-- Initial Row -->
+                <div class="sale-item-row" style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <div style="flex: 2; min-width: 200px;">
+                        <label style="font-size: 12px; font-weight: bold;">Item Name</label>
+                        <input type="text" class="row-item-name" list="inventory-items-list" placeholder="Select Product" required>
                     </div>
-                    <div class="flex gap-2">
-                        <button id="btn-all-filter" class="flex-1 bg-blue-600 text-white p-3 rounded-xl text-sm font-bold">Filter</button>
-                        <button id="btn-all-today" class="flex-1 bg-gray-100 text-gray-700 p-3 rounded-xl text-sm font-bold">Today</button>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold;">Cost (₹)</label>
+                        <input type="number" class="row-cost" placeholder="Cost" readonly style="background: #f9f9f9;">
                     </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold;">Qty</label>
+                        <input type="number" class="row-qty" placeholder="Qty" required>
+                    </div>
+                    <div style="flex: 1.5;">
+                        <label style="font-size: 12px; font-weight: bold;">Total Amount (₹)</label>
+                        <input type="number" class="row-total" placeholder="Avg of last 3..." required step="0.01">
+                    </div>
+                    <button type="button" class="btn-remove-row" style="background:#e74c3c; color:white; border:none; border-radius:4px; cursor:pointer; padding: 5px 10px; align-self: flex-end; display: none;">X</button>
                 </div>
+            </div>
 
-                <div id="tbody-all-transactions" class="space-y-3">
-                    <!-- Transaction Items will be rendered here as Cards via JS -->
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" id="btn-add-sale-row" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">+ Add Another Item</button>
+                <button type="submit" id="btn-save-multi-sale" style="background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Save Complete Sale</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="form-container" style="border-left: 5px solid #27ae60; margin-top: 20px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" id="filter-sale-start">
+            <input type="date" id="filter-sale-end">
+            <button id="btn-sale-filter" class="btn-action" style="background: #27ae60;">Filter Sales</button>
+        </div>
+    </div>
+
+    <table id="table-sales">
+        <thead>
+            <tr><th>Date</th><th>Item Name</th><th>Qty Sold</th><th>Total Amount</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+            <!-- PURCHASES TAB -->
+            <div id="tab-purchases" class="tab">
+                <h1>Purchase Transactions</h1>
+                <div class="form-container">
+                    <h3>Record a Purchase (Money Out, Stock Goes Up)</h3>
+                    <form id="form-purchase">
+                        <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" required>
+                        <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
+                        <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
+                        <button type="submit" style="background-color: #e74c3c;">Save Purchase</button>
+                    </form>
                 </div>
-                <!-- Note: Your JS targets #table-all-transactions, ensure to keep a hidden table or update JS to render cards -->
-                <table id="table-all-transactions" class="hidden"><thead><tr><th></th></tr></thead><tbody></tbody></table>
+                <div class="form-container" style="border-left: 5px solid #e74c3c; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="filter-purchase-start"><input type="date" id="filter-purchase-end">
+                        <button id="btn-purchase-filter" class="btn-action" style="background: #e74c3c;">Filter</button>
+                        <button id="btn-purchase-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
+                    </div>
+                </div>
+                <table id="table-purchases">
+                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Bought</th><th>Amount Paid</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             <!-- INVENTORY TAB -->
-            <div id="tab-inventory" class="tab space-y-4">
-                <h2 class="text-2xl font-bold px-1">Inventory</h2>
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <h3 id="inv-form-title" class="font-bold mb-4">Add New Product</h3>
-                    <form id="form-inventory" class="space-y-3">
-                        <input type="text" id="inv-name" placeholder="Item Name" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="number" id="inv-qty" placeholder="Quantity" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                            <input type="number" id="inv-price" placeholder="Cost Price ₹" step="0.01" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="submit" id="btn-inv-submit" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-xl">Add Item</button>
-                            <button type="button" id="btn-inv-cancel" class="bg-gray-100 p-3 rounded-xl hidden">×</button>
-                        </div>
+            <div id="tab-inventory" class="tab">
+                <h1>Inventory</h1>
+                <div class="form-container">
+                    <h3 id="inv-form-title">Add New Item</h3>
+                    <form id="form-inventory">
+                        <input type="text" id="inv-name" placeholder="Item Name" required>
+                        <input type="number" id="inv-qty" placeholder="Quantity" required>
+                        <input type="number" id="inv-price" placeholder="Unit Cost Price (₹)" step="0.01" required>
+                        <button type="submit" id="btn-inv-submit">Add Item</button>
+                        <button type="button" id="btn-inv-cancel" style="display:none; background-color: #95a5a6;">Cancel</button>
                     </form>
                 </div>
-
-                <div class="bg-white bg-card rounded-3xl p-4 shadow-sm border border-gray-100">
-                    <table id="table-inventory" class="w-full text-sm text-left">
-                        <thead class="text-gray-400 uppercase text-[10px] tracking-widest border-b">
-                            <tr><th class="py-2">Product</th><th class="py-2">Stock</th><th class="py-2">Rate</th><th class="py-2">Action</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ANALYTICS TAB -->
-            <div id="tab-analytics" class="tab space-y-4">
-                <h2 class="text-2xl font-bold px-1">Insights</h2>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white bg-card p-4 rounded-3xl border border-gray-100 shadow-sm text-center">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Profit</p>
-                        <p id="ana-profit" class="text-lg font-bold text-blue-600">₹0</p>
-                    </div>
-                    <div class="bg-white bg-card p-4 rounded-3xl border border-gray-100 shadow-sm text-center">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Margin</p>
-                        <p id="ana-margin" class="text-lg font-bold text-orange-500">0%</p>
-                    </div>
-                </div>
-
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <canvas id="chart-monthly" class="max-h-60"></canvas>
-                </div>
-
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <h3 class="font-bold mb-4">Stock Breakdown</h3>
-                    <div class="flex flex-col gap-6">
-                        <canvas id="chart-abc"></canvas>
-                        <canvas id="chart-fsn"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Date Filter Card -->
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="date" id="ana-start" class="p-3 rounded-xl border border-gray-100 text-xs">
-                        <input type="date" id="ana-end" class="p-3 rounded-xl border border-gray-100 text-xs">
-                    </div>
-                    <button id="btn-ana-filter" class="w-full bg-blue-600 text-white p-3 rounded-xl text-sm font-bold">Apply Range</button>
-                    <button id="btn-ana-today" class="w-full bg-gray-50 text-gray-600 p-2 rounded-xl text-xs font-bold">View Today</button>
-                </div>
-
-                <!-- Hidden Tables for Analytics logic (Required by JS) -->
-                <table id="table-abc" class="hidden"><tbody></tbody></table>
-                <table id="table-matrix" class="hidden"><tbody></tbody></table>
-                <select id="ana-class-filter" class="hidden"><option value="All"></option></select>
-                <select id="filter-top-selling" class="hidden"><option value="All"></option></select>
-                <select id="filter-inv-status" class="hidden"><option value="All"></option></select>
-                <tbody id="tbody-top-selling" class="hidden"></tbody>
-                <tbody id="tbody-inv-status" class="hidden"></tbody>
-            </div>
-
-            <!-- PURCHASES TAB -->
-            <div id="tab-purchases" class="tab space-y-4">
-                <h2 class="text-2xl font-bold px-1">Restock</h2>
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <form id="form-purchase" class="space-y-3">
-                        <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="number" id="purchase-qty" placeholder="Qty" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                            <input type="number" id="purchase-amount" placeholder="Total Paid ₹" class="w-full p-3 rounded-xl border border-gray-100 outline-none" required>
-                        </div>
-                        <button type="submit" class="w-full bg-red-500 text-white font-bold p-3 rounded-xl">Record Purchase</button>
-                    </form>
-                </div>
-                <div class="bg-white bg-card rounded-3xl p-4 shadow-sm border border-gray-100">
-                    <table id="table-purchases" class="w-full text-xs text-left">
-                        <thead class="text-gray-400 uppercase text-[10px] tracking-widest border-b">
-                            <tr><th class="py-2">Date</th><th class="py-2">Item</th><th class="py-2">Qty</th><th class="py-2">Paid</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50"></tbody>
-                    </table>
-                </div>
+                <h3>Current Stock</h3>
+                <table id="table-inventory">
+                    <thead><tr><th>Item Name</th><th>Quantity</th><th>Unit Cost (₹)</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             <!-- SETTINGS TAB -->
-            <div id="tab-settings" class="tab space-y-6">
-                <h2 class="text-2xl font-bold px-1">Settings</h2>
+            <div id="tab-settings" class="tab">
+                <h1>Settings</h1>
                 
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                    <h3 class="font-bold flex items-center gap-2"><span>📦</span> Data Backup</h3>
-                    <div class="flex flex-col gap-3">
-                        <input type="file" id="json-file" accept=".json" class="hidden">
-                        <button id="btn-trigger-json" class="w-full bg-blue-50 text-blue-600 p-4 rounded-2xl text-sm font-bold border border-blue-100">Import ERP Backup (JSON)</button>
-                        
-                        <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="hidden">
-                        <button id="btn-trigger-excel" class="w-full bg-green-50 text-green-600 p-4 rounded-2xl text-sm font-bold border border-green-100">Import Stock (Excel)</button>
-                    </div>
+                <div class="form-container">
+                    <h3>Theme</h3>
+                    <p style="color: var(--text-muted); margin-top: -10px;">Switch between light and dark themes.</p>
+                    <button id="btn-theme-toggle" class="btn-action" style="background-color: #34495e;">Switch to Dark Mode</button>
                 </div>
 
-                <div class="bg-white bg-card rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                    <h3 class="font-bold flex items-center gap-2"><span>🛠️</span> Tools</h3>
-                    <div class="flex flex-col gap-3">
-                        <button id="btn-merge-dup" class="w-full bg-gray-50 text-gray-700 p-4 rounded-2xl text-sm font-bold border border-gray-100">Merge Duplicates</button>
-                        <button id="btn-sync-drive" class="w-full bg-gray-50 text-gray-700 p-4 rounded-2xl text-sm font-bold border border-gray-100">Cloud Sync (Beta)</button>
+                <div class="form-container">
+                    <h3>Data Management</h3>
+                    <p style="color: var(--text-muted); margin-top: -10px;">Load inventory from an Excel file (columns: 'particulars', 'quantity', 'rate'). This will overwrite your current inventory.</p>
+                    
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
+                        <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+
+<input type="file" id="json-file" accept=".json" style="display: none;">
+    
+    <button id="btn-trigger-json" class="btn-action" style="background-color: #8e44ad;">Import ERP JSON</button>
+                        
+                        <button id="btn-trigger-excel" class="btn-action" style="background-color: #27ae60;">Import from Excel</button>
+                        
+                        <button id="btn-sync-drive" class="btn-action" style="background-color: #2980b9;">Sync to Drive</button>
+                        <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates Entries</button>
                     </div>
                 </div>
             </div>
 
-        </main>
-
-        <!-- BOTTOM NAVIGATION BAR -->
-        <nav class="fixed bottom-0 left-0 right-0 bg-white bg-card border-t border-gray-100 px-2 py-1 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-            <button id="btn-dashboard" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition active">
-                <span class="text-xl">🏠</span>
-                <span class="text-[10px] font-bold uppercase">Home</span>
-            </button>
-            <button id="btn-sales" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition">
-                <span class="text-xl">💰</span>
-                <span class="text-[10px] font-bold uppercase">Sale</span>
-            </button>
-            <button id="btn-trans-history" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition">
-                <span class="text-xl">📜</span>
-                <span class="text-[10px] font-bold uppercase">History</span>
-            </button>
-            <button id="btn-inventory" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition">
-                <span class="text-xl">📦</span>
-                <span class="text-[10px] font-bold uppercase">Stock</span>
-            </button>
-            <button id="btn-analytics" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition">
-                <span class="text-xl">📊</span>
-                <span class="text-[10px] font-bold uppercase">Charts</span>
-            </button>
-            <button id="btn-settings" class="nav-btn flex-1 flex flex-col items-center gap-1 p-2 transition">
-                <span class="text-xl">⚙️</span>
-                <span class="text-[10px] font-bold uppercase">Misc</span>
-            </button>
-        </nav>
-
+        </div>
     </div>
 
-    <!-- Firebase App Logic -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
