@@ -101,21 +101,39 @@ document.getElementById('btn-logout').addEventListener('click', () => signOut(au
 
 // 6. NAVIGATION LOGIC
 const tabs = ['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings', 'trans-history'];
+
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
+
+        // Deactivate all tabs and buttons
         tabs.forEach(t => {
             document.getElementById(`tab-${t}`).classList.remove('active');
             document.getElementById(`btn-${t}`).classList.remove('active');
         });
+
+        // Activate selected tab and button
         document.getElementById(`tab-${tab}`).classList.add('active');
         document.getElementById(`btn-${tab}`).classList.add('active');
-        
-        // LAG-FREE SWITCHING: Allow UI to render the tab before running heavy math
+
+        // LAG-FREE SWITCHING: Allow UI to render before running heavy logic
         if (tab === 'analytics') {
             requestAnimationFrame(() => {
                 setTimeout(runAnalytics, 60);
             });
         }
+
+        if (tab === 'trans-history') {
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    // Set default date filter to Today
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('filter-all-start').value = today;
+                    document.getElementById('filter-all-end').value = today;
+                    renderAllTransactionsTable();
+                }, 60);
+            });
+        }
+
     });
 });
 
