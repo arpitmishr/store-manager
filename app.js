@@ -21,6 +21,8 @@ let unsubInventory = null;
 let unsubTransactions = null;
 let allTransactions = [];
 let allInventory =[]; // Save locally for analytics
+let isDirty = true; // Tracks if new data has arrived
+let lastAnalyticsResult = null; // Caches the last calculation
 
 // Chart Instances
 let myChartMonthly = null;
