@@ -191,30 +191,58 @@
                 </div>
             </div>
 
-            <!-- SALES TAB -->
-            <div id="tab-sales" class="tab">
-                <h1>Sales Transactions</h1>
-                <div class="form-container">
-                    <h3>Record a Sale (Money In, Stock Goes Down)</h3>
-                    <form id="form-sale">
-                        <input type="text" id="sale-item" list="inventory-items-list" placeholder="Item Name" required>
-                        <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
-                        <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
-                        <button type="submit">Save Sale</button>
-                    </form>
-                </div>
-                <div class="form-container" style="border-left: 5px solid #27ae60; margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="filter-sale-start"><input type="date" id="filter-sale-end">
-                        <button id="btn-sale-filter" class="btn-action" style="background: #27ae60;">Filter</button>
-                        <button id="btn-sale-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
+            <!-- SALES TAB - MULTI-ITEM SUPPORT -->
+<div id="tab-sales" class="tab">
+    <h1>Sales Transactions</h1>
+    <div class="form-container" style="border-left: 5px solid #27ae60;">
+        <h3>Record a Sale (Money In, Stock Goes Down)</h3>
+        <form id="form-sale-multi">
+            <div id="sale-rows-container">
+                <!-- Initial Row -->
+                <div class="sale-item-row" style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                    <div style="flex: 2; min-width: 200px;">
+                        <label style="font-size: 12px; font-weight: bold;">Item Name</label>
+                        <input type="text" class="row-item-name" list="inventory-items-list" placeholder="Select Product" required>
                     </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold;">Cost (₹)</label>
+                        <input type="number" class="row-cost" placeholder="Cost" readonly style="background: #f9f9f9;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; font-weight: bold;">Qty</label>
+                        <input type="number" class="row-qty" placeholder="Qty" required>
+                    </div>
+                    <div style="flex: 1.5;">
+                        <label style="font-size: 12px; font-weight: bold;">Total Amount (₹)</label>
+                        <input type="number" class="row-total" placeholder="Avg of last 3..." required step="0.01">
+                    </div>
+                    <button type="button" class="btn-remove-row" style="background:#e74c3c; color:white; border:none; border-radius:4px; cursor:pointer; padding: 5px 10px; align-self: flex-end; display: none;">X</button>
                 </div>
-                <table id="table-sales">
-                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Sold</th><th>Amount Received</th></tr></thead>
-                    <tbody></tbody>
-                </table>
             </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" id="btn-add-sale-row" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">+ Add Another Item</button>
+                <button type="submit" id="btn-save-multi-sale" style="background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold;">Save Complete Sale</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="form-container" style="border-left: 5px solid #27ae60; margin-top: 20px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="date" id="filter-sale-start">
+            <input type="date" id="filter-sale-end">
+            <button id="btn-sale-filter" class="btn-action" style="background: #27ae60;">Filter Sales</button>
+        </div>
+    </div>
+
+    <table id="table-sales">
+        <thead>
+            <tr><th>Date</th><th>Item Name</th><th>Qty Sold</th><th>Total Amount</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
 
             <!-- PURCHASES TAB -->
             <div id="tab-purchases" class="tab">
