@@ -652,3 +652,66 @@ document.getElementById('btn-sale-filter').addEventListener('click', renderSales
 document.getElementById('btn-purchase-filter').addEventListener('click', renderPurchasesTable);
 
 // Initialization done. App ready.
+
+
+
+
+
+// ==========================================
+// ====== TRANSACTION HISTORY LOGIC =========
+// ==========================================
+
+// Listeners for the Filter Buttons
+document.getElementById('btn-all-filter').addEventListener('click', renderAllTransactionsTable);
+document.getElementById('btn-all-today').addEventListener('click', () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('filter-all-start').value = today;
+    document.getElementById('filter-all-end').value = today;
+    renderAllTransactionsTable();
+});
+
+function renderAllTransactionsTable() {
+    const tbody = document.getElementById('tbody-all-transactions');
+    tbody.innerHTML = ''; // Clear table
+
+    // Get filter dates
+    const startVal = document.getElementById('filter-all-start').value;
+    const endVal = document.getElementById('filter-all-end').value;
+    
+    // Optimization: If no date selected, show nothing to prevent lag
+    if(!startVal || !endVal) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Please select a date range.</td></tr>';
+        return;
+    }
+
+    const sD = new Date(startVal + 'T00:00:00');
+    const eD = new Date(endVal + 'T23:59:59');
+
+    let html = '';
+    // Use a standard for-loop for maximum speed with large history
+    for (let i = 0; i < allTransactions.length; i++) {
+        const t = allTransactions[i];
+        const tDate = new Date(t.date);
+
+        // Date Filter Check
+        if (tDate >= sD && tDate <= eD) {
+            const typeColor = t.type === 'Sale' ? '#27ae60' : '#e74c3c';
+            const displayDate = tDate.toLocaleDateString() + ' ' + tDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            html += `
+                <tr>
+                    <td>${displayDate}</td>
+                    <td style="color: ${typeColor}; font-weight: bold;">${t.type}</td>
+                    <td>${t.item || "Unknown"}</td>
+                    <td>${t.qty}</td>
+                    <td>₹${Number(t.amount).toFixed(2)}</td>
+                </tr>`;
+        }
+    }
+
+    if(html === '') {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No records found for this date.</td></tr>';
+    } else {
+        tbody.innerHTML = html;
+    }
+}
