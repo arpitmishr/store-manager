@@ -30,6 +30,60 @@ const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('filter-trans-start').value = todayStr;
 document.getElementById('filter-trans-end').value = todayStr;
 
+// ----- GLOBAL YEAR FILTER STATE -----
+let globalYearFilter = "All";
+
+document.getElementById('global-year-filter').addEventListener('change', (e) => {
+    globalYearFilter = e.target.value;
+    
+    // Update Dashboard UI text
+    if (document.getElementById('dash-year-label')) {
+        document.getElementById('dash-year-label').innerText = `(${globalYearFilter === 'All' ? 'All Years' : globalYearFilter})`;
+    }
+
+    // Instantly Re-render Everything
+    updateDashboardMetrics();
+    renderTransactionsTable();
+    renderDashboardTopItems();
+    if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+});
+
+// Helper function to check if a transaction belongs to the selected year
+function isYearMatch(dateStr) {
+    if (globalYearFilter === "All") return true;
+    if (!dateStr) return false;
+    return new Date(dateStr).getFullYear().toString() === globalYearFilter;
+}
+
+// Dynamically populates the Year Dropdown based on your database dates
+function updateYearDropdown(transactions) {
+    const selectEl = document.getElementById('global-year-filter');
+    const currentVal = selectEl.value;
+    
+    const years = new Set();
+    transactions.forEach(t => {
+        if(t.date) {
+            const year = new Date(t.date).getFullYear().toString();
+            years.add(year);
+        }
+    });
+    
+    let html = `<option value="All">All Years</option>`;
+    Array.from(years).sort((a,b) => b - a).forEach(year => {
+        html += `<option value="${year}">${year}</option>`;
+    });
+    
+    selectEl.innerHTML = html;
+    
+    // Remember user's selection after database refreshes
+    if (years.has(currentVal) || currentVal === "All") {
+        selectEl.value = currentVal;
+    } else {
+        globalYearFilter = "All";
+        selectEl.value = "All";
+    }
+}
+
 // ----- THEME LOGIC -----
 const btnThemeToggle = document.getElementById('btn-theme-toggle');
 if (localStorage.getItem('theme') === 'dark') {
@@ -101,9 +155,9 @@ function startDatabaseListeners() {
             const itemQty = Number(item.qty) || 0;
             const itemPrice = Number(item.price) || 0;
 
-            rowsHtml.push(`<tr><td>${itemName}</td><td>${itemQty}</td><td>₹${itemPrice.toFixed(2)}</td>
-                <td><button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
-                <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}">Delete</button></td></tr>`);
+            rowsHtml.push(`<tr><td class="px-6 py-4">${itemName}</td><td class="px-6 py-4">${itemQty}</td><td class="px-6 py-4">₹${itemPrice.toFixed(2)}</td>
+                <td class="px-6 py-4 flex gap-2"><button class="btn-edit bg-warning hover:bg-yellow-500 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}"><i class="fa-solid fa-pen-to-square pointer-events-none"></i></button>
+                <button class="btn-delete bg-danger hover:bg-red-600 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}"><i class="fa-solid fa-trash pointer-events-none"></i></button></td></tr>`);
             
             dataListHtml.push(`<option value="${itemName}"></option>`);
             selectHtml.push(`<option value="${itemName}" data-price="${itemPrice}">${itemName} (Stock: ${itemQty})</option>`);
@@ -111,7 +165,6 @@ function startDatabaseListeners() {
 
         document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
         document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
-        
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
@@ -125,6 +178,8 @@ function startDatabaseListeners() {
             trans.id = docSnap.id; 
             allTransactions.push(trans);
         });
+        
+        updateYearDropdown(allTransactions); // Update the dropdown lists!
         
         renderTransactionsTable();
         updateDashboardMonths(allTransactions);
@@ -154,6 +209,7 @@ function updateDashboardMetrics() {
     let lowStockCount = 0;
     let totalStockUnits = 0;
 
+    // Inventory is a snapshot of current stock (not affected by Year filter)
     allInventory.forEach(item => {
         const qty = Number(item.qty) || 0;
         const price = Number(item.price) || 0;
@@ -168,6 +224,9 @@ function updateDashboardMetrics() {
     let todayItemTrends = {};
 
     allTransactions.forEach(t => {
+        // YEAR FILTER APPLIED HERE
+        if (!isYearMatch(t.date)) return;
+
         const tDateISO = t.date.split('T')[0];
         const isToday = (tDateISO === todayISO);
         
@@ -240,6 +299,7 @@ function updateDashboardMonths(transactions) {
     monthsSet.add(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
 
     transactions.forEach(t => {
+        if (!isYearMatch(t.date)) return; // Filter Months based on Global Year
         const d = new Date(t.date);
         monthsSet.add(d.toLocaleString('default', { month: 'long', year: 'numeric' }));
     });
@@ -258,6 +318,9 @@ function renderDashboardTopItems() {
     let itemSalesMap = {};
 
     allTransactions.forEach(t => {
+        // YEAR FILTER APPLIED HERE
+        if (!isYearMatch(t.date)) return;
+
         if (!t.type.includes('Sale')) return;
         if (selectedType !== 'All' && t.type !== selectedType) return;
         const tDate = new Date(t.date);
@@ -278,17 +341,20 @@ function renderDashboardTopItems() {
 
     listContainer.innerHTML = '';
     if (sortedItems.length === 0) {
-        listContainer.innerHTML = `<li style="text-align:center; padding: 20px; color: #95a5a6;">No sales found for this filter.</li>`;
+        listContainer.innerHTML = `<li class="text-center py-6 text-gray-500">No sales found for this filter.</li>`;
         return;
     }
 
     let rank = 1;
     sortedItems.forEach(item => {
-        let rankColor = rank === 1 ? '#f1c40f' : (rank === 2 ? '#bdc3c7' : (rank === 3 ? '#cd7f32' : '#7f8c8d'));
-        let rankIcon = rank <= 3 ? `🏆` : `<span style="display:inline-block; width:20px; text-align:center; color:#fff; background:${rankColor}; border-radius:50%; font-size:12px; line-height:20px;">${rank}</span>`;
-        listContainer.innerHTML += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                <div style="font-size: 14px;"><span style="margin-right: 10px;">${rankIcon}</span><span style="font-weight: bold;">${item.name}</span></div>
-                <div style="font-size: 13px; font-weight: bold; color: #27ae60; background: rgba(39, 174, 96, 0.1); padding: 4px 8px; border-radius: 4px;">${item.sold} sold</div></li>`;
+        let rankColor = rank === 1 ? '#f59e0b' : (rank === 2 ? '#9ca3af' : (rank === 3 ? '#b45309' : '#6b7280'));
+        let rankIcon = rank <= 3 ? `<i class="fa-solid fa-medal" style="color: ${rankColor}"></i>` : `<span class="inline-block w-5 text-center text-white rounded-full text-xs leading-5" style="background:${rankColor}">${rank}</span>`;
+        
+        listContainer.innerHTML += `
+            <li class="flex justify-between items-center py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+                <div class="text-sm font-medium"><span class="mr-3">${rankIcon}</span> ${item.name}</div>
+                <div class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">${item.sold} sold</div>
+            </li>`;
         rank++;
     });
 }
@@ -313,22 +379,27 @@ function renderTransactionsTable() {
 
     let html =[];
     allTransactions.forEach((t) => {
+        // YEAR FILTER APPLIED HERE
+        if (!isYearMatch(t.date)) return;
+
         const tDate = new Date(t.date);
         if (sD && tDate < sD) return; 
         if (eD && tDate > eD) return;
         
-        let tColor = t.type.includes('Sale') ? (t.type.includes('Cosmetic') ? '#e17055' : '#27ae60') : (t.type.includes('Purchase') ? '#e74c3c' : '#f39c12');
-        let actionBtn = (t.type === 'Sale' || t.type === 'Purchase' || t.type === 'Cosmetic Sale') 
-            ? `<button class="btn-return" style="background:#f39c12; color:white; border:none; padding:5px 10px; cursor:pointer;" data-id="${t.id}">Return</button>`
-            : `<span style="color:#7f8c8d; font-size:12px;">Returned</span>`;
+        let tColorClass = t.type.includes('Sale') ? (t.type.includes('Cosmetic') ? 'text-cosmetic' : 'text-success') : (t.type.includes('Purchase') ? 'text-danger' : 'text-warning');
         
-        html.push(`<tr>
-            <td>${tDate.toLocaleDateString()}</td>
-            <td style="color:${tColor}; font-weight:bold;">${t.type}</td>
-            <td>${t.item || "Unknown"}</td>
-            <td>${Number(t.qty) || 0}</td>
-            <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
-            <td>${actionBtn}</td>
+        let actionBtn = (t.type === 'Sale' || t.type === 'Purchase' || t.type === 'Cosmetic Sale') 
+            ? `<button class="btn-return bg-warning/20 hover:bg-warning text-warning hover:text-white px-3 py-1 rounded text-xs font-bold transition-colors" data-id="${t.id}">Return</button>`
+            : `<span class="text-xs text-gray-400 font-medium italic">Returned</span>`;
+        
+        html.push(`
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap">${tDate.toLocaleDateString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap font-bold ${tColorClass}">${t.type}</td>
+            <td class="px-6 py-4">${t.item || "Unknown"}</td>
+            <td class="px-6 py-4 whitespace-nowrap">${Number(t.qty) || 0}</td>
+            <td class="px-6 py-4 whitespace-nowrap font-semibold">₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            <td class="px-6 py-4 text-center whitespace-nowrap">${actionBtn}</td>
         </tr>`);
     });
     document.querySelector('#table-transactions tbody').innerHTML = html.join('');
@@ -352,7 +423,6 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         let returnAmount = (t.amount / t.qty) * returnQty;
         let newType = t.type === 'Sale' ? 'Sale Return' : (t.type === 'Purchase' ? 'Purchase Return' : 'Cosmetic Return');
 
-        // FAST BATCH RETURN PROCESS (Eliminates Network delays)
         try {
             const batch = writeBatch(db);
             const date = new Date().toISOString();
@@ -376,7 +446,7 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
                     batch.update(doc(db, "inventory", localInvItem.id), { qty: newStock });
                 }
             }
-            await batch.commit(); // Instantly commit everything
+            await batch.commit(); 
             alert("Return processed successfully!");
         } catch (err) {
             console.error(err);
@@ -419,6 +489,9 @@ function runAnalytics() {
     });
 
     allTransactions.forEach(trans => {
+        // YEAR FILTER APPLIED HERE
+        if (!isYearMatch(trans.date)) return;
+
         const tDate = new Date(trans.date);
         if (startDate && tDate < startDate) return; if (endDate && tDate > endDate) return;
 
@@ -472,25 +545,26 @@ function runAnalytics() {
     let cumValue = 0; let abcTotals = { A: 0, B: 0, C: 0 }; let abcHtml =[];
     abcArray.forEach(item => {
         cumValue += item.value; let pct = totalInvValue > 0 ? cumValue / totalInvValue : 0; let category = 'C';
-        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; }
-        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; }
+        let catClass = 'text-danger';
+        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; catClass = 'text-success'; }
+        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; catClass = 'text-warning'; }
         else { abcTotals.C += item.value; category = 'C'; }
-        let catColor = category === 'A' ? '#2ecc71' : (category === 'B' ? '#f1c40f' : '#e74c3c');
-        abcHtml.push(`<tr><td>${item.name}</td><td>₹${item.value.toFixed(2)}</td><td>${(pct * 100).toFixed(1)}%</td><td style="color:${catColor}; font-weight:bold;">${category}</td></tr>`);
+        
+        abcHtml.push(`<tr><td class="py-3 px-4">${item.name}</td><td class="py-3 px-4">₹${item.value.toFixed(2)}</td><td class="py-3 px-4">${(pct * 100).toFixed(1)}%</td><td class="py-3 px-4 font-bold ${catClass}">${category}</td></tr>`);
     });
     document.querySelector('#table-abc tbody').innerHTML = abcHtml.join('');
 
     const filterTop = document.getElementById('filter-top-selling').value; let topHtml =[];
     let sortedTop = Object.keys(itemStats).map(k => ({name: k, sold: itemStats[k].qtySold})).sort((a,b) => b.sold - a.sold);
     if(filterTop === 'Top10') sortedTop = sortedTop.slice(0, 10);
-    sortedTop.forEach(item => { if(item.sold > 0 || filterTop === 'All') topHtml.push(`<tr><td>${item.name}</td><td>${item.sold}</td></tr>`); });
+    sortedTop.forEach(item => { if(item.sold > 0 || filterTop === 'All') topHtml.push(`<tr><td class="py-2 px-3">${item.name}</td><td class="py-2 px-3 text-right font-bold text-success">${item.sold}</td></tr>`); });
     document.getElementById('tbody-top-selling').innerHTML = topHtml.join('');
 
     const filterInv = document.getElementById('filter-inv-status').value; let invHtml =[];
     let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
     sortedInv.forEach(item => {
         if (filterInv === 'Low' && item.stock > 3) return; 
-        invHtml.push(`<tr><td>${item.name}</td><td style="color: ${item.stock <= 3 ? '#e74c3c' : 'inherit'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td></tr>`);
+        invHtml.push(`<tr><td class="py-2 px-3">${item.name}</td><td class="py-2 px-3 text-right ${item.stock <= 3 ? 'text-danger font-bold' : ''}">${item.stock}</td></tr>`);
     });
     document.getElementById('tbody-inv-status').innerHTML = invHtml.join('');
 
@@ -514,9 +588,9 @@ function runAnalytics() {
     const filterClass = document.getElementById('ana-class-filter').value; let matrixHtml =[];
     matrixRows.sort((a,b) => b.rev - a.rev).forEach(row => {
         if(filterClass !== "All" && !row.actClass.includes(filterClass)) return;
-        let fsnColor = row.FSN==='F'?'#27ae60':(row.FSN==='S'?'#f39c12':'#e74c3c');
-        let hmvColor = row.HMV==='H'?'#2980b9':(row.HMV==='M'?'#8e44ad':'#7f8c8d');
-        matrixHtml.push(`<tr><td><b>${row.name}</b></td><td>${row.stock}</td><td>₹${row.invValue.toFixed(2)}</td><td>₹${row.rev.toFixed(2)}</td><td style="color:${fsnColor}; font-weight:bold;">${row.FSN}</td><td style="color:${hmvColor}; font-weight:bold;">${row.HMV}</td><td>${row.actClass}</td></tr>`);
+        let fsnColor = row.FSN==='F'?'text-success':(row.FSN==='S'?'text-warning':'text-danger');
+        let hmvColor = row.HMV==='H'?'text-primary':(row.HMV==='M'?'text-purple-500':'text-gray-500');
+        matrixHtml.push(`<tr><td class="py-3 px-4 font-bold">${row.name}</td><td class="py-3 px-4">${row.stock}</td><td class="py-3 px-4">₹${row.invValue.toFixed(2)}</td><td class="py-3 px-4">₹${row.rev.toFixed(2)}</td><td class="py-3 px-4 font-bold ${fsnColor}">${row.FSN}</td><td class="py-3 px-4 font-bold ${hmvColor}">${row.HMV}</td><td class="py-3 px-4">${row.actClass}</td></tr>`);
     });
     document.querySelector('#table-matrix tbody').innerHTML = matrixHtml.join('');
 
@@ -534,15 +608,15 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
     Chart.defaults.color = chartTextColor;
 
     myChartMonthly = new Chart(document.getElementById('chart-monthly'), {
-        type: 'bar', data: { labels: labelsMonth.length ? labelsMonth : ["No Data"], datasets:[{ label: 'Sales (₹)', data: dataSales, backgroundColor: '#3498db' }, { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#2ecc71' }] },
+        type: 'bar', data: { labels: labelsMonth.length ? labelsMonth : ["No Data"], datasets:[{ label: 'Sales (₹)', data: dataSales, backgroundColor: '#3b82f6' }, { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#10b981' }] },
         options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } }, animation: { duration: 0 } }
     });
     myChartABC = new Chart(document.getElementById('chart-abc'), {
-        type: 'doughnut', data: { labels:['A (Top Value)', 'B (Medium)', 'C (Low)'], datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#2ecc71', '#f1c40f', '#e74c3c'], borderWidth: 0 }] },
+        type: 'doughnut', data: { labels:['A (Top Value)', 'B (Medium)', 'C (Low)'], datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
         options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } }, animation: { duration: 0 } }
     });
     myChartFSN = new Chart(document.getElementById('chart-fsn'), {
-        type: 'pie', data: { labels:['Fast Moving', 'Slow Moving', 'Non-Moving'], datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3498db', '#e67e22', '#95a5a6'], borderWidth: 0 }] },
+        type: 'pie', data: { labels:['Fast Moving', 'Slow Moving', 'Non-Moving'], datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3b82f6', '#f59e0b', '#9ca3af'], borderWidth: 0 }] },
         options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } }, animation: { duration: 0 } }
     });
 }
@@ -574,16 +648,16 @@ function updateCartUI() {
     let totalAmount = 0;
 
     if (saleCart.length === 0) {
-        cartContainer.style.display = 'none';
+        cartContainer.classList.add('hidden');
     } else {
-        cartContainer.style.display = 'block';
+        cartContainer.classList.remove('hidden');
         saleCart.forEach((cartItem, index) => {
             totalAmount += cartItem.amount;
             cartList.innerHTML += `
-                <li style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #ccc; align-items: center;">
-                    <span>${cartItem.item} <b>(x${cartItem.qty})</b></span>
-                    <span>₹${cartItem.amount.toFixed(2)} 
-                        <button type="button" onclick="window.removeCartItem(${index})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size: 16px; margin-left:10px;" title="Remove Item">×</button>
+                <li class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <span class="text-gray-800 dark:text-gray-200">${cartItem.item} <b class="text-primary">(x${cartItem.qty})</b></span>
+                    <span class="font-bold">₹${cartItem.amount.toFixed(2)} 
+                        <button type="button" onclick="window.removeCartItem(${index})" class="text-danger hover:text-red-700 ml-3 transition-colors"><i class="fa-solid fa-xmark"></i></button>
                     </span>
                 </li>`;
         });
@@ -630,7 +704,7 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     updateCartUI();
 });
 
-// INSTANT MULTI-SALE SAVE (No Network reads, 100% memory-based lookup)
+// INSTANT MULTI-SALE SAVE
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault(); 
@@ -652,14 +726,12 @@ saleForm.addEventListener('submit', async (e) => {
         for (let i = 0; i < saleCart.length; i++) {
             const cartItem = saleCart[i];
 
-            // 1. Queue Transaction
             const newTransRef = doc(collection(db, "transactions"));
             batch.set(newTransRef, { 
                 type: "Sale", item: cartItem.item, qty: cartItem.qty, 
                 rate: cartItem.rate, amount: cartItem.amount, date: date 
             });
 
-            // 2. Queue Inventory Deduction (Looked up instantly from local memory array)
             const localInvItem = allInventory.find(inv => inv.name === cartItem.item);
             if (localInvItem) {
                 let newQty = Number(localInvItem.qty) - cartItem.qty;
@@ -667,7 +739,7 @@ saleForm.addEventListener('submit', async (e) => {
             }
         }
 
-        await batch.commit(); // Instantly commit everything to the server
+        await batch.commit(); 
 
         saleCart =[];
         updateCartUI();
@@ -699,7 +771,7 @@ cosmeticForm.addEventListener('submit', async (e) => {
     } catch (e) { console.error(e); }
 });
 
-// INSTANT PURCHASE SAVE (No Network reads, 100% memory-based lookup)
+// INSTANT PURCHASE SAVE
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -711,11 +783,9 @@ purchaseForm.addEventListener('submit', async (e) => {
     try {
         const batch = writeBatch(db);
         
-        // 1. Queue Purchase Transaction
         const transRef = doc(collection(db, "transactions"));
         batch.set(transRef, { type: "Purchase", item, qty, amount, date });
 
-        // 2. Queue Inventory Addition (Checked instantly from memory)
         const localInvItem = allInventory.find(i => i.name === item);
         if (localInvItem) {
             batch.update(doc(db, "inventory", localInvItem.id), { qty: Number(localInvItem.qty) + qty });
@@ -724,7 +794,7 @@ purchaseForm.addEventListener('submit', async (e) => {
             batch.set(newInvRef, { name: item, qty: qty, price: qty>0?(amount/qty):0 });
         }
 
-        await batch.commit(); // Instantly commit both transaction and inventory at once
+        await batch.commit();
 
         purchaseForm.reset();
         alert("Purchase successfully saved!");
@@ -750,20 +820,23 @@ inventoryForm.addEventListener('submit', async (e) => {
 document.getElementById('btn-inv-cancel').addEventListener('click', resetInventoryForm);
 function resetInventoryForm() {
     inventoryForm.reset(); inventoryForm.removeAttribute('data-edit-id');
-    document.getElementById('btn-inv-submit').innerText = "Add Item";
-    document.getElementById('inv-form-title').innerText = "Add New Item";
+    document.getElementById('btn-inv-submit').innerText = "Save";
+    document.getElementById('inv-form-title').innerText = "Add Item";
     document.getElementById('btn-inv-cancel').style.display = "none";
 }
 
 document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
-    if (e.target.classList.contains('btn-delete')) if (confirm("Delete this item?")) await deleteDoc(doc(db, "inventory", e.target.getAttribute('data-id')));
-    if (e.target.classList.contains('btn-edit')) {
-        document.getElementById('inv-name').value = e.target.getAttribute('data-name');
-        document.getElementById('inv-qty').value = e.target.getAttribute('data-qty');
-        document.getElementById('inv-price').value = e.target.getAttribute('data-price');
-        inventoryForm.setAttribute('data-edit-id', e.target.getAttribute('data-id'));
-        document.getElementById('btn-inv-submit').innerText = "Update Item";
-        document.getElementById('inv-form-title').innerText = `Editing: ${e.target.getAttribute('data-name')}`;
+    const btnDel = e.target.closest('.btn-delete');
+    if (btnDel) if (confirm("Delete this item?")) await deleteDoc(doc(db, "inventory", btnDel.getAttribute('data-id')));
+    
+    const btnEdit = e.target.closest('.btn-edit');
+    if (btnEdit) {
+        document.getElementById('inv-name').value = btnEdit.getAttribute('data-name');
+        document.getElementById('inv-qty').value = btnEdit.getAttribute('data-qty');
+        document.getElementById('inv-price').value = btnEdit.getAttribute('data-price');
+        inventoryForm.setAttribute('data-edit-id', btnEdit.getAttribute('data-id'));
+        document.getElementById('btn-inv-submit').innerText = "Update";
+        document.getElementById('inv-form-title').innerText = `Editing: ${btnEdit.getAttribute('data-name')}`;
         document.getElementById('btn-inv-cancel').style.display = "inline-block";
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -785,7 +858,7 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
     }
 
     const btn = document.getElementById('btn-trigger-excel');
-    const ogText = btn.innerText; btn.innerText = "Importing..."; btn.disabled = true;
+    const ogText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-sm">Importing...</span>`; btn.disabled = true;
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -813,7 +886,7 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
         } catch (error) {
             console.error(error); alert("An error occurred during import. Check the console for details.");
         } finally {
-            btn.innerText = ogText; btn.disabled = false; document.getElementById('excel-file').value = ''; 
+            btn.innerHTML = ogText; btn.disabled = false; document.getElementById('excel-file').value = ''; 
         }
     };
     reader.readAsArrayBuffer(file);
@@ -824,7 +897,7 @@ document.getElementById('btn-sync-drive').addEventListener('click', () => { aler
 document.getElementById('btn-merge-dup').addEventListener('click', async () => {
     if(!confirm("Are you sure you want to scan and merge identical items? (Quantities will be summed, Prices will be averaged.)")) return;
     const btn = document.getElementById('btn-merge-dup');
-    const ogText = btn.innerText; btn.innerText = "Merging..."; btn.disabled = true;
+    const ogText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-sm">Merging...</span>`; btn.disabled = true;
 
     try {
         const itemsMap = {};
@@ -857,5 +930,5 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
         else alert("No duplicates found. Your inventory is clean!");
 
     } catch (err) { console.error(err); alert("An error occurred during merge.");
-    } finally { btn.innerText = ogText; btn.disabled = false; }
+    } finally { btn.innerHTML = ogText; btn.disabled = false; }
 });
