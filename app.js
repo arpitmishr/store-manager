@@ -111,7 +111,7 @@ function startDatabaseListeners() {
 
         document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
         document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
-        document.getElementById('sale-item').innerHTML = selectHtml.join('');
+        
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
@@ -553,10 +553,14 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
 
-document.getElementById('sale-item').addEventListener('change', (e) => {
-    const selectedOption = e.target.options[e.target.selectedIndex];
-    if (selectedOption && selectedOption.value) {
-        document.getElementById('sale-cost').value = selectedOption.getAttribute('data-price');
+// Auto-fill cost price when standard sale item is typed or selected
+document.getElementById('sale-item').addEventListener('input', (e) => {
+    const typedName = e.target.value.trim();
+    // Search the live inventory array for an exact match
+    const foundItem = allInventory.find(item => item.name === typedName);
+    
+    if (foundItem) {
+        document.getElementById('sale-cost').value = foundItem.price;
     } else {
         document.getElementById('sale-cost').value = '';
     }
@@ -565,7 +569,15 @@ document.getElementById('sale-item').addEventListener('change', (e) => {
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const item = document.getElementById('sale-item').value;
+    const item = document.getElementById('sale-item').value.trim();
+    
+    // VALIDATION: Ensure typed item actually exists in the stock
+    const itemExists = allInventory.find(i => i.name === item);
+    if (!itemExists) {
+        alert("Invalid Item! Please select a valid item from the suggested list.");
+        return; // Stops the sale from saving
+    }
+
     let qty = parseInt(document.getElementById('sale-qty').value);
     let rate = parseFloat(document.getElementById('sale-rate').value); 
     let amount = qty * rate; 
