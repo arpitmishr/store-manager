@@ -85,8 +85,6 @@
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white">
 
-    <datalist id="inventory-items-list"></datalist>
-
     <!-- 1. LOGIN SCREEN -->
     <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-full max-w-md text-center transform transition-all">
@@ -305,8 +303,17 @@
                         <h3 class="text-xl font-bold mb-1">Standard Sale</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Build a cart, auto-deducts stock.</p>
                         
-                        <form id="form-sale" class="space-y-4">
-                            <div><label class="block text-sm font-semibold mb-1">Select Item</label><input type="text" id="sale-item" list="inventory-items-list" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
+                        <form id="form-sale" class="space-y-4 relative">
+                            <!-- PREDICTIVE SEARCH CONTAINER -->
+                            <div class="relative">
+                                <label class="block text-sm font-semibold mb-1">Select Item</label>
+                                <input type="text" id="sale-item" autocomplete="off" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none transition-all">
+                                
+                                <!-- Dropdown UI -->
+                                <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                                </div>
+                            </div>
+                            
                             <div class="grid grid-cols-2 gap-4">
                                 <div><label class="block text-sm font-semibold mb-1">Cost (₹)</label><input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg opacity-70 cursor-not-allowed"></div>
                                 <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
@@ -357,7 +364,17 @@
                         <div><h3 class="text-lg font-bold">New Inventory Arrival</h3><p class="text-xs text-gray-500 dark:text-gray-400">Money out, stock goes up instantly.</p></div>
                     </div>
                     <form id="form-purchase" class="space-y-4">
-                        <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="purchase-item" list="inventory-items-list" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
+                        
+                        <!-- PREDICTIVE SEARCH CONTAINER -->
+                        <div class="relative">
+                            <label class="block text-sm font-semibold mb-1">Item Name</label>
+                            <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none transition-all">
+                            
+                            <!-- Dropdown UI -->
+                            <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                            </div>
+                        </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label class="block text-sm font-semibold mb-1">Quantity Added</label><input type="number" id="purchase-qty" required placeholder="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
                             <div><label class="block text-sm font-semibold mb-1">Total Paid (₹)</label><input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-danger placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none font-bold text-lg"></div>
