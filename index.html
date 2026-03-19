@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shop Manager</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Load Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Load SheetJS for Excel Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -56,7 +54,7 @@
             <!-- TRANSACTIONS TAB -->
             <div id="tab-transactions" class="tab">
                 <h1>Transactions Ledger</h1>
-                <p style="color: #7f8c8d; margin-top:-10px; margin-bottom: 20px;">View all sales, purchases, and returns here.</p>
+                <p style="color: #7f8c8d; margin-top:-10px; margin-bottom: 20px;">View all standard sales, cosmetic sales, purchases, and returns here.</p>
                 <div class="form-container" style="border-left: 5px solid #3498db; margin-bottom: 20px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <label style="font-weight: bold;">Start Date:</label>
@@ -68,7 +66,7 @@
                     </div>
                 </div>
                 <table id="table-transactions">
-                    <thead><tr><th>Date</th><th>Type</th><th>Item Name</th><th>Qty</th><th>Amount</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Type</th><th>Item Name</th><th>Qty</th><th>Total Amount</th><th>Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -76,7 +74,6 @@
             <!-- ANALYTICS TAB -->
             <div id="tab-analytics" class="tab">
                 <h1>Business Analytics & Insights</h1>
-                <!-- Date Filter -->
                 <div class="form-container" style="border-left: 5px solid #8e44ad; margin-bottom: 20px;">
                     <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Performance Snapshot</h3>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -89,24 +86,21 @@
                         <button id="btn-ana-clear" class="btn-action" style="background-color: #95a5a6;">Clear All Time</button>
                     </div>
                 </div>
-                <!-- Snapshot Cards -->
                 <div class="cards">
                     <div class="card"><h3>Filtered Revenue</h3><p id="ana-revenue" style="color:#27ae60;">₹0.00</p></div>
                     <div class="card"><h3>Filtered Profit</h3><p id="ana-profit" style="color:#2980b9;">₹0.00</p></div>
                     <div class="card"><h3>Filtered Margin</h3><p id="ana-margin" style="color:#e67e22;">0.0%</p></div>
                     <div class="card"><h3>Units in Stock</h3><p id="ana-stock" style="color:#8e44ad;">0</p></div>
                 </div>
-                <!-- Charts Grid -->
                 <div class="charts-grid">
                     <div class="chart-container" style="flex: 2;"><canvas id="chart-monthly"></canvas></div>
                     <div class="chart-container" style="flex: 1;"><canvas id="chart-abc"></canvas></div>
                     <div class="chart-container" style="flex: 1;"><canvas id="chart-fsn"></canvas></div>
                 </div>
-                <!-- Top Selling & Inventory Status Grid -->
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
                     <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0;">Top Selling Products (All Time)</h3>
+                            <h3 style="margin: 0;">Top Selling Products (Inventory)</h3>
                             <select id="filter-top-selling" style="padding: 8px;">
                                 <option value="All">All Items</option>
                                 <option value="Top10">Top 10 Selling</option>
@@ -131,7 +125,6 @@
                         </table>
                     </div>
                 </div>
-                <!-- ABC Analysis Table -->
                 <div class="form-container">
                     <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
                     <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Items are classified by value: A (Top 70%), B (Next 20%), C (Bottom 10%).</p>
@@ -140,7 +133,6 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                <!-- FSN x HMV Matrix Table -->
                 <div class="form-container">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="margin: 0;">FSN x HMV Inventory Matrix</h3>
@@ -157,7 +149,6 @@
                             <option value="🗑️ Dead Stock">🗑️ Dead Stock (No Sales/Low Value)</option>
                         </select>
                     </div>
-                    <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Classifies items by sales frequency (Fast, Slow, Non-moving) and their contribution to revenue (High, Medium, Low Value).</p>
                     <table id="table-matrix">
                         <thead><tr><th>Item</th><th>Stock</th><th>Inv. Value</th><th>Revenue</th><th>FSN</th><th>HMV</th><th>Actionable Class</th></tr></thead>
                         <tbody></tbody>
@@ -168,14 +159,51 @@
             <!-- SALES TAB -->
             <div id="tab-sales" class="tab">
                 <h1>Record Sales</h1>
-                <div class="form-container">
-                    <h3>Record a Sale (Money In, Stock Goes Down)</h3>
-                    <form id="form-sale">
-                        <input type="text" id="sale-item" list="inventory-items-list" placeholder="Item Name" required>
-                        <input type="number" id="sale-qty" placeholder="Quantity Sold" required>
-                        <input type="number" id="sale-amount" placeholder="Total Amount Received (₹)" required>
-                        <button type="submit">Save Sale</button>
-                    </form>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    
+                    <!-- Form 1: Standard Sale -->
+                    <div class="form-container" style="flex: 1; min-width: 300px; border-top: 5px solid #27ae60;">
+                        <h3 style="margin-top: 0;">Standard Inventory Sale</h3>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Select an item from stock. Quantity will be deducted.</p>
+                        <form id="form-sale">
+                            <label style="font-weight:bold; font-size:14px;">Select Item</label>
+                            <select id="sale-item" required style="margin-bottom: 10px;">
+                                <option value="">-- Loading Items... --</option>
+                            </select>
+                            
+                            <label style="font-weight:bold; font-size:14px;">Purchased Cost (Per Pcs)</label>
+                            <input type="number" id="sale-cost" placeholder="Auto-fetched Cost" readonly style="background-color: var(--sidebar-bg); cursor: not-allowed; margin-bottom: 10px;" title="This is fetched automatically from inventory">
+                            
+                            <label style="font-weight:bold; font-size:14px;">Quantity to Sell</label>
+                            <input type="number" id="sale-qty" placeholder="Quantity Sold" required style="margin-bottom: 10px;">
+                            
+                            <label style="font-weight:bold; font-size:14px;">Selling Rate (Per Pcs)</label>
+                            <input type="number" id="sale-rate" placeholder="Sales Rate Per Pcs (₹)" required step="0.01">
+                            
+                            <button type="submit" style="background-color: #27ae60;">Save Standard Sale</button>
+                        </form>
+                    </div>
+
+                    <!-- Form 2: Cosmetic Sale -->
+                    <div class="form-container" style="flex: 1; min-width: 300px; border-top: 5px solid #e17055;">
+                        <h3 style="margin-top: 0;">Cosmetic Item Sale</h3>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Quick entry. No stock tracking or inventory deduction.</p>
+                        <form id="form-cosmetic">
+                            <label style="font-weight:bold; font-size:14px;">Cosmetic Item Name</label>
+                            <input type="text" id="cosmetic-item" placeholder="Enter Item Name" required style="margin-bottom: 10px;">
+                            
+                            <label style="font-weight:bold; font-size:14px;">Quantity to Sell</label>
+                            <input type="number" id="cosmetic-qty" placeholder="Quantity Sold" required style="margin-bottom: 10px;">
+                            
+                            <label style="font-weight:bold; font-size:14px;">Your Cost (Per Pcs)</label>
+                            <input type="number" id="cosmetic-cost" placeholder="Cost Per Pcs (₹)" required step="0.01" style="margin-bottom: 10px;">
+                            
+                            <label style="font-weight:bold; font-size:14px;">Selling Rate (Per Pcs)</label>
+                            <input type="number" id="cosmetic-rate" placeholder="Sales Rate Per Pcs (₹)" required step="0.01">
+                            
+                            <button type="submit" style="background-color: #e17055;">Save Cosmetic Sale</button>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -218,17 +246,15 @@
                 <h1>Settings</h1>
                 <div class="form-container">
                     <h3>Theme</h3>
-                    <p style="color: var(--text-muted); margin-top: -10px;">Switch between light and dark themes.</p>
                     <button id="btn-theme-toggle" class="btn-action" style="background-color: #34495e;">Switch to Dark Mode</button>
                 </div>
                 <div class="form-container">
                     <h3>Data Management</h3>
-                    <p style="color: var(--text-muted); margin-top: -10px;">Load inventory from an Excel file. Overwrites current inventory.</p>
                     <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
                         <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
                         <button id="btn-trigger-excel" class="btn-action" style="background-color: #27ae60;">Import from Excel</button>
                         <button id="btn-sync-drive" class="btn-action" style="background-color: #2980b9;">Sync to Drive</button>
-                        <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates Entries</button>
+                        <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates</button>
                     </div>
                 </div>
             </div>
