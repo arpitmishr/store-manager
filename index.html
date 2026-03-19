@@ -16,7 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode:['class', '.dark-mode'],
+            darkMode: ['class', '.dark-mode'],
             theme: {
                 extend: {
                     fontFamily: { sans:['Inter', 'system-ui', 'sans-serif'] },
@@ -35,6 +35,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        /* Fixes native browser elements (datalist, scrollbar, date picker) visibility */
+        :root {
+            color-scheme: light;
+        }
+        .dark-mode {
+            color-scheme: dark;
+        }
+
         body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
         
         /* Tab Switching Logic */
@@ -63,6 +71,16 @@
         /* Glassmorphism for Bottom Nav */
         .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
         .dark-mode .glass-nav { background: rgba(31, 41, 55, 0.9); border-top-color: #374151; }
+
+        /* Fix Chrome/Edge Auto-fill text hiding in Dark Mode */
+        .dark-mode input:-webkit-autofill,
+        .dark-mode input:-webkit-autofill:hover, 
+        .dark-mode input:-webkit-autofill:focus, 
+        .dark-mode input:-webkit-autofill:active{
+            -webkit-box-shadow: 0 0 0 30px #111827 inset !important;
+            -webkit-text-fill-color: #f3f4f6 !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white">
@@ -79,11 +97,11 @@
             <form id="form-login" class="space-y-4">
                 <div class="relative">
                     <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="email" id="login-email" placeholder="Email Address" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+                    <input type="email" id="login-email" placeholder="Email Address" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
                 </div>
                 <div class="relative">
                     <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" id="login-password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+                    <input type="password" id="login-password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
                 </div>
                 <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md transition-all active:scale-95">
                     Secure Login
@@ -171,11 +189,11 @@
                 <!-- Overall Metrics -->
                 <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2"><i class="fa-solid fa-earth-americas text-success mr-2"></i> Lifetime Metrics <span id="dash-year-label" class="text-sm font-normal text-gray-500 ml-2">(All Years)</span></h3>
                 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Profit</p><p id="dash-overall-profit" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Current Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Low Stock</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Items in Stock</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Total Profit</p><p id="dash-overall-profit" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Current Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Low Stock</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Total Items in Stock</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
                 </div>
 
                 <!-- Top Selling Items List -->
@@ -183,8 +201,8 @@
                     <div class="p-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <h3 class="text-lg font-bold"><i class="fa-solid fa-trophy text-warning mr-2"></i> Top Selling Items</h3>
                         <div class="flex gap-2 w-full md:w-auto">
-                            <select id="dash-top-month" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none w-full md:w-auto"></select>
-                            <select id="dash-top-type" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none w-full md:w-auto">
+                            <select id="dash-top-month" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary outline-none w-full md:w-auto"></select>
+                            <select id="dash-top-type" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary outline-none w-full md:w-auto">
                                 <option value="All">All Items</option>
                                 <option value="Sale">Inventory</option>
                                 <option value="Cosmetic Sale">Cosmetics</option>
@@ -198,11 +216,11 @@
             <!-- TRANSACTIONS TAB -->
             <div id="tab-transactions" class="tab max-w-7xl mx-auto">
                 <h1 class="text-2xl font-bold mb-1">Transactions Ledger</h1>
-                <p class="text-sm text-gray-500 mb-6">Track all sales, purchases, and returns in one place.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Track all sales, purchases, and returns in one place.</p>
                 
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Start Date</label><input type="date" id="filter-trans-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">End Date</label><input type="date" id="filter-trans-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Start Date</label><input type="date" id="filter-trans-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">End Date</label><input type="date" id="filter-trans-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
                     <button id="btn-trans-filter" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95"><i class="fa-solid fa-filter mr-1"></i> Apply</button>
                     <button id="btn-trans-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear Filters</button>
                 </div>
@@ -211,12 +229,12 @@
                     <table id="table-transactions" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
@@ -229,18 +247,18 @@
                 <h1 class="text-2xl font-bold mb-6">Business Insights <i class="fa-solid fa-chart-pie text-purple-500 ml-2"></i></h1>
                 
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Start Date</label><input type="date" id="ana-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">End Date</label><input type="date" id="ana-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Start Date</label><input type="date" id="ana-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">End Date</label><input type="date" id="ana-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
                     <button id="btn-ana-filter" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Analyze</button>
                     <button id="btn-ana-today" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Today</button>
-                    <button id="btn-ana-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear</button>
+                    <button id="btn-ana-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear</button>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Rev.</p><p id="ana-revenue" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Profit</p><p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Margin</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Current Units</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Filtered Rev.</p><p id="ana-revenue" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Filtered Profit</p><p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Margin</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Current Units</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -251,11 +269,11 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Top Products</h3><select id="filter-top-selling" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Top10">Top 10</option></select></div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Top Products</h3><select id="filter-top-selling" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Top10">Top 10</option></select></div>
                         <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Sold</th></tr></thead><tbody id="tbody-top-selling" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Inventory Alert</h3><select id="filter-inv-status" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Low">Low (<= 3)</option></select></div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Inventory Alert</h3><select id="filter-inv-status" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Low">Low (<= 3)</option></select></div>
                         <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Stock</th></tr></thead><tbody id="tbody-inv-status" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
                     </div>
                 </div>
@@ -264,12 +282,12 @@
                 <div class="space-y-6">
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
                         <h3 class="font-bold mb-1">ABC Inventory Analysis</h3>
-                        <p class="text-xs text-gray-500 mb-4">A (Top 70% Value), B (Next 20%), C (Bottom 10%)</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">A (Top 70% Value), B (Next 20%), C (Bottom 10%)</p>
                         <table id="table-abc" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Cum. %</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
                         <div class="flex justify-between items-center mb-4"><h3 class="font-bold">FSN x HMV Matrix</h3>
-                            <select id="ana-class-filter" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-1.5"><option value="All">All Classes</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cash Cows</option><option value="🔥 Dead Weight">🔥 Dead Weight</option><option value="🚀 Drivers">🚀 Drivers</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleepers</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Basics</option><option value="🗑️ Dead Stock">🗑️ Dead Stock</option></select>
+                            <select id="ana-class-filter" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-3 py-1.5"><option value="All">All Classes</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cash Cows</option><option value="🔥 Dead Weight">🔥 Dead Weight</option><option value="🚀 Drivers">🚀 Drivers</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleepers</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Basics</option><option value="🗑️ Dead Stock">🗑️ Dead Stock</option></select>
                         </div>
                         <table id="table-matrix" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Stock</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Rev</th><th class="py-3 px-4">FSN</th><th class="py-3 px-4">HMV</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
                     </div>
@@ -285,15 +303,15 @@
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-success border border-gray-100 dark:border-gray-700 relative overflow-hidden">
                         <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-boxes-stacked mr-1"></i> Inventory Tracked</div>
                         <h3 class="text-xl font-bold mb-1">Standard Sale</h3>
-                        <p class="text-xs text-gray-500 mb-6">Build a cart, auto-deducts stock.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Build a cart, auto-deducts stock.</p>
                         
                         <form id="form-sale" class="space-y-4">
-                            <div><label class="block text-sm font-semibold mb-1">Select Item</label><input type="text" id="sale-item" list="inventory-items-list" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Select Item</label><input type="text" id="sale-item" list="inventory-items-list" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
                             <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-semibold mb-1">Cost (₹)</label><input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg opacity-70 cursor-not-allowed"></div>
-                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Cost (₹)</label><input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg opacity-70 cursor-not-allowed"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
                             </div>
-                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="sale-rate" placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none text-xl font-bold text-success"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="sale-rate" placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-success placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none text-xl font-bold"></div>
                             
                             <button type="button" id="btn-add-to-cart" class="w-full bg-warning hover:bg-yellow-500 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-plus"></i> Add to Cart</button>
                             
@@ -302,7 +320,7 @@
                                 <h4 class="text-sm font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Current Cart</h4>
                                 <ul id="cart-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2"></ul>
                                 <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
-                                    <span class="text-sm text-gray-500 font-medium">Grand Total</span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Grand Total</span>
                                     <span class="text-2xl font-bold text-gray-800 dark:text-white">₹<span id="cart-total">0.00</span></span>
                                 </div>
                             </div>
@@ -315,15 +333,15 @@
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-cosmetic border border-gray-100 dark:border-gray-700 relative overflow-hidden h-fit">
                         <div class="absolute top-0 right-0 bg-cosmetic text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> No Stock Deduct</div>
                         <h3 class="text-xl font-bold mb-1">Cosmetic Sale</h3>
-                        <p class="text-xs text-gray-500 mb-6">Quick add custom items to revenue.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Quick add custom items to revenue.</p>
                         
                         <form id="form-cosmetic" class="space-y-4">
-                            <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="cosmetic-item" required placeholder="Description..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="cosmetic-item" required placeholder="Description..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
                             <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="cosmetic-qty" required placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
-                                <div><label class="block text-sm font-semibold mb-1">Your Cost (₹)</label><input type="number" id="cosmetic-cost" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="cosmetic-qty" required placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Your Cost (₹)</label><input type="number" id="cosmetic-cost" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
                             </div>
-                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none text-xl font-bold text-cosmetic"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-cosmetic placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none text-xl font-bold"></div>
                             <button type="submit" class="w-full bg-cosmetic hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl shadow transition-all active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Instant Save</button>
                         </form>
                     </div>
@@ -336,13 +354,13 @@
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center text-danger"><i class="fa-solid fa-truck-ramp-box"></i></div>
-                        <div><h3 class="text-lg font-bold">New Inventory Arrival</h3><p class="text-xs text-gray-500">Money out, stock goes up instantly.</p></div>
+                        <div><h3 class="text-lg font-bold">New Inventory Arrival</h3><p class="text-xs text-gray-500 dark:text-gray-400">Money out, stock goes up instantly.</p></div>
                     </div>
                     <form id="form-purchase" class="space-y-4">
-                        <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="purchase-item" list="inventory-items-list" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
+                        <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="purchase-item" list="inventory-items-list" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-semibold mb-1">Quantity Added</label><input type="number" id="purchase-qty" required placeholder="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
-                            <div><label class="block text-sm font-semibold mb-1">Total Paid (₹)</label><input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none font-bold text-danger text-lg"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Quantity Added</label><input type="number" id="purchase-qty" required placeholder="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Total Paid (₹)</label><input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-danger placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none font-bold text-lg"></div>
                         </div>
                         <button type="submit" class="w-full bg-danger hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-md transition-all active:scale-95 mt-4 text-lg">Save Purchase Data</button>
                     </form>
@@ -356,9 +374,9 @@
                 <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-8 border-l-4 border-l-primary">
                     <h3 id="inv-form-title" class="font-bold mb-4 text-primary">Add/Edit Item</h3>
                     <form id="form-inventory" class="flex flex-col md:flex-row gap-4 items-end">
-                        <div class="flex-1 w-full"><label class="block text-xs font-semibold mb-1">Name</label><input type="text" id="inv-name" required placeholder="Item..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
-                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Qty</label><input type="number" id="inv-qty" required placeholder="0" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
-                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Cost (₹)</label><input type="number" id="inv-price" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="flex-1 w-full"><label class="block text-xs font-semibold mb-1">Name</label><input type="text" id="inv-name" required placeholder="Item..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Qty</label><input type="number" id="inv-qty" required placeholder="0" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Cost (₹)</label><input type="number" id="inv-price" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
                         <div class="flex gap-2 w-full md:w-auto">
                             <button type="submit" id="btn-inv-submit" class="flex-1 md:flex-none bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition-all active:scale-95 whitespace-nowrap">Save</button>
                             <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded-lg shadow transition-all active:scale-95"><i class="fa-solid fa-xmark"></i></button>
@@ -371,10 +389,10 @@
                     <table id="table-inventory" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700/50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock Qty</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Cost</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock Qty</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit Cost</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
@@ -392,7 +410,7 @@
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row items-start md:items-center justify-between">
                         <div class="mb-4 md:mb-0">
                             <h3 class="font-bold text-lg"><i class="fa-solid fa-calendar-days text-warning mr-2"></i> Global Year Filter</h3>
-                            <p class="text-sm text-gray-500">Filter all dashboards, analytics, and ledgers by year.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Filter all dashboards, analytics, and ledgers by year.</p>
                         </div>
                         <select id="global-year-filter" class="w-full md:w-48 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-warning outline-none cursor-pointer shadow-sm">
                             <option value="All">All Years</option>
@@ -400,13 +418,13 @@
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                        <div><h3 class="font-bold text-lg"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i> Appearance</h3><p class="text-sm text-gray-500">Toggle dark/light mode for comfort.</p></div>
+                        <div><h3 class="font-bold text-lg"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i> Appearance</h3><p class="text-sm text-gray-500 dark:text-gray-400">Toggle dark/light mode for comfort.</p></div>
                         <button id="btn-theme-toggle" class="bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-semibold py-2 px-6 rounded-xl shadow transition-all active:scale-95 text-sm">Switch Theme</button>
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
                         <h3 class="font-bold text-lg mb-1"><i class="fa-solid fa-database text-primary mr-2"></i> Data Management</h3>
-                        <p class="text-sm text-gray-500 mb-6">Import external data, sync to cloud, or cleanup database.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Import external data, sync to cloud, or cleanup database.</p>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
@@ -426,7 +444,7 @@
             
         </main>
         
-        <!-- MOBILE BOTTOM NAVIGATION (UPDATED TO INCLUDE ALL TABS!) -->
+        <!-- MOBILE BOTTOM NAVIGATION -->
         <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-1 py-1 flex justify-start sm:justify-center items-center safe-area-pb overflow-x-auto no-scrollbar gap-1">
             <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
             <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
