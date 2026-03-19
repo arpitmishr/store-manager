@@ -241,10 +241,8 @@
                         <h3 style="margin-top: 0;">Standard Inventory Sale</h3>
                         <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Select an item from stock. Quantity will be deducted.</p>
                         <form id="form-sale">
-                            <label style="font-weight:bold; font-size:14px;">Select Item</label>
-                            <select id="sale-item" required style="margin-bottom: 10px;">
-                                <option value="">-- Loading Items... --</option>
-                            </select>
+                            <label style="font-weight:bold; font-size:14px;">Search & Select Item</label>
+<input type="text" id="sale-item" list="inventory-items-list" placeholder="Start typing item name..." required style="margin-bottom: 10px; width: 100%;">
                             
                             <label style="font-weight:bold; font-size:14px;">Purchased Cost (Per Pcs)</label>
                             <input type="number" id="sale-cost" placeholder="Auto-fetched Cost" readonly style="background-color: var(--sidebar-bg); cursor: not-allowed; margin-bottom: 10px;" title="This is fetched automatically from inventory">
