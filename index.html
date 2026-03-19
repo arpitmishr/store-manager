@@ -54,6 +54,14 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Success Pop Animation */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .success-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
         /* Sidebar & Nav Active States */
         .nav-btn.active { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; border-right: 4px solid #3b82f6; font-weight: 600; }
         .dark-mode .nav-btn.active { background-color: rgba(59, 130, 246, 0.2); }
@@ -83,7 +91,17 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white">
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white relative">
+
+    <!-- GLOBAL SUCCESS ANIMATION OVERLAY -->
+    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-none">
+        <div id="success-card" class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center justify-center transform scale-50 transition-transform duration-300 ease-out border border-gray-100 dark:border-gray-700">
+            <div id="success-icon-container" class="w-24 h-24 bg-success text-white rounded-full flex items-center justify-center text-5xl mb-5 shadow-lg shadow-success/30">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h2 id="success-msg" class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Success!</h2>
+        </div>
+    </div>
 
     <!-- 1. LOGIN SCREEN -->
     <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
