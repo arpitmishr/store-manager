@@ -3,349 +3,439 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shop Manager</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Modern Shop Manager</title>
+    
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS for Modern App UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: ['class', '.dark-mode'],
+            theme: {
+                extend: {
+                    fontFamily: { sans:['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: '#3b82f6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        cosmetic: '#f43f5e'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        /* Tab Switching Logic */
+        .tab { display: none; }
+        .tab.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sidebar & Nav Active States */
+        .nav-btn.active { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; border-right: 4px solid #3b82f6; font-weight: 600; }
+        .dark-mode .nav-btn.active { background-color: rgba(59, 130, 246, 0.2); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark-mode ::-webkit-scrollbar-thumb { background: #475569; }
+        
+        /* Glassmorphism for Bottom Nav */
+        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        .dark-mode .glass-nav { background: rgba(31, 41, 55, 0.9); border-top-color: #374151; }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white">
+
     <datalist id="inventory-items-list"></datalist>
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-container" class="login-container">
-        <div class="login-box">
-            <h2>Admin Login</h2>
-            <form id="form-login">
-                <input type="email" id="login-email" placeholder="Email Address" required>
-                <input type="password" id="login-password" placeholder="Password" required>
-                <button type="submit">Login</button>
-                <p id="login-error" style="color: #e74c3c; display: none; margin-top: 10px; font-size: 14px;"></p>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-full max-w-md text-center transform transition-all">
+            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-lg">
+                <i class="fa-solid fa-store"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Admin Login</h2>
+            <form id="form-login" class="space-y-4">
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="email" id="login-email" placeholder="Email Address" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" id="login-password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md transition-all active:scale-95">
+                    Secure Login
+                </button>
+                <p id="login-error" class="text-danger hidden mt-2 text-sm font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded-lg"></p>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP -->
-    <div id="app-container" style="display: none;">
-        <div class="sidebar">
-            <h2>Store Manager</h2>
-            <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
-            <button id="btn-transactions" class="nav-btn" style="background-color: #3498db; margin-bottom: 10px;">Transactions</button>
-            <button id="btn-sales" class="nav-btn">Record Sales</button>
-            <button id="btn-purchases" class="nav-btn">Record Purchases</button>
-            <button id="btn-inventory" class="nav-btn">Inventory</button>
-            <button id="btn-analytics" class="nav-btn" style="background-color: #8e44ad; margin-top: 10px;">Analytics 📊</button>
+    <!-- 2. MAIN APP CONTAINER -->
+    <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden">
+        
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full z-10">
+            <div class="p-6 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700">
+                <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-bolt"></i></div>
+                <h2 class="text-lg font-bold tracking-tight">ShopManager</h2>
+            </div>
             
-            <div style="flex-grow: 1;"></div> 
-            <button id="btn-settings" class="nav-btn" style="background-color: #7f8c8d; margin-top: 10px;">Settings ⚙️</button>
-            <button id="btn-logout" class="nav-btn" style="background-color: #c0392b; margin-top: 10px;">Logout</button>
-        </div>
+            <nav class="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-3">
+                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-chart-line w-5"></i> Dashboard
+                </button>
+                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-list-ul w-5"></i> Transactions
+                </button>
+                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-cart-shopping w-5"></i> Record Sales
+                </button>
+                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-boxes-packing w-5"></i> Record Purchases
+                </button>
+                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-cubes-stacked w-5"></i> Inventory
+                </button>
+                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-magnifying-glass-chart w-5"></i> Analytics
+                </button>
+            </nav>
 
-        <div class="main-content">
+            <div class="p-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-4 py-2 rounded-lg text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN SCROLLABLE CONTENT -->
+        <main class="flex-1 h-full overflow-y-auto bg-gray-50/50 dark:bg-gray-900 p-4 md:p-8 pb-24 md:pb-8">
+            
             <!-- DASHBOARD TAB -->
-            <div id="tab-dashboard" class="tab active">
-                <h1>Dashboard</h1>
+            <div id="tab-dashboard" class="tab active max-w-7xl mx-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
+                    <div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20 shadow-sm"><i class="fa-regular fa-calendar mr-1"></i> Today</div>
+                </div>
                 
-                <!-- Section 1: Today's Snapshot -->
-                <h3 style="border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 0; color: #2c3e50;">📅 Today's Snapshot</h3>
-                <div class="cards" style="margin-bottom: 30px;">
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Today's Sales</h3>
-                        <p id="dash-today-sales" style="color:#27ae60; font-size: 24px;">₹0.00</p>
+                <!-- Today's Snapshot -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sales Today</p>
+                        <p id="dash-today-sales" class="text-2xl font-bold text-success mt-2">₹0.00</p>
                     </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Today's Profit</h3>
-                        <p id="dash-today-profit" style="color:#2980b9; font-size: 24px;">₹0.00</p>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit Today</p>
+                        <p id="dash-today-profit" class="text-2xl font-bold text-primary mt-2">₹0.00</p>
                     </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Profit Margin</h3>
-                        <p id="dash-today-margin" style="color:#e67e22; font-size: 24px;">0.0%</p>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Margin</p>
+                        <p id="dash-today-margin" class="text-2xl font-bold text-warning mt-2">0.0%</p>
                     </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Items Sold</h3>
-                        <p id="dash-today-items" style="color:#8e44ad; font-size: 24px;">0</p>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Items Sold</p>
+                        <p id="dash-today-items" class="text-2xl font-bold text-purple-500 mt-2">0</p>
                     </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Top Trending Item Today</h3>
-                        <p id="dash-today-trending" style="color:#d35400; font-size: 18px; font-weight: bold; margin-top: 10px;">N/A</p>
-                    </div>
-                </div>
-
-                <!-- Section 2: Overall Metrics -->
-                <h3 style="border-bottom: 2px solid #2ecc71; padding-bottom: 5px; color: #2c3e50;">📊 Overall Lifetime Metrics</h3>
-                <div class="cards">
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Overall Revenue</h3>
-                        <p id="dash-overall-revenue">₹0.00</p>
-                    </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Overall Profit</h3>
-                        <p id="dash-overall-profit">₹0.00</p>
-                    </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Inventory Value</h3>
-                        <p id="dash-inv-value">₹0.00</p>
-                    </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Low Stock Items (≤3)</h3>
-                        <p id="dash-low-stock" style="color:#e74c3c;">0</p>
-                    </div>
-                    <div class="card">
-                        <h3 style="font-size: 14px;">Total Items in Stock</h3>
-                        <p id="dash-inventory">0</p>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Top Item</p>
+                        <p id="dash-today-trending" class="text-lg font-bold text-orange-500 mt-2 truncate">N/A</p>
                     </div>
                 </div>
 
-                <!-- Section 3: Dashboard Extras Grid -->
-                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px;">
-                    
-                    <!-- Top Selling Items Card -->
-                    <div class="form-container" style="flex: 1; min-width: 320px; border-top: 5px solid #f39c12; padding: 20px;">
-                        <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">🏆 Top Selling Items by Month</h3>
-                        
-                        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                            <div style="flex: 1; min-width: 120px;">
-                                <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Select Month</label>
-                                <select id="dash-top-month" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;"></select>
-                            </div>
-                            <div style="flex: 1; min-width: 120px;">
-                                <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Filter by Type</label>
-                                <select id="dash-top-type" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;">
-                                    <option value="All">All Items</option>
-                                    <option value="Sale">Inventory Only</option>
-                                    <option value="Cosmetic Sale">Cosmetics Only</option>
-                                </select>
-                            </div>
+                <!-- Overall Metrics -->
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2"><i class="fa-solid fa-earth-americas text-success mr-2"></i> Lifetime Metrics</h3>
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Profit</p><p id="dash-overall-profit" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Low Stock</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Items</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
+                </div>
+
+                <!-- Top Selling Items List -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden max-w-3xl">
+                    <div class="p-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <h3 class="text-lg font-bold"><i class="fa-solid fa-trophy text-warning mr-2"></i> Top Selling Items</h3>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <select id="dash-top-month" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none w-full md:w-auto"></select>
+                            <select id="dash-top-type" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none w-full md:w-auto">
+                                <option value="All">All Items</option>
+                                <option value="Sale">Inventory</option>
+                                <option value="Cosmetic Sale">Cosmetics</option>
+                            </select>
                         </div>
-
-                        <ul id="dash-top-list" style="list-style: none; padding: 0; margin: 0;">
-                            <!-- Dynamically populated list -->
-                        </ul>
                     </div>
-                    
-                    <div style="flex: 1; min-width: 320px;"></div>
+                    <ul id="dash-top-list" class="divide-y divide-gray-100 dark:divide-gray-700 max-h-96 overflow-y-auto p-2"></ul>
                 </div>
             </div>
 
             <!-- TRANSACTIONS TAB -->
-            <div id="tab-transactions" class="tab">
-                <h1>Transactions Ledger</h1>
-                <p style="color: #7f8c8d; margin-top:-10px; margin-bottom: 20px;">View all standard sales, cosmetic sales, purchases, and returns here.</p>
-                <div class="form-container" style="border-left: 5px solid #3498db; margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <label style="font-weight: bold;">Start Date:</label>
-                        <input type="date" id="filter-trans-start">
-                        <label style="font-weight: bold;">End Date:</label>
-                        <input type="date" id="filter-trans-end">
-                        <button id="btn-trans-filter" class="btn-action" style="background: #3498db;">Apply Filter</button>
-                        <button id="btn-trans-clear" class="btn-action" style="background: #95a5a6;">View All Time</button>
-                    </div>
+            <div id="tab-transactions" class="tab max-w-7xl mx-auto">
+                <h1 class="text-2xl font-bold mb-1">Transactions Ledger</h1>
+                <p class="text-sm text-gray-500 mb-6">Track all sales, purchases, and returns in one place.</p>
+                
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Start Date</label><input type="date" id="filter-trans-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">End Date</label><input type="date" id="filter-trans-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <button id="btn-trans-filter" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95"><i class="fa-solid fa-filter mr-1"></i> Apply</button>
+                    <button id="btn-trans-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear Filters</button>
                 </div>
-                <table id="table-transactions">
-                    <thead><tr><th>Date</th><th>Type</th><th>Item Name</th><th>Qty</th><th>Total Amount</th><th>Action</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+                    <table id="table-transactions" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- ANALYTICS TAB -->
-            <div id="tab-analytics" class="tab">
-                <h1>Business Analytics & Insights</h1>
-                <div class="form-container" style="border-left: 5px solid #8e44ad; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Performance Snapshot</h3>
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <label style="font-weight: bold;">Start Date:</label>
-                        <input type="date" id="ana-start" style="max-width: 150px;">
-                        <label style="font-weight: bold;">End Date:</label>
-                        <input type="date" id="ana-end" style="max-width: 150px;">
-                        <button id="btn-ana-filter" class="btn-action" style="background-color: #8e44ad;">Apply Filter</button>
-                        <button id="btn-ana-today" class="btn-action" style="background-color: #2980b9;">Today</button>
-                        <button id="btn-ana-clear" class="btn-action" style="background-color: #95a5a6;">Clear All Time</button>
+            <div id="tab-analytics" class="tab max-w-7xl mx-auto">
+                <h1 class="text-2xl font-bold mb-6">Business Insights <i class="fa-solid fa-chart-pie text-purple-500 ml-2"></i></h1>
+                
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Start Date</label><input type="date" id="ana-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">End Date</label><input type="date" id="ana-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <button id="btn-ana-filter" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Analyze</button>
+                    <button id="btn-ana-today" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Today</button>
+                    <button id="btn-ana-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear</button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Rev.</p><p id="ana-revenue" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Profit</p><p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Margin</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Units in Stock</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="xl:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-monthly"></canvas></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-abc"></canvas></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-fsn"></canvas></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Top Products</h3><select id="filter-top-selling" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Top10">Top 10</option></select></div>
+                        <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Sold</th></tr></thead><tbody id="tbody-top-selling" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Inventory Alert</h3><select id="filter-inv-status" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Low">Low (<= 3)</option></select></div>
+                        <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Stock</th></tr></thead><tbody id="tbody-inv-status" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
                     </div>
                 </div>
-                <div class="cards">
-                    <div class="card"><h3>Filtered Revenue</h3><p id="ana-revenue" style="color:#27ae60;">₹0.00</p></div>
-                    <div class="card"><h3>Filtered Profit</h3><p id="ana-profit" style="color:#2980b9;">₹0.00</p></div>
-                    <div class="card"><h3>Filtered Margin</h3><p id="ana-margin" style="color:#e67e22;">0.0%</p></div>
-                    <div class="card"><h3>Units in Stock</h3><p id="ana-stock" style="color:#8e44ad;">0</p></div>
-                </div>
-                <div class="charts-grid">
-                    <div class="chart-container" style="flex: 2;"><canvas id="chart-monthly"></canvas></div>
-                    <div class="chart-container" style="flex: 1;"><canvas id="chart-abc"></canvas></div>
-                    <div class="chart-container" style="flex: 1;"><canvas id="chart-fsn"></canvas></div>
-                </div>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
-                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0;">Top Selling Products (Inventory)</h3>
-                            <select id="filter-top-selling" style="padding: 8px;">
-                                <option value="All">All Items</option>
-                                <option value="Top10">Top 10 Selling</option>
-                            </select>
+
+                <!-- ABC and FSN Matrices -->
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+                        <h3 class="font-bold mb-1">ABC Inventory Analysis</h3>
+                        <p class="text-xs text-gray-500 mb-4">A (Top 70% Value), B (Next 20%), C (Bottom 10%)</p>
+                        <table id="table-abc" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Cum. %</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">FSN x HMV Matrix</h3>
+                            <select id="ana-class-filter" class="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-1.5"><option value="All">All Classes</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cash Cows</option><option value="🔥 Dead Weight">🔥 Dead Weight</option><option value="🚀 Drivers">🚀 Drivers</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleepers</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Basics</option><option value="🗑️ Dead Stock">🗑️ Dead Stock</option></select>
                         </div>
-                        <table>
-                            <thead><tr><th>ITEM</th><th>SOLD QTY</th></tr></thead>
-                            <tbody id="tbody-top-selling"></tbody>
-                        </table>
+                        <table id="table-matrix" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Stock</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Rev</th><th class="py-3 px-4">FSN</th><th class="py-3 px-4">HMV</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
                     </div>
-                    <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0;">Inventory Status</h3>
-                            <select id="filter-inv-status" style="padding: 8px;">
-                                <option value="All">All Stock</option>
-                                <option value="Low">Low Stock (<= 3)</option>
-                            </select>
-                        </div>
-                        <table>
-                            <thead><tr><th>ITEM</th><th>AVAILABLE QTY</th></tr></thead>
-                            <tbody id="tbody-inv-status"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="form-container">
-                    <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
-                    <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Items are classified by value: A (Top 70%), B (Next 20%), C (Bottom 10%).</p>
-                    <table id="table-abc">
-                        <thead><tr><th>ITEM</th><th>INVENTORY VALUE</th><th>CUMULATIVE %</th><th>CATEGORY</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div class="form-container">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="margin: 0;">FSN x HMV Inventory Matrix</h3>
-                        <select id="ana-class-filter" style="padding: 8px; max-width: 250px;">
-                            <option value="All">All Classes</option>
-                            <option value="⭐ Stars">⭐ Stars (Prime Stock)</option>
-                            <option value="💰 Cash Cows">💰 Cash Cows (Slow/High Value)</option>
-                            <option value="🔥 Dead Weight">🔥 Dead Weight (No Sales/High Value)</option>
-                            <option value="🚀 Drivers">🚀 Drivers (Fast/Med Value)</option>
-                            <option value="🐢 Slugs">🐢 Slugs (Slow/Med Value)</option>
-                            <option value="💤 Sleepers">💤 Sleepers (No Sales/Med Value)</option>
-                            <option value="🏃 Runners">🏃 Runners (Fast/Low Value)</option>
-                            <option value="📦 Basics">📦 Basics (Slow/Low Value)</option>
-                            <option value="🗑️ Dead Stock">🗑️ Dead Stock (No Sales/Low Value)</option>
-                        </select>
-                    </div>
-                    <table id="table-matrix">
-                        <thead><tr><th>Item</th><th>Stock</th><th>Inv. Value</th><th>Revenue</th><th>FSN</th><th>HMV</th><th>Actionable Class</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
                 </div>
             </div>
 
             <!-- SALES TAB -->
-            <div id="tab-sales" class="tab">
-                <h1>Record Sales</h1>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    
-                    <!-- Form 1: Standard Sale with Cart Feature -->
-                    <div class="form-container" style="flex: 1; min-width: 300px; border-top: 5px solid #27ae60;">
-                        <h3 style="margin-top: 0;">Standard Inventory Sale</h3>
-                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Select items to add to your list, then save.</p>
-                        <form id="form-sale">
-                            <label style="font-weight:bold; font-size:14px;">Search & Select Item</label>
-                            <input type="text" id="sale-item" list="inventory-items-list" placeholder="Start typing item name..." style="margin-bottom: 10px; width: 100%;">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Purchased Cost (Per Pcs)</label>
-                            <input type="number" id="sale-cost" placeholder="Auto-fetched Cost" readonly style="background-color: var(--sidebar-bg); cursor: not-allowed; margin-bottom: 10px;" title="This is fetched automatically from inventory">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Quantity to Sell</label>
-                            <input type="number" id="sale-qty" placeholder="Quantity Sold" style="margin-bottom: 10px;">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Selling Rate (Per Pcs)</label>
-                            <input type="number" id="sale-rate" placeholder="Sales Rate Per Pcs (₹)" step="0.01">
-                            
-                            <!-- Cart Buttons and Display -->
-                            <div style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 10px;">
-                                <button type="button" id="btn-add-to-cart" style="background-color: #f39c12; flex: 1; padding: 10px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Add Item to List</button>
+            <div id="tab-sales" class="tab max-w-7xl mx-auto">
+                <h1 class="text-2xl font-bold mb-6">Record New Sales</h1>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Standard Sale -->
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-success border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-boxes-stacked mr-1"></i> Inventory Tracked</div>
+                        <h3 class="text-xl font-bold mb-1">Standard Sale</h3>
+                        <p class="text-xs text-gray-500 mb-6">Build a cart, auto-deducts stock.</p>
+                        
+                        <form id="form-sale" class="space-y-4">
+                            <div><label class="block text-sm font-semibold mb-1">Select Item</label><input type="text" id="sale-item" list="inventory-items-list" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-semibold mb-1">Cost (₹)</label><input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg opacity-70 cursor-not-allowed"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
                             </div>
-
-                            <div id="cart-container" style="display: none; background: rgba(0,0,0,0.03); border: 1px solid #ccc; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #bbb; padding-bottom: 5px;">Items to Sell</h4>
-                                <ul id="cart-list" style="list-style: none; padding: 0; margin: 0; font-size: 13px;"></ul>
-                                <p style="margin: 10px 0 0 0; text-align: right; font-weight: bold; font-size: 16px;">Total: ₹<span id="cart-total">0.00</span></p>
+                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="sale-rate" placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none text-xl font-bold text-success"></div>
+                            
+                            <button type="button" id="btn-add-to-cart" class="w-full bg-warning hover:bg-yellow-500 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-plus"></i> Add to Cart</button>
+                            
+                            <!-- Cart -->
+                            <div id="cart-container" class="hidden mt-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-inner">
+                                <h4 class="text-sm font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Current Cart</h4>
+                                <ul id="cart-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2"></ul>
+                                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
+                                    <span class="text-sm text-gray-500 font-medium">Grand Total</span>
+                                    <span class="text-2xl font-bold text-gray-800 dark:text-white">₹<span id="cart-total">0.00</span></span>
+                                </div>
                             </div>
                             
-                            <button type="submit" id="btn-save-sale" style="background-color: #27ae60; width: 100%; border: none; padding: 10px; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Save All Sales</button>
+                            <button type="submit" id="btn-save-sale" class="w-full bg-success hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-md transition-all text-lg flex items-center justify-center gap-2 active:scale-95 mt-4"><i class="fa-solid fa-check-double"></i> Complete Checkout</button>
                         </form>
                     </div>
 
-                    <!-- Form 2: Cosmetic Sale -->
-                    <div class="form-container" style="flex: 1; min-width: 300px; border-top: 5px solid #e17055;">
-                        <h3 style="margin-top: 0;">Cosmetic Item Sale</h3>
-                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Quick entry. No stock tracking or inventory deduction.</p>
-                        <form id="form-cosmetic">
-                            <label style="font-weight:bold; font-size:14px;">Cosmetic Item Name</label>
-                            <input type="text" id="cosmetic-item" placeholder="Enter Item Name" required style="margin-bottom: 10px;">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Quantity to Sell</label>
-                            <input type="number" id="cosmetic-qty" placeholder="Quantity Sold" required style="margin-bottom: 10px;">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Your Cost (Per Pcs)</label>
-                            <input type="number" id="cosmetic-cost" placeholder="Cost Per Pcs (₹)" required step="0.01" style="margin-bottom: 10px;">
-                            
-                            <label style="font-weight:bold; font-size:14px;">Selling Rate (Per Pcs)</label>
-                            <input type="number" id="cosmetic-rate" placeholder="Sales Rate Per Pcs (₹)" required step="0.01">
-                            
-                            <button type="submit" style="background-color: #e17055;">Save Cosmetic Sale</button>
+                    <!-- Cosmetic Sale -->
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-cosmetic border border-gray-100 dark:border-gray-700 relative overflow-hidden h-fit">
+                        <div class="absolute top-0 right-0 bg-cosmetic text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> No Stock Deduct</div>
+                        <h3 class="text-xl font-bold mb-1">Cosmetic Sale</h3>
+                        <p class="text-xs text-gray-500 mb-6">Quick add custom items to revenue.</p>
+                        
+                        <form id="form-cosmetic" class="space-y-4">
+                            <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="cosmetic-item" required placeholder="Description..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="cosmetic-qty" required placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                                <div><label class="block text-sm font-semibold mb-1">Your Cost (₹)</label><input type="number" id="cosmetic-cost" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
+                            </div>
+                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none text-xl font-bold text-cosmetic"></div>
+                            <button type="submit" class="w-full bg-cosmetic hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl shadow transition-all active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Instant Save</button>
                         </form>
                     </div>
                 </div>
             </div>
 
             <!-- PURCHASES TAB -->
-            <div id="tab-purchases" class="tab">
-                <h1>Record Purchases</h1>
-                <div class="form-container">
-                    <h3>Record a Purchase (Money Out, Stock Goes Up)</h3>
-                    <form id="form-purchase">
-                        <input type="text" id="purchase-item" list="inventory-items-list" placeholder="Item Name" required>
-                        <input type="number" id="purchase-qty" placeholder="Quantity Bought" required>
-                        <input type="number" id="purchase-amount" placeholder="Total Amount Paid (₹)" required>
-                        <button type="submit" style="background-color: #e74c3c;">Save Purchase</button>
+            <div id="tab-purchases" class="tab max-w-3xl mx-auto">
+                <h1 class="text-2xl font-bold mb-6">Record Purchases</h1>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center text-danger"><i class="fa-solid fa-truck-ramp-box"></i></div>
+                        <div><h3 class="text-lg font-bold">New Inventory Arrival</h3><p class="text-xs text-gray-500">Money out, stock goes up instantly.</p></div>
+                    </div>
+                    <form id="form-purchase" class="space-y-4">
+                        <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="purchase-item" list="inventory-items-list" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-semibold mb-1">Quantity Added</label><input type="number" id="purchase-qty" required placeholder="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
+                            <div><label class="block text-sm font-semibold mb-1">Total Paid (₹)</label><input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none font-bold text-danger text-lg"></div>
+                        </div>
+                        <button type="submit" class="w-full bg-danger hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-md transition-all active:scale-95 mt-4 text-lg">Save Purchase Data</button>
                     </form>
                 </div>
             </div>
 
             <!-- INVENTORY TAB -->
-            <div id="tab-inventory" class="tab">
-                <h1>Inventory</h1>
-                <div class="form-container">
-                    <h3 id="inv-form-title">Add New Item</h3>
-                    <form id="form-inventory">
-                        <input type="text" id="inv-name" placeholder="Item Name" required>
-                        <input type="number" id="inv-qty" placeholder="Quantity" required>
-                        <input type="number" id="inv-price" placeholder="Unit Cost Price (₹)" step="0.01" required>
-                        <button type="submit" id="btn-inv-submit">Add Item</button>
-                        <button type="button" id="btn-inv-cancel" style="display:none; background-color: #95a5a6;">Cancel</button>
+            <div id="tab-inventory" class="tab max-w-7xl mx-auto">
+                <h1 class="text-2xl font-bold mb-6">Inventory Management</h1>
+                
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-8 border-l-4 border-l-primary">
+                    <h3 id="inv-form-title" class="font-bold mb-4 text-primary">Add/Edit Item</h3>
+                    <form id="form-inventory" class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full"><label class="block text-xs font-semibold mb-1">Name</label><input type="text" id="inv-name" required placeholder="Item..." class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Qty</label><input type="number" id="inv-qty" required placeholder="0" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="w-full md:w-32"><label class="block text-xs font-semibold mb-1">Cost (₹)</label><input type="number" id="inv-price" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none"></div>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button type="submit" id="btn-inv-submit" class="flex-1 md:flex-none bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow transition-all active:scale-95 whitespace-nowrap">Save</button>
+                            <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white font-semibold py-2 px-4 rounded-lg shadow transition-all active:scale-95"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
                     </form>
                 </div>
-                <h3>Current Stock</h3>
-                <table id="table-inventory">
-                    <thead><tr><th>Item Name</th><th>Quantity</th><th>Unit Cost (₹)</th><th>Actions</th></tr></thead>
-                    <tbody></tbody>
-                </table>
+
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+                    <div class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50"><h3 class="font-bold">Current Stock Register</h3></div>
+                    <table id="table-inventory" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700/50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock Qty</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- SETTINGS TAB -->
-            <div id="tab-settings" class="tab">
-                <h1>Settings</h1>
-                <div class="form-container">
-                    <h3>Theme</h3>
-                    <button id="btn-theme-toggle" class="btn-action" style="background-color: #34495e;">Switch to Dark Mode</button>
-                </div>
-                <div class="form-container">
-                    <h3>Data Management</h3>
-                    <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
-                        <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
-                        <button id="btn-trigger-excel" class="btn-action" style="background-color: #27ae60;">Import from Excel</button>
-                        <button id="btn-sync-drive" class="btn-action" style="background-color: #2980b9;">Sync to Drive</button>
-                        <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates</button>
+            <div id="tab-settings" class="tab max-w-3xl mx-auto">
+                <h1 class="text-2xl font-bold mb-6">Settings & Configuration</h1>
+                
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <div><h3 class="font-bold text-lg"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i> Appearance</h3><p class="text-sm text-gray-500">Toggle dark/light mode for comfort.</p></div>
+                        <button id="btn-theme-toggle" class="bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-semibold py-2 px-6 rounded-xl shadow transition-all active:scale-95 text-sm">Switch Theme</button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="font-bold text-lg mb-1"><i class="fa-solid fa-database text-primary mr-2"></i> Data Management</h3>
+                        <p class="text-sm text-gray-500 mb-6">Import external data, sync to cloud, or cleanup database.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+                            <button id="btn-trigger-excel" class="bg-success/10 text-success hover:bg-success hover:text-white border border-success/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
+                                <i class="fa-solid fa-file-excel text-2xl"></i> <span class="text-sm">Import Excel</span>
+                            </button>
+                            <button id="btn-sync-drive" class="bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
+                                <i class="fa-brands fa-google-drive text-2xl"></i> <span class="text-sm">Sync to Drive</span>
+                            </button>
+                            <button id="btn-merge-dup" class="bg-warning/10 text-warning hover:bg-warning hover:text-white border border-warning/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
+                                <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i> <span class="text-sm">Merge Duplicates</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-
-        </div>
+            
+        </main>
+        
+        <!-- MOBILE BOTTOM NAVIGATION (Hidden on Desktop) -->
+        <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex justify-around items-center safe-area-pb">
+            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
+            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
+            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-cubes-stacked text-lg mb-1"></i><span class="text-[10px] font-medium">Stock</span></button>
+            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-list-ul text-lg mb-1"></i><span class="text-[10px] font-medium">Ledger</span></button>
+            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-gear text-lg mb-1"></i><span class="text-[10px] font-medium">Config</span></button>
+        </nav>
+        
     </div>
 
+    <!-- Small Script to sync Mobile Bottom Navigation Colors instantly -->
+    <script>
+        function updateMobileNav(activeBtn) {
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+                btn.classList.remove('text-primary');
+                btn.classList.add('text-gray-400');
+            });
+            activeBtn.classList.remove('text-gray-400');
+            activeBtn.classList.add('text-primary');
+            // Scroll to top on mobile tab switch
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+    
+    <!-- Link to your App logic -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
