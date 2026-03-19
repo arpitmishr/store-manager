@@ -119,6 +119,7 @@ function startDatabaseListeners() {
         document.getElementById('dash-inventory').innerText = totalItems;
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+        updateDashboardMetrics();
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
