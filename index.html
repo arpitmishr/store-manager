@@ -35,7 +35,7 @@
     <style>
 
 
-        .tab.active {
+         .tab.active {
     display: block;
     animation: fadeIn 0.3s ease-in-out;
     COLOR: WHITE;
@@ -49,7 +49,6 @@
     gap: 1rem;
     COLOR: WHITE;
 }
-        
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
@@ -182,13 +181,13 @@
                 </div>
 
                 <!-- Overall Metrics -->
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2"><i class="fa-solid fa-earth-americas text-success mr-2"></i> Lifetime Metrics</h3>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2"><i class="fa-solid fa-earth-americas text-success mr-2"></i> Lifetime Metrics <span id="dash-year-label" class="text-sm font-normal text-gray-500 ml-2">(All Years)</span></h3>
                 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold">₹0.00</p></div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Profit</p><p id="dash-overall-profit" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Current Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Low Stock</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Items</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500">Total Items in Stock</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
                 </div>
 
                 <!-- Top Selling Items List -->
@@ -253,7 +252,7 @@
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Rev.</p><p id="ana-revenue" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Filtered Profit</p><p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p></div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Margin</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Units in Stock</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 uppercase">Current Units</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -400,6 +399,18 @@
                 <h1 class="text-2xl font-bold mb-6">Settings & Configuration</h1>
                 
                 <div class="space-y-6">
+                    
+                    <!-- NEW GLOBAL YEAR FILTER -->
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row items-start md:items-center justify-between">
+                        <div class="mb-4 md:mb-0">
+                            <h3 class="font-bold text-lg"><i class="fa-solid fa-calendar-days text-warning mr-2"></i> Global Year Filter</h3>
+                            <p class="text-sm text-gray-500">Filter all dashboards, analytics, and ledgers by year.</p>
+                        </div>
+                        <select id="global-year-filter" class="w-full md:w-48 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-warning outline-none cursor-pointer shadow-sm">
+                            <option value="All">All Years</option>
+                        </select>
+                    </div>
+
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                         <div><h3 class="font-bold text-lg"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i> Appearance</h3><p class="text-sm text-gray-500">Toggle dark/light mode for comfort.</p></div>
                         <button id="btn-theme-toggle" class="bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-semibold py-2 px-6 rounded-xl shadow transition-all active:scale-95 text-sm">Switch Theme</button>
@@ -427,7 +438,7 @@
             
         </main>
         
-        <!-- MOBILE BOTTOM NAVIGATION (Hidden on Desktop) -->
+        <!-- MOBILE BOTTOM NAVIGATION -->
         <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex justify-around items-center safe-area-pb">
             <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
             <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
@@ -438,7 +449,6 @@
         
     </div>
 
-    <!-- Small Script to sync Mobile Bottom Navigation Colors instantly -->
     <script>
         function updateMobileNav(activeBtn) {
             document.querySelectorAll('.mob-nav-btn').forEach(btn => {
@@ -447,12 +457,10 @@
             });
             activeBtn.classList.remove('text-gray-400');
             activeBtn.classList.add('text-primary');
-            // Scroll to top on mobile tab switch
             document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
     
-    <!-- Link to your App logic -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
