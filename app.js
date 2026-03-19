@@ -147,10 +147,8 @@ function stopDatabaseListeners() {
 function updateDashboardMetrics() {
     if (!allInventory || !allTransactions) return;
 
-    // Use ISO string match to reliably detect "Today" regardless of browser timezone formatting differences
     const todayISO = new Date().toISOString().split('T')[0];
     
-    // 1. Calculate Inventory Stats
     let invMap = {};
     let invValue = 0;
     let lowStockCount = 0;
@@ -165,12 +163,10 @@ function updateDashboardMetrics() {
         if (qty <= 3) lowStockCount++;
     });
 
-    // 2. Variables for Transactions
     let todaySales = 0, todayCogs = 0, todayItemsSold = 0;
     let overallSales = 0, overallCogs = 0;
     let todayItemTrends = {};
 
-    // 3. Loop through all transactions to calculate Sales & Profit
     allTransactions.forEach(t => {
         const tDateISO = t.date.split('T')[0];
         const isToday = (tDateISO === todayISO);
@@ -203,7 +199,6 @@ function updateDashboardMetrics() {
         }
     });
 
-    // 4. Final Math Calculations
     let todayProfit = todaySales - todayCogs;
     let todayMargin = todaySales > 0 ? ((todayProfit / todaySales) * 100).toFixed(1) : 0;
     let overallProfit = overallSales - overallCogs;
@@ -217,7 +212,6 @@ function updateDashboardMetrics() {
         }
     }
 
-    // 5. Update HTML elements safely
     if (document.getElementById('dash-today-sales')) {
         document.getElementById('dash-today-sales').innerText = `₹${todaySales.toFixed(2)}`;
         document.getElementById('dash-today-profit').innerText = `₹${todayProfit.toFixed(2)}`;
@@ -358,27 +352,31 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         let returnAmount = (t.amount / t.qty) * returnQty;
         let newType = t.type === 'Sale' ? 'Sale Return' : (t.type === 'Purchase' ? 'Purchase Return' : 'Cosmetic Return');
 
+        // FAST BATCH RETURN PROCESS (Eliminates Network delays)
         try {
-            let returnPayload = { type: newType, item: t.item, qty: returnQty, amount: returnAmount, date: new Date().toISOString() };
+            const batch = writeBatch(db);
+            const date = new Date().toISOString();
+
+            let returnPayload = { type: newType, item: t.item, qty: returnQty, amount: returnAmount, date: date };
             if (t.type === 'Cosmetic Sale') returnPayload.cost = t.cost; 
             
-            await addDoc(collection(db, "transactions"), returnPayload);
+            const transRef = doc(collection(db, "transactions"));
+            batch.set(transRef, returnPayload);
             
             if (t.type !== 'Cosmetic Sale') {
-                const q = query(collection(db, "inventory"), where("name", "==", t.item));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const invDoc = querySnapshot.docs[0];
-                    let currentStock = Number(invDoc.data().qty);
+                const localInvItem = allInventory.find(i => i.name === t.item);
+                if (localInvItem) {
+                    let currentStock = Number(localInvItem.qty);
                     let newStock = currentStock;
 
                     if (t.type === 'Sale') newStock += returnQty; 
                     else if (t.type === 'Purchase') newStock -= returnQty; 
                     
                     if(newStock < 0) newStock = 0;
-                    await updateDoc(doc(db, "inventory", invDoc.id), { qty: newStock });
+                    batch.update(doc(db, "inventory", localInvItem.id), { qty: newStock });
                 }
             }
+            await batch.commit(); // Instantly commit everything
             alert("Return processed successfully!");
         } catch (err) {
             console.error(err);
@@ -553,7 +551,6 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
 
-// Auto-fill cost price when standard sale item is typed or selected
 document.getElementById('sale-item').addEventListener('input', (e) => {
     const typedName = e.target.value.trim();
     const foundItem = allInventory.find(item => item.name === typedName);
@@ -566,9 +563,8 @@ document.getElementById('sale-item').addEventListener('input', (e) => {
 });
 
 // CART LOGIC FOR STANDARD SALE 
-let saleCart =[]; // Array to store multiple items before saving
+let saleCart =[]; 
 
-// Function to update the cart UI visually
 function updateCartUI() {
     const cartContainer = document.getElementById('cart-container');
     const cartList = document.getElementById('cart-list');
@@ -595,13 +591,11 @@ function updateCartUI() {
     cartTotal.innerText = totalAmount.toFixed(2);
 }
 
-// Global function to remove an item from the list visually
 window.removeCartItem = function(index) {
     saleCart.splice(index, 1);
     updateCartUI();
 };
 
-// Add to Cart Button Logic
 document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     const item = document.getElementById('sale-item').value.trim();
     const qtyStr = document.getElementById('sale-qty').value;
@@ -628,7 +622,6 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     let amount = qty * rate;
     saleCart.push({ item, qty, rate, amount });
     
-    // Clear inputs so the user can add another item quickly
     document.getElementById('sale-item').value = '';
     document.getElementById('sale-qty').value = '';
     document.getElementById('sale-rate').value = '';
@@ -637,12 +630,11 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     updateCartUI();
 });
 
-// Final Submit All logic (Fixes the Dashboard refresh flicker issue!)
+// INSTANT MULTI-SALE SAVE (No Network reads, 100% memory-based lookup)
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault(); 
     
-    // Safety check: If user typed an item but forgot to click "+ Add Item", add it for them
     const pendingItem = document.getElementById('sale-item').value.trim();
     if (pendingItem) {
         document.getElementById('btn-add-to-cart').click();
@@ -653,8 +645,6 @@ saleForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // FIREBASE BATCH WRITE
-    // This bundles all transactions and inventory deductions into one single background action.
     try {
         const batch = writeBatch(db);
         const date = new Date().toISOString();
@@ -662,36 +652,28 @@ saleForm.addEventListener('submit', async (e) => {
         for (let i = 0; i < saleCart.length; i++) {
             const cartItem = saleCart[i];
 
-            // 1. Prepare Transaction Docs
+            // 1. Queue Transaction
             const newTransRef = doc(collection(db, "transactions"));
             batch.set(newTransRef, { 
-                type: "Sale", 
-                item: cartItem.item, 
-                qty: cartItem.qty, 
-                rate: cartItem.rate, 
-                amount: cartItem.amount, 
-                date: date 
+                type: "Sale", item: cartItem.item, qty: cartItem.qty, 
+                rate: cartItem.rate, amount: cartItem.amount, date: date 
             });
 
-            // 2. Prepare Inventory Deductions
-            const q = query(collection(db, "inventory"), where("name", "==", cartItem.item));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const invDoc = querySnapshot.docs[0];
-                let newQty = Number(invDoc.data().qty) - cartItem.qty;
-                batch.update(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
+            // 2. Queue Inventory Deduction (Looked up instantly from local memory array)
+            const localInvItem = allInventory.find(inv => inv.name === cartItem.item);
+            if (localInvItem) {
+                let newQty = Number(localInvItem.qty) - cartItem.qty;
+                batch.update(doc(db, "inventory", localInvItem.id), { qty: newQty < 0 ? 0 : newQty });
             }
         }
 
-        // 3. Commit all changes to Firebase simultaneously (No multi-flicker on Dashboard!)
-        await batch.commit(); 
+        await batch.commit(); // Instantly commit everything to the server
 
-        // 4. Reset form & cart array
         saleCart =[];
         updateCartUI();
         saleForm.reset();
         document.getElementById('sale-cost').value = '';
-        alert("All items in cart successfully saved! Inventory adjusted.");
+        alert("All items successfully saved! Inventory adjusted.");
         
     } catch (error) { 
         console.error(error); 
@@ -699,7 +681,7 @@ saleForm.addEventListener('submit', async (e) => {
     }
 });
 
-// COSMETIC SALE (Quick entry)
+// COSMETIC SALE 
 const cosmeticForm = document.getElementById('form-cosmetic');
 cosmeticForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -713,11 +695,11 @@ cosmeticForm.addEventListener('submit', async (e) => {
     try {
         await addDoc(collection(db, "transactions"), { type: "Cosmetic Sale", item, qty, cost, rate, amount, date });
         cosmeticForm.reset();
-        alert("Cosmetic Sale successfully saved! Revenue tracked.");
+        alert("Cosmetic Sale successfully saved!");
     } catch (e) { console.error(e); }
 });
 
-// PURCHASES
+// INSTANT PURCHASE SAVE (No Network reads, 100% memory-based lookup)
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -727,18 +709,29 @@ purchaseForm.addEventListener('submit', async (e) => {
     const date = new Date().toISOString();
 
     try {
-        await addDoc(collection(db, "transactions"), { type: "Purchase", item, qty, amount, date });
-        const q = query(collection(db, "inventory"), where("name", "==", item));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const invDoc = querySnapshot.docs[0];
-            await updateDoc(doc(db, "inventory", invDoc.id), { qty: Number(invDoc.data().qty) + qty });
+        const batch = writeBatch(db);
+        
+        // 1. Queue Purchase Transaction
+        const transRef = doc(collection(db, "transactions"));
+        batch.set(transRef, { type: "Purchase", item, qty, amount, date });
+
+        // 2. Queue Inventory Addition (Checked instantly from memory)
+        const localInvItem = allInventory.find(i => i.name === item);
+        if (localInvItem) {
+            batch.update(doc(db, "inventory", localInvItem.id), { qty: Number(localInvItem.qty) + qty });
         } else {
-            await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: qty>0?(amount/qty):0 });
+            const newInvRef = doc(collection(db, "inventory"));
+            batch.set(newInvRef, { name: item, qty: qty, price: qty>0?(amount/qty):0 });
         }
+
+        await batch.commit(); // Instantly commit both transaction and inventory at once
+
         purchaseForm.reset();
         alert("Purchase successfully saved!");
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+        alert("Error saving purchase.");
+    }
 });
 
 // ----- INVENTORY ADD/EDIT/DELETE -----
