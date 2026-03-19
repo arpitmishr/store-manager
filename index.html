@@ -42,14 +42,47 @@
 
         <div class="main-content">
             <!-- DASHBOARD TAB -->
-            <div id="tab-dashboard" class="tab active">
-                <h1>Dashboard</h1>
-                <div class="cards">
-                    <div class="card"><h3>Total Sales (Net)</h3><p id="dash-sales">₹0.00</p></div>
-                    <div class="card"><h3>Total Purchases (Net)</h3><p id="dash-purchases">₹0.00</p></div>
-                    <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
+            <!-- DASHBOARD TAB -->
+<div id="tab-dashboard" class="tab active">
+    <h1>Dashboard</h1>
+    <!-- Top KPI Cards -->
+    <div class="cards">
+        <div class="card"><h3>Total Sales (Net)</h3><p id="dash-sales">₹0.00</p></div>
+        <div class="card"><h3>Total Purchases (Net)</h3><p id="dash-purchases">₹0.00</p></div>
+        <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
+    </div>
+
+    <!-- Dashboard Extras Grid -->
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px;">
+        
+        <!-- Top Selling Items Card -->
+        <div class="form-container" style="flex: 1; min-width: 320px; border-top: 5px solid #f39c12; padding: 20px;">
+            <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">🏆 Top Selling Items by Month</h3>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 120px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Select Month</label>
+                    <select id="dash-top-month" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;"></select>
+                </div>
+                <div style="flex: 1; min-width: 120px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Filter by Type</label>
+                    <select id="dash-top-type" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="All">All Items</option>
+                        <option value="Sale">Inventory Only</option>
+                        <option value="Cosmetic Sale">Cosmetics Only</option>
+                    </select>
                 </div>
             </div>
+
+            <ul id="dash-top-list" style="list-style: none; padding: 0; margin: 0;">
+                <!-- Dynamically populated list goes here -->
+            </ul>
+        </div>
+        
+        <!-- You can add an empty container here for future dashboard widgets -->
+        <div style="flex: 1; min-width: 320px;"></div>
+    </div>
+</div>
 
             <!-- TRANSACTIONS TAB -->
             <div id="tab-transactions" class="tab">
