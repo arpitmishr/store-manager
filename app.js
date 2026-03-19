@@ -27,6 +27,11 @@ let myChartMonthly = null;
 let myChartABC = null;
 let myChartFSN = null;
 
+// Default Set Transaction Filter Dates to Today
+const todayStr = new Date().toISOString().split('T')[0];
+document.getElementById('filter-trans-start').value = todayStr;
+document.getElementById('filter-trans-end').value = todayStr;
+
 // ----- THEME LOGIC -----
 const btnThemeToggle = document.getElementById('btn-theme-toggle');
 if (localStorage.getItem('theme') === 'dark') {
@@ -70,7 +75,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
 // ----- TAB NAVIGATION -----
-const tabs =['dashboard', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
+const tabs =['dashboard', 'transactions', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
@@ -80,10 +85,7 @@ tabs.forEach(tab => {
         document.getElementById(`tab-${tab}`).classList.add('active');
         document.getElementById(`btn-${tab}`).classList.add('active');
         
-        // PERFORMANCE FIX: Use setTimeout to allow the UI to switch tabs instantly before running heavy tasks
-        if(tab === 'analytics') {
-            setTimeout(runAnalytics, 10); 
-        }
+        if(tab === 'analytics') setTimeout(runAnalytics, 10); 
     });
 });
 
@@ -93,8 +95,7 @@ function startDatabaseListeners() {
         let totalItems = 0;
         allInventory =[];
         
-        // PERFORMANCE FIX: Use arrays to gather HTML instead of innerHTML += in a loop
-        let rowsHtml = [];
+        let rowsHtml =[];
         let dataListHtml =[];
 
         snapshot.forEach((docSnap) => {
@@ -113,7 +114,6 @@ function startDatabaseListeners() {
             dataListHtml.push(`<option value="${itemName}"></option>`);
         });
 
-        // Apply DOM changes exactly once
         document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
         document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
         document.getElementById('dash-inventory').innerText = totalItems;
@@ -127,17 +127,20 @@ function startDatabaseListeners() {
 
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
+            trans.id = docSnap.id; 
             allTransactions.push(trans);
+            
             const tAmount = Number(trans.amount) || 0;
             if(trans.type === 'Sale') totalSales += tAmount;
+            else if (trans.type === 'Sale Return') totalSales -= tAmount; // Subtract returns
             else if (trans.type === 'Purchase') totalPurchases += tAmount;
+            else if (trans.type === 'Purchase Return') totalPurchases -= tAmount; // Subtract returns
         });
 
         document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
         document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
         
-        renderSalesTable(); 
-        renderPurchasesTable(); 
+        renderTransactionsTable();
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
     });
 }
@@ -146,6 +149,97 @@ function stopDatabaseListeners() {
     if (unsubInventory) unsubInventory();
     if (unsubTransactions) unsubTransactions();
 }
+
+
+// ==========================================
+// ====== TRANSACTIONS & RETURNS LOGIC ======
+// ==========================================
+
+document.getElementById('btn-trans-filter').addEventListener('click', renderTransactionsTable);
+document.getElementById('btn-trans-clear').addEventListener('click', () => { 
+    document.getElementById('filter-trans-start').value = ''; 
+    document.getElementById('filter-trans-end').value = ''; 
+    renderTransactionsTable(); 
+});
+
+function renderTransactionsTable() {
+    const startVal = document.getElementById('filter-trans-start').value; 
+    const endVal = document.getElementById('filter-trans-end').value;
+    let sD = startVal ? new Date(startVal + 'T00:00:00') : null; 
+    let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+    let html =[];
+    allTransactions.forEach((t) => {
+        const tDate = new Date(t.date);
+        if (sD && tDate < sD) return; 
+        if (eD && tDate > eD) return;
+        
+        // Define color and styling based on Transaction Type
+        let tColor = t.type.includes('Sale') ? '#27ae60' : (t.type.includes('Purchase') ? '#e74c3c' : '#f39c12');
+        let actionBtn = (t.type === 'Sale' || t.type === 'Purchase') 
+            ? `<button class="btn-return" style="background:#f39c12; color:white; border:none; padding:5px 10px; cursor:pointer;" data-id="${t.id}">Return Item</button>`
+            : `<span style="color:#7f8c8d; font-size:12px;">Returned</span>`;
+        
+        html.push(`<tr>
+            <td>${tDate.toLocaleDateString()}</td>
+            <td style="color:${tColor}; font-weight:bold;">${t.type}</td>
+            <td>${t.item || "Unknown"}</td>
+            <td>${Number(t.qty) || 0}</td>
+            <td>₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            <td>${actionBtn}</td>
+        </tr>`);
+    });
+    document.querySelector('#table-transactions tbody').innerHTML = html.join('');
+}
+
+// Global Listener for processing RETURNS inside the Transactions table
+document.querySelector('#table-transactions tbody').addEventListener('click', async (e) => {
+    if (e.target.classList.contains('btn-return')) {
+        const id = e.target.getAttribute('data-id');
+        const t = allTransactions.find(x => x.id === id);
+        if (!t) return;
+
+        let returnQtyStr = prompt(`How many '${t.item}' do you want to return?\n(Original Quantity: ${t.qty})`, t.qty);
+        if (returnQtyStr === null) return; // cancelled
+        
+        let returnQty = parseInt(returnQtyStr);
+        if (isNaN(returnQty) || returnQty <= 0 || returnQty > t.qty) {
+            alert(`Invalid quantity! Must be between 1 and ${t.qty}`);
+            return;
+        }
+
+        let returnAmount = (t.amount / t.qty) * returnQty;
+        let newType = t.type === 'Sale' ? 'Sale Return' : 'Purchase Return';
+
+        try {
+            // 1. Log the Return Transaction
+            await addDoc(collection(db, "transactions"), { type: newType, item: t.item, qty: returnQty, amount: returnAmount, date: new Date().toISOString() });
+            
+            // 2. Adjust Inventory based on return
+            const q = query(collection(db, "inventory"), where("name", "==", t.item));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const invDoc = querySnapshot.docs[0];
+                let currentStock = Number(invDoc.data().qty);
+                let newStock = currentStock;
+
+                if (t.type === 'Sale') {
+                    newStock += returnQty; // Adding back to stock because customer returned it
+                } else if (t.type === 'Purchase') {
+                    newStock -= returnQty; // Removing from stock because we returned it to supplier
+                    if(newStock < 0) newStock = 0;
+                }
+                
+                await updateDoc(doc(db, "inventory", invDoc.id), { qty: newStock });
+            }
+            alert("Return processed successfully. Inventory adjusted automatically!");
+        } catch (err) {
+            console.error(err);
+            alert("Error processing the return.");
+        }
+    }
+});
+
 
 // ==========================================
 // ====== ADVANCED ANALYTICS ENGINE =========
@@ -205,6 +299,18 @@ function runAnalytics() {
             }
             cogs += cost;
             monthlyData[monthKey].profit += (trans.amount - cost);
+        } else if (trans.type === 'Sale Return') {
+            revenue -= trans.amount; // Reduce revenue for returned sales
+            monthlyData[monthKey].sales -= trans.amount;
+
+            let cost = 0;
+            if(itemStats[trans.item]) {
+                cost = itemStats[trans.item].unitCost * trans.qty;
+                itemStats[trans.item].qtySold -= trans.qty; // Fix quantities sold tracking
+                itemStats[trans.item].totalRevenue -= trans.amount;
+            }
+            cogs -= cost; // Fix COGS metric
+            monthlyData[monthKey].profit -= (trans.amount - cost);
         }
     });
 
@@ -217,7 +323,6 @@ function runAnalytics() {
     document.getElementById('ana-margin').innerText = `${margin}%`;
     document.getElementById('ana-stock').innerText = totalStock;
 
-    // PERFORMANCE FIX: Gather HTML rows in arrays 
     let totalInvValue = 0;
     let abcArray = [];
     for (const[name, data] of Object.entries(itemStats)) {
@@ -244,7 +349,6 @@ function runAnalytics() {
     });
     document.querySelector('#table-abc tbody').innerHTML = abcHtml.join('');
 
-    // Top Selling Products Array Builder
     const filterTop = document.getElementById('filter-top-selling').value;
     let topHtml =[];
     let sortedTop = Object.keys(itemStats).map(k => ({name: k, sold: itemStats[k].qtySold})).sort((a,b) => b.sold - a.sold);
@@ -256,7 +360,6 @@ function runAnalytics() {
     });
     document.getElementById('tbody-top-selling').innerHTML = topHtml.join('');
 
-    // Inventory Status Array Builder
     const filterInv = document.getElementById('filter-inv-status').value;
     let invHtml =[];
     let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
@@ -266,7 +369,6 @@ function runAnalytics() {
     });
     document.getElementById('tbody-inv-status').innerHTML = invHtml.join('');
 
-    // FSN & HMV calculations
     let fsnTotals = { F: 0, S: 0, N: 0 };
     let matrixRows =[];
 
@@ -362,7 +464,7 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 }
 
 // ==========================================
-// ====== EXISTING SALES & PURCHASES ========
+// ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
 
 const saleForm = document.getElementById('form-sale');
@@ -383,25 +485,9 @@ saleForm.addEventListener('submit', async (e) => {
             await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
         }
         saleForm.reset();
+        alert("Sale successfully saved!");
     } catch (e) { console.error(e); }
 });
-
-document.getElementById('btn-sale-filter').addEventListener('click', renderSalesTable);
-document.getElementById('btn-sale-clear').addEventListener('click', () => { document.getElementById('filter-sale-start').value = ''; document.getElementById('filter-sale-end').value = ''; renderSalesTable(); });
-
-function renderSalesTable() {
-    const startVal = document.getElementById('filter-sale-start').value; const endVal = document.getElementById('filter-sale-end').value;
-    let sD = startVal ? new Date(startVal + 'T00:00:00') : null; let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
-
-    let html =[];
-    allTransactions.forEach((t) => {
-        if (t.type !== 'Sale') return;
-        const tDate = new Date(t.date);
-        if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        html.push(`<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`);
-    });
-    document.querySelector('#table-sales tbody').innerHTML = html.join('');
-}
 
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
@@ -422,25 +508,9 @@ purchaseForm.addEventListener('submit', async (e) => {
             await addDoc(collection(db, "inventory"), { name: item, qty: qty, price: qty>0?(amount/qty):0 });
         }
         purchaseForm.reset();
+        alert("Purchase successfully saved!");
     } catch (e) { console.error(e); }
 });
-
-document.getElementById('btn-purchase-filter').addEventListener('click', renderPurchasesTable);
-document.getElementById('btn-purchase-clear').addEventListener('click', () => { document.getElementById('filter-purchase-start').value = ''; document.getElementById('filter-purchase-end').value = ''; renderPurchasesTable(); });
-
-function renderPurchasesTable() {
-    const startVal = document.getElementById('filter-purchase-start').value; const endVal = document.getElementById('filter-purchase-end').value;
-    let sD = startVal ? new Date(startVal + 'T00:00:00') : null; let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
-
-    let html =[];
-    allTransactions.forEach((t) => {
-        if (t.type !== 'Purchase') return;
-        const tDate = new Date(t.date);
-        if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        html.push(`<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`);
-    });
-    document.querySelector('#table-purchases tbody').innerHTML = html.join('');
-}
 
 // ----- INVENTORY ADD/EDIT/DELETE -----
 const inventoryForm = document.getElementById('form-inventory');
@@ -482,10 +552,7 @@ document.querySelector('#table-inventory tbody').addEventListener('click', async
 // ====== SETTINGS & DATA MANAGEMENT ========
 // ==========================================
 
-// 1. Excel Import Setup
-document.getElementById('btn-trigger-excel').addEventListener('click', () => {
-    document.getElementById('excel-file').click();
-});
+document.getElementById('btn-trigger-excel').addEventListener('click', () => { document.getElementById('excel-file').click(); });
 
 document.getElementById('excel-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -509,12 +576,8 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
             const sheet = workbook.Sheets[sheetName];
             const json = XLSX.utils.sheet_to_json(sheet);
 
-            // Step A: Delete All Current Inventory
-            for (let item of allInventory) {
-                await deleteDoc(doc(db, "inventory", item.id));
-            }
+            for (let item of allInventory) { await deleteDoc(doc(db, "inventory", item.id)); }
 
-            // Step B: Import New Inventory
             for(const row of json) {
                 const name = row['particulars'] || row['Particulars'] || row['Name'] || row['name'];
                 const qtyStr = row['quantity'] || row['Quantity'] || row['qty'];
@@ -526,82 +589,57 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
                     await addDoc(collection(db, "inventory"), { name: name.trim(), qty, price });
                 }
             }
-
             alert("Inventory successfully updated from Excel!");
         } catch (error) {
             console.error(error);
             alert("An error occurred during import. Check the console for details.");
         } finally {
-            btn.innerText = ogText;
-            btn.disabled = false;
-            document.getElementById('excel-file').value = ''; 
+            btn.innerText = ogText; btn.disabled = false; document.getElementById('excel-file').value = ''; 
         }
     };
     reader.readAsArrayBuffer(file);
 });
 
-// 2. Sync to Drive Mock
 document.getElementById('btn-sync-drive').addEventListener('click', () => {
     alert("Sync to Google Drive initiated.\n\n(Note: This is a placeholder. Connecting to Google Drive requires specific server-side OAuth 2.0 Client configurations to proceed securely.)");
 });
 
-// 3. Merge Duplicates
 document.getElementById('btn-merge-dup').addEventListener('click', async () => {
     if(!confirm("Are you sure you want to scan and merge identical items? (Quantities will be summed, Prices will be averaged.)")) return;
 
     const btn = document.getElementById('btn-merge-dup');
-    const ogText = btn.innerText;
-    btn.innerText = "Merging..."; btn.disabled = true;
+    const ogText = btn.innerText; btn.innerText = "Merging..."; btn.disabled = true;
 
     try {
         const itemsMap = {};
         allInventory.forEach(item => {
-            const key = item.name.trim().toLowerCase(); // case-insensitive match
+            const key = item.name.trim().toLowerCase(); 
             if(!itemsMap[key]) itemsMap[key] =[];
             itemsMap[key].push(item);
         });
 
         let mergeCount = 0;
-
         for(const key in itemsMap) {
             if(itemsMap[key].length > 1) {
                 mergeCount++;
-                let totalQty = 0;
-                let totalPriceObj = 0;
-                
-                // Set the primary entry
+                let totalQty = 0; let totalPriceObj = 0;
                 let mainId = itemsMap[key][0].id;
                 
                 itemsMap[key].forEach(i => {
-                    let iQty = Number(i.qty) || 0;
-                    let iPrice = Number(i.price) || 0;
-                    totalQty += iQty;
-                    totalPriceObj += (iQty * iPrice);
+                    let iQty = Number(i.qty) || 0; let iPrice = Number(i.price) || 0;
+                    totalQty += iQty; totalPriceObj += (iQty * iPrice);
                 });
-                
                 let avgPrice = totalQty > 0 ? (totalPriceObj / totalQty) : 0;
-
-                // Update the primary document
                 await updateDoc(doc(db, "inventory", mainId), { qty: totalQty, price: avgPrice });
                 
-                // Delete the duplicate documents
                 for(let i = 1; i < itemsMap[key].length; i++) {
                     await deleteDoc(doc(db, "inventory", itemsMap[key][i].id));
                 }
             }
         }
+        if(mergeCount > 0) alert(`Success! Merged duplicates across ${mergeCount} item name(s).`);
+        else alert("No duplicates found. Your inventory is clean!");
 
-        if(mergeCount > 0) {
-            alert(`Success! Merged duplicates across ${mergeCount} item name(s).`);
-        } else {
-            alert("No duplicates found. Your inventory is clean!");
-        }
-
-    } catch (err) {
-        console.error(err);
-        alert("An error occurred during merge.");
-    } finally {
-        btn.innerText = ogText;
-        btn.disabled = false;
-    }
+    } catch (err) { console.error(err); alert("An error occurred during merge.");
+    } finally { btn.innerText = ogText; btn.disabled = false; }
 });
