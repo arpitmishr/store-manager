@@ -104,6 +104,8 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('app-container').style.display = 'flex';
         startDatabaseListeners();
+        setupPredictiveSearch('sale-item', 'sale-item-dropdown', true);
+        setupPredictiveSearch('purchase-item', 'purchase-item-dropdown', false);
     } else {
         document.getElementById('login-container').style.display = 'flex';
         document.getElementById('app-container').style.display = 'none';
@@ -143,8 +145,6 @@ function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
         allInventory =[];
         let rowsHtml =[];
-        let dataListHtml =[];
-        let selectHtml =['<option value="">-- Select Item --</option>'];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
@@ -158,13 +158,9 @@ function startDatabaseListeners() {
             rowsHtml.push(`<tr><td class="px-6 py-4">${itemName}</td><td class="px-6 py-4">${itemQty}</td><td class="px-6 py-4">₹${itemPrice.toFixed(2)}</td>
                 <td class="px-6 py-4 flex gap-2"><button class="btn-edit bg-warning hover:bg-yellow-500 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}"><i class="fa-solid fa-pen-to-square pointer-events-none"></i></button>
                 <button class="btn-delete bg-danger hover:bg-red-600 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}"><i class="fa-solid fa-trash pointer-events-none"></i></button></td></tr>`);
-            
-            dataListHtml.push(`<option value="${itemName}"></option>`);
-            selectHtml.push(`<option value="${itemName}" data-price="${itemPrice}">${itemName} (Stock: ${itemQty})</option>`);
         });
 
         document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
-        document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
@@ -192,6 +188,110 @@ function startDatabaseListeners() {
 function stopDatabaseListeners() {
     if (unsubInventory) unsubInventory();
     if (unsubTransactions) unsubTransactions();
+}
+
+
+// ==========================================
+// ====== CATEGORIZED PREDICTIVE SEARCH =====
+// ==========================================
+
+function setupPredictiveSearch(inputId, dropdownId, isSale) {
+    const inputEl = document.getElementById(inputId);
+    const dropdownEl = document.getElementById(dropdownId);
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+            dropdownEl.classList.add('hidden');
+        }
+    });
+
+    // Show dropdown on focus and input
+    inputEl.addEventListener('focus', () => renderDropdown());
+    inputEl.addEventListener('input', () => {
+        renderDropdown();
+        // Auto-fill cost if exact match is typed (for Sales)
+        if (isSale) {
+            const typedName = inputEl.value.trim().toLowerCase();
+            const foundItem = allInventory.find(item => item.name.toLowerCase() === typedName);
+            document.getElementById('sale-cost').value = foundItem ? foundItem.price : '';
+        }
+    });
+
+    function renderDropdown() {
+        const query = inputEl.value.toLowerCase().trim();
+        let filtered = allInventory;
+        
+        if (query) {
+            filtered = allInventory.filter(item => item.name.toLowerCase().includes(query));
+        }
+
+        let html = '';
+
+        if (filtered.length === 0) {
+            html = `<div class="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">No inventory items found.</div>`;
+            if (!isSale && query) {
+                // For purchases, allow creating new
+                html += `<div class="px-4 py-3 bg-danger/10 text-danger cursor-pointer font-semibold text-sm hover:bg-danger hover:text-white transition-colors dropdown-item" data-name="${inputEl.value}" data-price="0">
+                    <i class="fa-solid fa-plus mr-2"></i> Add as new item: "${inputEl.value}"
+                </div>`;
+            }
+            dropdownEl.innerHTML = html;
+            dropdownEl.classList.remove('hidden');
+            attachClicks();
+            return;
+        }
+
+        // Categorize by Stock Level
+        const grouped = {
+            "🟢 In Stock":[],
+            "🟠 Low Stock": [],
+            "🔴 Out of Stock":[]
+        };
+
+        filtered.forEach(item => {
+            const qty = Number(item.qty);
+            if (qty === 0) grouped["🔴 Out of Stock"].push(item);
+            else if (qty <= 3) grouped["🟠 Low Stock"].push(item);
+            else grouped["🟢 In Stock"].push(item);
+        });
+
+        for (const[category, items] of Object.entries(grouped)) {
+            if (items.length > 0) {
+                // Category Header
+                html += `<div class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700/80 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-y border-gray-200 dark:border-gray-600">${category}</div>`;
+                
+                // Items
+                items.forEach(item => {
+                    const priceStr = Number(item.price).toFixed(2);
+                    html += `
+                    <div class="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer flex justify-between items-center dropdown-item border-b border-gray-50 dark:border-gray-700 dark:last:border-0 transition-colors" data-name="${item.name}" data-price="${item.price}">
+                        <span class="font-semibold text-sm text-gray-800 dark:text-gray-100">${item.name}</span>
+                        <div class="text-right">
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Stock: ${item.qty}</span>
+                            <span class="block text-xs font-bold text-primary">₹${priceStr}</span>
+                        </div>
+                    </div>`;
+                });
+            }
+        }
+
+        dropdownEl.innerHTML = html;
+        dropdownEl.classList.remove('hidden');
+        attachClicks();
+    }
+
+    function attachClicks() {
+        dropdownEl.querySelectorAll('.dropdown-item').forEach(el => {
+            el.addEventListener('click', () => {
+                inputEl.value = el.getAttribute('data-name');
+                dropdownEl.classList.add('hidden');
+                if (isSale) {
+                    document.getElementById('sale-cost').value = el.getAttribute('data-price');
+                }
+            });
+        });
+    }
 }
 
 
@@ -624,17 +724,6 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 // ==========================================
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
-
-document.getElementById('sale-item').addEventListener('input', (e) => {
-    const typedName = e.target.value.trim();
-    const foundItem = allInventory.find(item => item.name === typedName);
-    
-    if (foundItem) {
-        document.getElementById('sale-cost').value = foundItem.price;
-    } else {
-        document.getElementById('sale-cost').value = '';
-    }
-});
 
 // CART LOGIC FOR STANDARD SALE 
 let saleCart =[]; 
