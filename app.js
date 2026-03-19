@@ -20,7 +20,7 @@ const auth = getAuth(app);
 let unsubInventory = null;
 let unsubTransactions = null;
 let allTransactions = [];
-let allInventory =[]; // Save locally for analytics
+let allInventory =[]; 
 
 // Chart Instances
 let myChartMonthly = null;
@@ -39,7 +39,7 @@ btnThemeToggle.addEventListener('click', () => {
     const isDark = document.body.classList.contains('dark-mode');
     btnThemeToggle.innerText = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    if(myChartMonthly) renderCharts(lastMonthlyData, lastAbcTotals, lastFsnTotals); // Refresh charts colors implicitly
+    if(myChartMonthly) renderCharts(lastMonthlyData, lastAbcTotals, lastFsnTotals);
 });
 
 // ----- AUTHENTICATION LOGIC -----
@@ -79,18 +79,23 @@ tabs.forEach(tab => {
         });
         document.getElementById(`tab-${tab}`).classList.add('active');
         document.getElementById(`btn-${tab}`).classList.add('active');
-        if(tab === 'analytics') runAnalytics(); // refresh analytics when tab clicked
+        
+        // PERFORMANCE FIX: Use setTimeout to allow the UI to switch tabs instantly before running heavy tasks
+        if(tab === 'analytics') {
+            setTimeout(runAnalytics, 10); 
+        }
     });
 });
 
 // ----- DATABASE LISTENERS -----
 function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        const tbody = document.querySelector('#table-inventory tbody');
-        const datalist = document.getElementById('inventory-items-list'); 
-        tbody.innerHTML = ''; datalist.innerHTML = ''; 
         let totalItems = 0;
         allInventory =[];
+        
+        // PERFORMANCE FIX: Use arrays to gather HTML instead of innerHTML += in a loop
+        let rowsHtml = [];
+        let dataListHtml =[];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
@@ -102,13 +107,18 @@ function startDatabaseListeners() {
             const itemPrice = Number(item.price) || 0;
 
             totalItems += itemQty;
-            tbody.innerHTML += `<tr><td>${itemName}</td><td>${itemQty}</td><td>₹${itemPrice.toFixed(2)}</td>
+            rowsHtml.push(`<tr><td>${itemName}</td><td>${itemQty}</td><td>₹${itemPrice.toFixed(2)}</td>
                 <td><button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
-                <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}">Delete</button></td></tr>`;
-            datalist.innerHTML += `<option value="${itemName}"></option>`;
+                <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}">Delete</button></td></tr>`);
+            dataListHtml.push(`<option value="${itemName}"></option>`);
         });
+
+        // Apply DOM changes exactly once
+        document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
+        document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
         document.getElementById('dash-inventory').innerText = totalItems;
-        runAnalytics();
+        
+        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
@@ -125,7 +135,10 @@ function startDatabaseListeners() {
 
         document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
         document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
-        renderSalesTable(); renderPurchasesTable(); runAnalytics();
+        
+        renderSalesTable(); 
+        renderPurchasesTable(); 
+        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
     });
 }
 
@@ -154,19 +167,16 @@ document.getElementById('ana-class-filter').addEventListener('change', runAnalyt
 document.getElementById('filter-top-selling').addEventListener('change', runAnalytics);
 document.getElementById('filter-inv-status').addEventListener('change', runAnalytics);
 
-// Keep track of latest chart data for theme switching
 let lastMonthlyData = {}; let lastAbcTotals = {}; let lastFsnTotals = {};
 
 function runAnalytics() {
     if(!document.getElementById('tab-analytics').classList.contains('active')) return;
 
-    // 1. Get Date Filters
     const startVal = document.getElementById('ana-start').value;
     const endVal = document.getElementById('ana-end').value;
     let startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
     let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
 
-    // 2. Process Filtered Transactions
     let revenue = 0; let cogs = 0; 
     let itemStats = {}; 
     let monthlyData = {};
@@ -198,7 +208,6 @@ function runAnalytics() {
         }
     });
 
-    // 3. Update Snapshot Cards
     let profit = revenue - cogs;
     let margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : 0;
     let totalStock = allInventory.reduce((acc, curr) => acc + Number(curr.qty || 0), 0);
@@ -208,10 +217,10 @@ function runAnalytics() {
     document.getElementById('ana-margin').innerText = `${margin}%`;
     document.getElementById('ana-stock').innerText = totalStock;
 
-    // 4. Calculate ABC Analysis
+    // PERFORMANCE FIX: Gather HTML rows in arrays 
     let totalInvValue = 0;
     let abcArray = [];
-    for (const [name, data] of Object.entries(itemStats)) {
+    for (const[name, data] of Object.entries(itemStats)) {
         totalInvValue += data.invValue;
         abcArray.push({ name, value: data.invValue });
     }
@@ -219,8 +228,7 @@ function runAnalytics() {
     
     let cumValue = 0;
     let abcTotals = { A: 0, B: 0, C: 0 };
-    const tbodyABC = document.querySelector('#table-abc tbody');
-    tbodyABC.innerHTML = '';
+    let abcHtml =[];
 
     abcArray.forEach(item => {
         cumValue += item.value;
@@ -232,42 +240,33 @@ function runAnalytics() {
         else { abcTotals.C += item.value; category = 'C'; }
 
         let catColor = category === 'A' ? '#2ecc71' : (category === 'B' ? '#f1c40f' : '#e74c3c');
-        tbodyABC.innerHTML += `
-            <tr>
-                <td>${item.name}</td>
-                <td>₹${item.value.toFixed(2)}</td>
-                <td>${(pct * 100).toFixed(1)}%</td>
-                <td style="color:${catColor}; font-weight:bold;">${category}</td>
-            </tr>
-        `;
+        abcHtml.push(`<tr><td>${item.name}</td><td>₹${item.value.toFixed(2)}</td><td>${(pct * 100).toFixed(1)}%</td><td style="color:${catColor}; font-weight:bold;">${category}</td></tr>`);
     });
+    document.querySelector('#table-abc tbody').innerHTML = abcHtml.join('');
 
-    // 5. Render Top Selling Products
+    // Top Selling Products Array Builder
     const filterTop = document.getElementById('filter-top-selling').value;
-    const tbodyTop = document.getElementById('tbody-top-selling');
-    tbodyTop.innerHTML = '';
+    let topHtml =[];
     let sortedTop = Object.keys(itemStats).map(k => ({name: k, sold: itemStats[k].qtySold})).sort((a,b) => b.sold - a.sold);
     if(filterTop === 'Top10') sortedTop = sortedTop.slice(0, 10);
     sortedTop.forEach(item => {
         if(item.sold > 0 || filterTop === 'All') {
-            tbodyTop.innerHTML += `<tr><td>${item.name}</td><td>${item.sold}</td></tr>`;
+            topHtml.push(`<tr><td>${item.name}</td><td>${item.sold}</td></tr>`);
         }
     });
+    document.getElementById('tbody-top-selling').innerHTML = topHtml.join('');
 
-    // 6. Render Inventory Status
+    // Inventory Status Array Builder
     const filterInv = document.getElementById('filter-inv-status').value;
-    const tbodyInv = document.getElementById('tbody-inv-status');
-    tbodyInv.innerHTML = '';
+    let invHtml =[];
     let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
     sortedInv.forEach(item => {
         if (filterInv === 'Low' && item.stock > 3) return; 
-        tbodyInv.innerHTML += `<tr>
-            <td>${item.name}</td>
-            <td style="color: ${item.stock <= 3 ? '#e74c3c' : 'inherit'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td>
-        </tr>`;
+        invHtml.push(`<tr><td>${item.name}</td><td style="color: ${item.stock <= 3 ? '#e74c3c' : 'inherit'}; font-weight: ${item.stock <= 3 ? 'bold' : 'normal'};">${item.stock}</td></tr>`);
     });
+    document.getElementById('tbody-inv-status').innerHTML = invHtml.join('');
 
-    // 7. Calculate FSN & HMV
+    // FSN & HMV calculations
     let fsnTotals = { F: 0, S: 0, N: 0 };
     let matrixRows =[];
 
@@ -302,32 +301,19 @@ function runAnalytics() {
         matrixRows.push({ name, stock: data.stock, invValue: data.invValue, rev: data.totalRevenue, FSN, HMV, actClass });
     }
 
-    // 8. Render Matrix Table
     const filterClass = document.getElementById('ana-class-filter').value;
-    const tbodyMatrix = document.querySelector('#table-matrix tbody');
-    tbodyMatrix.innerHTML = '';
+    let matrixHtml =[];
     matrixRows.sort((a,b) => b.rev - a.rev).forEach(row => {
         if(filterClass !== "All" && !row.actClass.includes(filterClass)) return;
         
         let fsnColor = row.FSN==='F'?'#27ae60':(row.FSN==='S'?'#f39c12':'#e74c3c');
         let hmvColor = row.HMV==='H'?'#2980b9':(row.HMV==='M'?'#8e44ad':'#7f8c8d');
 
-        tbodyMatrix.innerHTML += `
-            <tr>
-                <td><b>${row.name}</b></td>
-                <td>${row.stock}</td>
-                <td>₹${row.invValue.toFixed(2)}</td>
-                <td>₹${row.rev.toFixed(2)}</td>
-                <td style="color:${fsnColor}; font-weight:bold;">${row.FSN}</td>
-                <td style="color:${hmvColor}; font-weight:bold;">${row.HMV}</td>
-                <td>${row.actClass}</td>
-            </tr>
-        `;
+        matrixHtml.push(`<tr><td><b>${row.name}</b></td><td>${row.stock}</td><td>₹${row.invValue.toFixed(2)}</td><td>₹${row.rev.toFixed(2)}</td><td style="color:${fsnColor}; font-weight:bold;">${row.FSN}</td><td style="color:${hmvColor}; font-weight:bold;">${row.HMV}</td><td>${row.actClass}</td></tr>`);
     });
+    document.querySelector('#table-matrix tbody').innerHTML = matrixHtml.join('');
 
-    lastMonthlyData = monthlyData;
-    lastAbcTotals = abcTotals;
-    lastFsnTotals = fsnTotals;
+    lastMonthlyData = monthlyData; lastAbcTotals = abcTotals; lastFsnTotals = fsnTotals;
     renderCharts(monthlyData, abcTotals, fsnTotals);
 }
 
@@ -353,7 +339,7 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
                 { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#2ecc71' }
             ]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } }, animation: { duration: 0 } }
     });
 
     myChartABC = new Chart(document.getElementById('chart-abc'), {
@@ -362,16 +348,16 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
             labels:['A (Top Value)', 'B (Medium)', 'C (Low)'],
             datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#2ecc71', '#f1c40f', '#e74c3c'], borderWidth: 0 }]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } }, animation: { duration: 0 } }
     });
 
     myChartFSN = new Chart(document.getElementById('chart-fsn'), {
         type: 'pie',
         data: {
-            labels: ['Fast Moving', 'Slow Moving', 'Non-Moving'],
+            labels:['Fast Moving', 'Slow Moving', 'Non-Moving'],
             datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3498db', '#e67e22', '#95a5a6'], borderWidth: 0 }]
         },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } } }
+        options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } }, animation: { duration: 0 } }
     });
 }
 
@@ -404,16 +390,17 @@ document.getElementById('btn-sale-filter').addEventListener('click', renderSales
 document.getElementById('btn-sale-clear').addEventListener('click', () => { document.getElementById('filter-sale-start').value = ''; document.getElementById('filter-sale-end').value = ''; renderSalesTable(); });
 
 function renderSalesTable() {
-    const tbody = document.querySelector('#table-sales tbody'); tbody.innerHTML = '';
     const startVal = document.getElementById('filter-sale-start').value; const endVal = document.getElementById('filter-sale-end').value;
     let sD = startVal ? new Date(startVal + 'T00:00:00') : null; let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
 
+    let html =[];
     allTransactions.forEach((t) => {
         if (t.type !== 'Sale') return;
         const tDate = new Date(t.date);
         if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        tbody.innerHTML += `<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`;
+        html.push(`<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`);
     });
+    document.querySelector('#table-sales tbody').innerHTML = html.join('');
 }
 
 const purchaseForm = document.getElementById('form-purchase');
@@ -442,16 +429,17 @@ document.getElementById('btn-purchase-filter').addEventListener('click', renderP
 document.getElementById('btn-purchase-clear').addEventListener('click', () => { document.getElementById('filter-purchase-start').value = ''; document.getElementById('filter-purchase-end').value = ''; renderPurchasesTable(); });
 
 function renderPurchasesTable() {
-    const tbody = document.querySelector('#table-purchases tbody'); tbody.innerHTML = '';
     const startVal = document.getElementById('filter-purchase-start').value; const endVal = document.getElementById('filter-purchase-end').value;
     let sD = startVal ? new Date(startVal + 'T00:00:00') : null; let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
 
+    let html =[];
     allTransactions.forEach((t) => {
         if (t.type !== 'Purchase') return;
         const tDate = new Date(t.date);
         if (sD && tDate < sD) return; if (eD && tDate > eD) return;
-        tbody.innerHTML += `<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`;
+        html.push(`<tr><td>${tDate.toLocaleDateString()}</td><td>${t.item||"Unknown"}</td><td>${Number(t.qty)||0}</td><td>₹${(Number(t.amount)||0).toFixed(2)}</td></tr>`);
     });
+    document.querySelector('#table-purchases tbody').innerHTML = html.join('');
 }
 
 // ----- INVENTORY ADD/EDIT/DELETE -----
@@ -569,7 +557,7 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
         const itemsMap = {};
         allInventory.forEach(item => {
             const key = item.name.trim().toLowerCase(); // case-insensitive match
-            if(!itemsMap[key]) itemsMap[key] = [];
+            if(!itemsMap[key]) itemsMap[key] =[];
             itemsMap[key].push(item);
         });
 
