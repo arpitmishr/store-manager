@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,8 +31,9 @@
         <div class="sidebar">
             <h2>Store Manager</h2>
             <button id="btn-dashboard" class="nav-btn active">Dashboard</button>
-            <button id="btn-sales" class="nav-btn">Sales</button>
-            <button id="btn-purchases" class="nav-btn">Purchases</button>
+            <button id="btn-transactions" class="nav-btn" style="background-color: #3498db; margin-bottom: 10px;">Transactions</button>
+            <button id="btn-sales" class="nav-btn">Record Sales</button>
+            <button id="btn-purchases" class="nav-btn">Record Purchases</button>
             <button id="btn-inventory" class="nav-btn">Inventory</button>
             <button id="btn-analytics" class="nav-btn" style="background-color: #8e44ad; margin-top: 10px;">Analytics 📊</button>
             
@@ -47,16 +47,35 @@
             <div id="tab-dashboard" class="tab active">
                 <h1>Dashboard</h1>
                 <div class="cards">
-                    <div class="card"><h3>Total Sales</h3><p id="dash-sales">₹0.00</p></div>
-                    <div class="card"><h3>Total Purchases</h3><p id="dash-purchases">₹0.00</p></div>
+                    <div class="card"><h3>Total Sales (Net)</h3><p id="dash-sales">₹0.00</p></div>
+                    <div class="card"><h3>Total Purchases (Net)</h3><p id="dash-purchases">₹0.00</p></div>
                     <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
                 </div>
+            </div>
+
+            <!-- TRANSACTIONS TAB -->
+            <div id="tab-transactions" class="tab">
+                <h1>Transactions Ledger</h1>
+                <p style="color: #7f8c8d; margin-top:-10px; margin-bottom: 20px;">View all sales, purchases, and returns here.</p>
+                <div class="form-container" style="border-left: 5px solid #3498db; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: bold;">Start Date:</label>
+                        <input type="date" id="filter-trans-start">
+                        <label style="font-weight: bold;">End Date:</label>
+                        <input type="date" id="filter-trans-end">
+                        <button id="btn-trans-filter" class="btn-action" style="background: #3498db;">Apply Filter</button>
+                        <button id="btn-trans-clear" class="btn-action" style="background: #95a5a6;">View All Time</button>
+                    </div>
+                </div>
+                <table id="table-transactions">
+                    <thead><tr><th>Date</th><th>Type</th><th>Item Name</th><th>Qty</th><th>Amount</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             <!-- ANALYTICS TAB -->
             <div id="tab-analytics" class="tab">
                 <h1>Business Analytics & Insights</h1>
-                
                 <!-- Date Filter -->
                 <div class="form-container" style="border-left: 5px solid #8e44ad; margin-bottom: 20px;">
                     <h3 style="margin-top: 0; margin-bottom: 10px; font-size: 16px;">Performance Snapshot</h3>
@@ -70,7 +89,6 @@
                         <button id="btn-ana-clear" class="btn-action" style="background-color: #95a5a6;">Clear All Time</button>
                     </div>
                 </div>
-
                 <!-- Snapshot Cards -->
                 <div class="cards">
                     <div class="card"><h3>Filtered Revenue</h3><p id="ana-revenue" style="color:#27ae60;">₹0.00</p></div>
@@ -78,14 +96,12 @@
                     <div class="card"><h3>Filtered Margin</h3><p id="ana-margin" style="color:#e67e22;">0.0%</p></div>
                     <div class="card"><h3>Units in Stock</h3><p id="ana-stock" style="color:#8e44ad;">0</p></div>
                 </div>
-
                 <!-- Charts Grid -->
                 <div class="charts-grid">
                     <div class="chart-container" style="flex: 2;"><canvas id="chart-monthly"></canvas></div>
                     <div class="chart-container" style="flex: 1;"><canvas id="chart-abc"></canvas></div>
                     <div class="chart-container" style="flex: 1;"><canvas id="chart-fsn"></canvas></div>
                 </div>
-
                 <!-- Top Selling & Inventory Status Grid -->
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
                     <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
@@ -101,7 +117,6 @@
                             <tbody id="tbody-top-selling"></tbody>
                         </table>
                     </div>
-
                     <div class="form-container" style="flex: 1; min-width: 300px; margin-bottom: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0;">Inventory Status</h3>
@@ -116,7 +131,6 @@
                         </table>
                     </div>
                 </div>
-
                 <!-- ABC Analysis Table -->
                 <div class="form-container">
                     <h3 style="margin-top: 0;">ABC Inventory Analysis</h3>
@@ -126,7 +140,6 @@
                         <tbody></tbody>
                     </table>
                 </div>
-
                 <!-- FSN x HMV Matrix Table -->
                 <div class="form-container">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -154,7 +167,7 @@
 
             <!-- SALES TAB -->
             <div id="tab-sales" class="tab">
-                <h1>Sales Transactions</h1>
+                <h1>Record Sales</h1>
                 <div class="form-container">
                     <h3>Record a Sale (Money In, Stock Goes Down)</h3>
                     <form id="form-sale">
@@ -164,22 +177,11 @@
                         <button type="submit">Save Sale</button>
                     </form>
                 </div>
-                <div class="form-container" style="border-left: 5px solid #27ae60; margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="filter-sale-start"><input type="date" id="filter-sale-end">
-                        <button id="btn-sale-filter" class="btn-action" style="background: #27ae60;">Filter</button>
-                        <button id="btn-sale-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
-                    </div>
-                </div>
-                <table id="table-sales">
-                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Sold</th><th>Amount Received</th></tr></thead>
-                    <tbody></tbody>
-                </table>
             </div>
 
             <!-- PURCHASES TAB -->
             <div id="tab-purchases" class="tab">
-                <h1>Purchase Transactions</h1>
+                <h1>Record Purchases</h1>
                 <div class="form-container">
                     <h3>Record a Purchase (Money Out, Stock Goes Up)</h3>
                     <form id="form-purchase">
@@ -189,17 +191,6 @@
                         <button type="submit" style="background-color: #e74c3c;">Save Purchase</button>
                     </form>
                 </div>
-                <div class="form-container" style="border-left: 5px solid #e74c3c; margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="date" id="filter-purchase-start"><input type="date" id="filter-purchase-end">
-                        <button id="btn-purchase-filter" class="btn-action" style="background: #e74c3c;">Filter</button>
-                        <button id="btn-purchase-clear" class="btn-action" style="background: #95a5a6;">Clear</button>
-                    </div>
-                </div>
-                <table id="table-purchases">
-                    <thead><tr><th>Date</th><th>Item Name</th><th>Qty Bought</th><th>Amount Paid</th></tr></thead>
-                    <tbody></tbody>
-                </table>
             </div>
 
             <!-- INVENTORY TAB -->
@@ -225,21 +216,17 @@
             <!-- SETTINGS TAB -->
             <div id="tab-settings" class="tab">
                 <h1>Settings</h1>
-                
                 <div class="form-container">
                     <h3>Theme</h3>
                     <p style="color: var(--text-muted); margin-top: -10px;">Switch between light and dark themes.</p>
                     <button id="btn-theme-toggle" class="btn-action" style="background-color: #34495e;">Switch to Dark Mode</button>
                 </div>
-
                 <div class="form-container">
                     <h3>Data Management</h3>
-                    <p style="color: var(--text-muted); margin-top: -10px;">Load inventory from an Excel file (columns: 'particulars', 'quantity', 'rate'). This will overwrite your current inventory.</p>
-                    
+                    <p style="color: var(--text-muted); margin-top: -10px;">Load inventory from an Excel file. Overwrites current inventory.</p>
                     <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
                         <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
                         <button id="btn-trigger-excel" class="btn-action" style="background-color: #27ae60;">Import from Excel</button>
-                        
                         <button id="btn-sync-drive" class="btn-action" style="background-color: #2980b9;">Sync to Drive</button>
                         <button id="btn-merge-dup" class="btn-action" style="background-color: #f39c12;">Merge Duplicates Entries</button>
                     </div>
