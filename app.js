@@ -1,6 +1,6 @@
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // Your Firebase configuration
@@ -556,7 +556,6 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 // Auto-fill cost price when standard sale item is typed or selected
 document.getElementById('sale-item').addEventListener('input', (e) => {
     const typedName = e.target.value.trim();
-    // Search the live inventory array for an exact match
     const foundItem = allInventory.find(item => item.name === typedName);
     
     if (foundItem) {
@@ -566,38 +565,141 @@ document.getElementById('sale-item').addEventListener('input', (e) => {
     }
 });
 
-const saleForm = document.getElementById('form-sale');
-saleForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const item = document.getElementById('sale-item').value.trim();
+// CART LOGIC FOR STANDARD SALE 
+let saleCart =[]; // Array to store multiple items before saving
+
+// Function to update the cart UI visually
+function updateCartUI() {
+    const cartContainer = document.getElementById('cart-container');
+    const cartList = document.getElementById('cart-list');
+    const cartTotal = document.getElementById('cart-total');
     
-    // VALIDATION: Ensure typed item actually exists in the stock
+    cartList.innerHTML = '';
+    let totalAmount = 0;
+
+    if (saleCart.length === 0) {
+        cartContainer.style.display = 'none';
+    } else {
+        cartContainer.style.display = 'block';
+        saleCart.forEach((cartItem, index) => {
+            totalAmount += cartItem.amount;
+            cartList.innerHTML += `
+                <li style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #ccc; align-items: center;">
+                    <span>${cartItem.item} <b>(x${cartItem.qty})</b></span>
+                    <span>₹${cartItem.amount.toFixed(2)} 
+                        <button type="button" onclick="window.removeCartItem(${index})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size: 16px; margin-left:10px;" title="Remove Item">×</button>
+                    </span>
+                </li>`;
+        });
+    }
+    cartTotal.innerText = totalAmount.toFixed(2);
+}
+
+// Global function to remove an item from the list visually
+window.removeCartItem = function(index) {
+    saleCart.splice(index, 1);
+    updateCartUI();
+};
+
+// Add to Cart Button Logic
+document.getElementById('btn-add-to-cart').addEventListener('click', () => {
+    const item = document.getElementById('sale-item').value.trim();
+    const qtyStr = document.getElementById('sale-qty').value;
+    const rateStr = document.getElementById('sale-rate').value;
+
+    if (!item || !qtyStr || !rateStr) {
+        alert("Please fill Item Name, Quantity, and Selling Rate before adding to the list.");
+        return;
+    }
+
     const itemExists = allInventory.find(i => i.name === item);
     if (!itemExists) {
         alert("Invalid Item! Please select a valid item from the suggested list.");
-        return; // Stops the sale from saving
+        return;
     }
 
-    let qty = parseInt(document.getElementById('sale-qty').value);
-    let rate = parseFloat(document.getElementById('sale-rate').value); 
-    let amount = qty * rate; 
-    const date = new Date().toISOString();
+    let qty = parseInt(qtyStr);
+    let rate = parseFloat(rateStr);
+    if (qty <= 0 || rate < 0) {
+        alert("Please enter a valid quantity and rate.");
+        return;
+    }
 
-    try {
-        await addDoc(collection(db, "transactions"), { type: "Sale", item, qty, rate, amount, date });
-        const q = query(collection(db, "inventory"), where("name", "==", item));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const invDoc = querySnapshot.docs[0];
-            let newQty = Number(invDoc.data().qty) - qty;
-            await updateDoc(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
-        }
-        saleForm.reset();
-        document.getElementById('sale-cost').value = '';
-        alert("Standard Sale successfully saved! Inventory adjusted.");
-    } catch (e) { console.error(e); }
+    let amount = qty * rate;
+    saleCart.push({ item, qty, rate, amount });
+    
+    // Clear inputs so the user can add another item quickly
+    document.getElementById('sale-item').value = '';
+    document.getElementById('sale-qty').value = '';
+    document.getElementById('sale-rate').value = '';
+    document.getElementById('sale-cost').value = '';
+    
+    updateCartUI();
 });
 
+// Final Submit All logic (Fixes the Dashboard refresh flicker issue!)
+const saleForm = document.getElementById('form-sale');
+saleForm.addEventListener('submit', async (e) => {
+    e.preventDefault(); 
+    
+    // Safety check: If user typed an item but forgot to click "+ Add Item", add it for them
+    const pendingItem = document.getElementById('sale-item').value.trim();
+    if (pendingItem) {
+        document.getElementById('btn-add-to-cart').click();
+    }
+
+    if (saleCart.length === 0) {
+        alert("No items in the list to sell!");
+        return;
+    }
+
+    // FIREBASE BATCH WRITE
+    // This bundles all transactions and inventory deductions into one single background action.
+    try {
+        const batch = writeBatch(db);
+        const date = new Date().toISOString();
+
+        for (let i = 0; i < saleCart.length; i++) {
+            const cartItem = saleCart[i];
+
+            // 1. Prepare Transaction Docs
+            const newTransRef = doc(collection(db, "transactions"));
+            batch.set(newTransRef, { 
+                type: "Sale", 
+                item: cartItem.item, 
+                qty: cartItem.qty, 
+                rate: cartItem.rate, 
+                amount: cartItem.amount, 
+                date: date 
+            });
+
+            // 2. Prepare Inventory Deductions
+            const q = query(collection(db, "inventory"), where("name", "==", cartItem.item));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const invDoc = querySnapshot.docs[0];
+                let newQty = Number(invDoc.data().qty) - cartItem.qty;
+                batch.update(doc(db, "inventory", invDoc.id), { qty: newQty < 0 ? 0 : newQty });
+            }
+        }
+
+        // 3. Commit all changes to Firebase simultaneously (No multi-flicker on Dashboard!)
+        await batch.commit(); 
+
+        // 4. Reset form & cart array
+        saleCart =[];
+        updateCartUI();
+        saleForm.reset();
+        document.getElementById('sale-cost').value = '';
+        alert("All items in cart successfully saved! Inventory adjusted.");
+        
+    } catch (error) { 
+        console.error(error); 
+        alert("An error occurred while saving the sale.");
+    }
+});
+
+// COSMETIC SALE (Quick entry)
 const cosmeticForm = document.getElementById('form-cosmetic');
 cosmeticForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -615,6 +717,7 @@ cosmeticForm.addEventListener('submit', async (e) => {
     } catch (e) { console.error(e); }
 });
 
+// PURCHASES
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
