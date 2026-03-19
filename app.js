@@ -26,7 +26,6 @@ let myChartMonthly = null;
 let myChartABC = null;
 let myChartFSN = null;
 
-// Set Transaction Filter Dates to Today
 const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('filter-trans-start').value = todayStr;
 document.getElementById('filter-trans-end').value = todayStr;
@@ -88,9 +87,7 @@ tabs.forEach(tab => {
 // ----- DATABASE LISTENERS -----
 function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        let totalItems = 0;
         allInventory =[];
-        
         let rowsHtml =[];
         let dataListHtml =[];
         let selectHtml =['<option value="">-- Select Item --</option>'];
@@ -104,7 +101,6 @@ function startDatabaseListeners() {
             const itemQty = Number(item.qty) || 0;
             const itemPrice = Number(item.price) || 0;
 
-            totalItems += itemQty;
             rowsHtml.push(`<tr><td>${itemName}</td><td>${itemQty}</td><td>₹${itemPrice.toFixed(2)}</td>
                 <td><button class="btn-edit" style="background:#f39c12; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}">Edit</button>
                 <button class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px; cursor:pointer;" data-id="${item.id}">Delete</button></td></tr>`);
@@ -116,7 +112,6 @@ function startDatabaseListeners() {
         document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
         document.getElementById('inventory-items-list').innerHTML = dataListHtml.join('');
         document.getElementById('sale-item').innerHTML = selectHtml.join('');
-        document.getElementById('dash-inventory').innerText = totalItems;
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
@@ -124,35 +119,184 @@ function startDatabaseListeners() {
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
         allTransactions =[];
-        let totalSales = 0; let totalPurchases = 0;
 
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
             trans.id = docSnap.id; 
             allTransactions.push(trans);
-            
-            const tAmount = Number(trans.amount) || 0;
-            if(trans.type === 'Sale' || trans.type === 'Cosmetic Sale') totalSales += tAmount;
-            else if (trans.type === 'Sale Return' || trans.type === 'Cosmetic Return') totalSales -= tAmount;
-            else if (trans.type === 'Purchase') totalPurchases += tAmount;
-            else if (trans.type === 'Purchase Return') totalPurchases -= tAmount; 
         });
-
-        document.getElementById('dash-sales').innerText = `₹${totalSales.toFixed(2)}`;
-        document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
         
         renderTransactionsTable();
-      // --> ADD THESE LINES HERE inside the snapshot listener <--
         updateDashboardMonths(allTransactions);
         renderDashboardTopItems();
+        updateDashboardMetrics();
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
-      updateDashboardMetrics();
     });
 }
 
 function stopDatabaseListeners() {
     if (unsubInventory) unsubInventory();
     if (unsubTransactions) unsubTransactions();
+}
+
+
+// ==========================================
+// ====== DASHBOARD WIDGETS & METRICS =======
+// ==========================================
+
+function updateDashboardMetrics() {
+    if (!allInventory || !allTransactions) return;
+
+    // Use ISO string match to reliably detect "Today" regardless of browser timezone formatting differences
+    const todayISO = new Date().toISOString().split('T')[0];
+    
+    // 1. Calculate Inventory Stats
+    let invMap = {};
+    let invValue = 0;
+    let lowStockCount = 0;
+    let totalStockUnits = 0;
+
+    allInventory.forEach(item => {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        invMap[item.name] = { cost: price };
+        invValue += (qty * price);
+        totalStockUnits += qty;
+        if (qty <= 3) lowStockCount++;
+    });
+
+    // 2. Variables for Transactions
+    let todaySales = 0, todayCogs = 0, todayItemsSold = 0;
+    let overallSales = 0, overallCogs = 0;
+    let todayItemTrends = {};
+
+    // 3. Loop through all transactions to calculate Sales & Profit
+    allTransactions.forEach(t => {
+        const tDateISO = t.date.split('T')[0];
+        const isToday = (tDateISO === todayISO);
+        
+        const amt = Number(t.amount) || 0;
+        const qty = Number(t.qty) || 0;
+
+        if (t.type === 'Sale' || t.type === 'Cosmetic Sale') {
+            overallSales += amt;
+            let cost = t.type === 'Sale' ? ((invMap[t.item]?.cost || 0) * qty) : ((Number(t.cost) || 0) * qty);
+            overallCogs += cost;
+
+            if (isToday) {
+                todaySales += amt;
+                todayCogs += cost;
+                todayItemsSold += qty;
+                todayItemTrends[t.item] = (todayItemTrends[t.item] || 0) + qty; 
+            }
+        } else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') {
+            overallSales -= amt;
+            let cost = t.type === 'Sale Return' ? ((invMap[t.item]?.cost || 0) * qty) : ((Number(t.cost) || 0) * qty);
+            overallCogs -= cost;
+
+            if (isToday) {
+                todaySales -= amt;
+                todayCogs -= cost;
+                todayItemsSold -= qty; 
+                todayItemTrends[t.item] = (todayItemTrends[t.item] || 0) - qty;
+            }
+        }
+    });
+
+    // 4. Final Math Calculations
+    let todayProfit = todaySales - todayCogs;
+    let todayMargin = todaySales > 0 ? ((todayProfit / todaySales) * 100).toFixed(1) : 0;
+    let overallProfit = overallSales - overallCogs;
+
+    let trendingItem = "N/A";
+    let maxQty = 0;
+    for (const [itemName, count] of Object.entries(todayItemTrends)) {
+        if (count > maxQty) {
+            maxQty = count;
+            trendingItem = itemName;
+        }
+    }
+
+    // 5. Update HTML elements safely
+    if (document.getElementById('dash-today-sales')) {
+        document.getElementById('dash-today-sales').innerText = `₹${todaySales.toFixed(2)}`;
+        document.getElementById('dash-today-profit').innerText = `₹${todayProfit.toFixed(2)}`;
+        document.getElementById('dash-today-margin').innerText = `${todayMargin}%`;
+        document.getElementById('dash-today-items').innerText = todayItemsSold;
+        document.getElementById('dash-today-trending').innerText = trendingItem;
+
+        document.getElementById('dash-overall-revenue').innerText = `₹${overallSales.toFixed(2)}`;
+        document.getElementById('dash-overall-profit').innerText = `₹${overallProfit.toFixed(2)}`;
+        document.getElementById('dash-inv-value').innerText = `₹${invValue.toFixed(2)}`;
+        document.getElementById('dash-low-stock').innerText = lowStockCount;
+        document.getElementById('dash-inventory').innerText = totalStockUnits;
+    }
+}
+
+const dashMonthSelect = document.getElementById('dash-top-month');
+const dashTypeSelect = document.getElementById('dash-top-type');
+
+dashMonthSelect.addEventListener('change', renderDashboardTopItems);
+dashTypeSelect.addEventListener('change', renderDashboardTopItems);
+
+function updateDashboardMonths(transactions) {
+    const currentSelection = dashMonthSelect.value;
+    let monthsSet = new Set();
+    
+    monthsSet.add(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
+
+    transactions.forEach(t => {
+        const d = new Date(t.date);
+        monthsSet.add(d.toLocaleString('default', { month: 'long', year: 'numeric' }));
+    });
+
+    let html = ''; 
+    Array.from(monthsSet).forEach(m => { html += `<option value="${m}">${m}</option>`; });
+    dashMonthSelect.innerHTML = html;
+    if (currentSelection && monthsSet.has(currentSelection)) dashMonthSelect.value = currentSelection;
+}
+
+function renderDashboardTopItems() {
+    const selectedMonth = dashMonthSelect.value;
+    const selectedType = dashTypeSelect.value;
+    const listContainer = document.getElementById('dash-top-list');
+    
+    let itemSalesMap = {};
+
+    allTransactions.forEach(t => {
+        if (!t.type.includes('Sale')) return;
+        if (selectedType !== 'All' && t.type !== selectedType) return;
+        const tDate = new Date(t.date);
+        const monthKey = tDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (selectedMonth !== 'All' && monthKey !== selectedMonth) return;
+
+        if (!itemSalesMap[t.item]) itemSalesMap[t.item] = 0;
+        
+        if (t.type === 'Sale' || t.type === 'Cosmetic Sale') itemSalesMap[t.item] += Number(t.qty);
+        else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') itemSalesMap[t.item] -= Number(t.qty);
+    });
+
+    let sortedItems = Object.keys(itemSalesMap)
+        .map(itemName => ({ name: itemName, sold: itemSalesMap[itemName] }))
+        .filter(item => item.sold > 0) 
+        .sort((a, b) => b.sold - a.sold)
+        .slice(0, 10); 
+
+    listContainer.innerHTML = '';
+    if (sortedItems.length === 0) {
+        listContainer.innerHTML = `<li style="text-align:center; padding: 20px; color: #95a5a6;">No sales found for this filter.</li>`;
+        return;
+    }
+
+    let rank = 1;
+    sortedItems.forEach(item => {
+        let rankColor = rank === 1 ? '#f1c40f' : (rank === 2 ? '#bdc3c7' : (rank === 3 ? '#cd7f32' : '#7f8c8d'));
+        let rankIcon = rank <= 3 ? `🏆` : `<span style="display:inline-block; width:20px; text-align:center; color:#fff; background:${rankColor}; border-radius:50%; font-size:12px; line-height:20px;">${rank}</span>`;
+        listContainer.innerHTML += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <div style="font-size: 14px;"><span style="margin-right: 10px;">${rankIcon}</span><span style="font-weight: bold;">${item.name}</span></div>
+                <div style="font-size: 13px; font-weight: bold; color: #27ae60; background: rgba(39, 174, 96, 0.1); padding: 4px 8px; border-radius: 4px;">${item.sold} sold</div></li>`;
+        rank++;
+    });
 }
 
 
@@ -215,13 +359,11 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         let newType = t.type === 'Sale' ? 'Sale Return' : (t.type === 'Purchase' ? 'Purchase Return' : 'Cosmetic Return');
 
         try {
-            // Log Return Transaction
             let returnPayload = { type: newType, item: t.item, qty: returnQty, amount: returnAmount, date: new Date().toISOString() };
-            if (t.type === 'Cosmetic Sale') returnPayload.cost = t.cost; // save cost for correct profit deduction
+            if (t.type === 'Cosmetic Sale') returnPayload.cost = t.cost; 
             
             await addDoc(collection(db, "transactions"), returnPayload);
             
-            // Adjust Inventory ONLY IF it is not a Cosmetic Sale
             if (t.type !== 'Cosmetic Sale') {
                 const q = query(collection(db, "inventory"), where("name", "==", t.item));
                 const querySnapshot = await getDocs(q);
@@ -244,98 +386,6 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         }
     }
 });
-
-
-
-
-
-
-
-
-
-
-// ==========================================
-// ====== DASHBOARD WIDGETS LOGIC ===========
-// ==========================================
-
-const dashMonthSelect = document.getElementById('dash-top-month');
-const dashTypeSelect = document.getElementById('dash-top-type');
-
-// Listeners to re-render the list when dropdowns change
-dashMonthSelect.addEventListener('change', renderDashboardTopItems);
-dashTypeSelect.addEventListener('change', renderDashboardTopItems);
-
-function renderDashboardTopItems() {
-    const selectedMonth = dashMonthSelect.value;
-    const selectedType = dashTypeSelect.value;
-    const listContainer = document.getElementById('dash-top-list');
-    
-    let itemSalesMap = {};
-
-    // 1. Filter and Calculate Sales
-    allTransactions.forEach(t => {
-        // Only process Sales
-        if (!t.type.includes('Sale')) return;
-
-        // Apply Type Filter
-        if (selectedType !== 'All' && t.type !== selectedType) return;
-
-        // Apply Month Filter
-        const tDate = new Date(t.date);
-        const monthKey = tDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-        if (selectedMonth !== 'All' && monthKey !== selectedMonth) return;
-
-        // Add or Subtract Quantities (Net Sold)
-        if (!itemSalesMap[t.item]) itemSalesMap[t.item] = 0;
-        
-        if (t.type === 'Sale' || t.type === 'Cosmetic Sale') {
-            itemSalesMap[t.item] += Number(t.qty);
-        } else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') {
-            itemSalesMap[t.item] -= Number(t.qty);
-        }
-    });
-
-    // 2. Convert to Array and Sort by Top Selling
-    let sortedItems = Object.keys(itemSalesMap)
-        .map(itemName => ({ name: itemName, sold: itemSalesMap[itemName] }))
-        .filter(item => item.sold > 0) // Only show items with positive sales
-        .sort((a, b) => b.sold - a.sold)
-        .slice(0, 10); // Show Top 10
-
-    // 3. Render the UI List
-    listContainer.innerHTML = '';
-    if (sortedItems.length === 0) {
-        listContainer.innerHTML = `<li style="text-align:center; padding: 20px; color: #95a5a6;">No sales found for this filter.</li>`;
-        return;
-    }
-
-    let rank = 1;
-    sortedItems.forEach(item => {
-        let rankColor = rank === 1 ? '#f1c40f' : (rank === 2 ? '#bdc3c7' : (rank === 3 ? '#cd7f32' : '#7f8c8d'));
-        let rankIcon = rank <= 3 ? `🏆` : `<span style="display:inline-block; width:20px; text-align:center; color:#fff; background:${rankColor}; border-radius:50%; font-size:12px; line-height:20px;">${rank}</span>`;
-        
-        listContainer.innerHTML += `
-            <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                <div style="font-size: 14px;">
-                    <span style="margin-right: 10px;">${rankIcon}</span>
-                    <span style="font-weight: bold;">${item.name}</span>
-                </div>
-                <div style="font-size: 13px; font-weight: bold; color: #27ae60; background: rgba(39, 174, 96, 0.1); padding: 4px 8px; border-radius: 4px;">
-                    ${item.sold} sold
-                </div>
-            </li>
-        `;
-        rank++;
-    });
-}
-
-
-
-
-
-
-
-
 
 
 // ==========================================
@@ -503,7 +553,6 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
 
-// Auto-fill cost price when standard sale item is selected
 document.getElementById('sale-item').addEventListener('change', (e) => {
     const selectedOption = e.target.options[e.target.selectedIndex];
     if (selectedOption && selectedOption.value) {
@@ -513,14 +562,13 @@ document.getElementById('sale-item').addEventListener('change', (e) => {
     }
 });
 
-// Standard Inventory Sale Submission
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const item = document.getElementById('sale-item').value;
     let qty = parseInt(document.getElementById('sale-qty').value);
-    let rate = parseFloat(document.getElementById('sale-rate').value); // Set by user per piece
-    let amount = qty * rate; // Calculated Total
+    let rate = parseFloat(document.getElementById('sale-rate').value); 
+    let amount = qty * rate; 
     const date = new Date().toISOString();
 
     try {
@@ -538,7 +586,6 @@ saleForm.addEventListener('submit', async (e) => {
     } catch (e) { console.error(e); }
 });
 
-// Cosmetic Item Sale Submission
 const cosmeticForm = document.getElementById('form-cosmetic');
 cosmeticForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -546,17 +593,16 @@ cosmeticForm.addEventListener('submit', async (e) => {
     let qty = parseInt(document.getElementById('cosmetic-qty').value);
     let cost = parseFloat(document.getElementById('cosmetic-cost').value);
     let rate = parseFloat(document.getElementById('cosmetic-rate').value);
-    let amount = qty * rate; // Calculated Total
+    let amount = qty * rate; 
     const date = new Date().toISOString();
 
     try {
         await addDoc(collection(db, "transactions"), { type: "Cosmetic Sale", item, qty, cost, rate, amount, date });
         cosmeticForm.reset();
-        alert("Cosmetic Sale successfully saved! Revenue tracked (No stock deducted).");
+        alert("Cosmetic Sale successfully saved! Revenue tracked.");
     } catch (e) { console.error(e); }
 });
 
-// Purchase Form
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -705,31 +751,3 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
     } catch (err) { console.error(err); alert("An error occurred during merge.");
     } finally { btn.innerText = ogText; btn.disabled = false; }
 });
-
-
-
-// Populates the "Select Month" dropdown based on existing data
-function updateDashboardMonths(transactions) {
-    const currentSelection = dashMonthSelect.value;
-    let monthsSet = new Set();
-    
-    // Add current month by default so it's never empty
-    monthsSet.add(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
-
-    transactions.forEach(t => {
-        const d = new Date(t.date);
-        monthsSet.add(d.toLocaleString('default', { month: 'long', year: 'numeric' }));
-    });
-
-    let html = ''; // Removed the 'All Months' option to focus strictly on Month-by-Month as requested
-    Array.from(monthsSet).forEach(m => {
-        html += `<option value="${m}">${m}</option>`;
-    });
-
-    dashMonthSelect.innerHTML = html;
-
-    // Restore previous selection if it exists, otherwise it defaults to top (Current month)
-    if (currentSelection && monthsSet.has(currentSelection)) {
-        dashMonthSelect.value = currentSelection;
-    }
-}
