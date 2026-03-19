@@ -16,7 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: ['class', '.dark-mode'],
+            darkMode:['class', '.dark-mode'],
             theme: {
                 extend: {
                     fontFamily: { sans:['Inter', 'system-ui', 'sans-serif'] },
@@ -33,26 +33,6 @@
     </script>
 
     <style>
-
-        .tracking-tight {
-    letter-spacing: -0.025em;
-    COLOR: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
-
-         .tab.active {
-    display: block;
-    animation: fadeIn 0.3s ease-in-out;
-    COLOR: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
-.p-2 {
-    padding: 0.5rem;
-    COLOR: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
-
-        .gap-4 {
-    gap: 1rem;
-    COLOR: rgb(16 185 129 / var(--tw-text-opacity, 1));
-}
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
@@ -76,6 +56,10 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark-mode ::-webkit-scrollbar-thumb { background: #475569; }
         
+        /* Hidden Scrollbar for Mobile Nav */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         /* Glassmorphism for Bottom Nav */
         .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
         .dark-mode .glass-nav { background: rgba(31, 41, 55, 0.9); border-top-color: #374151; }
@@ -151,7 +135,7 @@
         </aside>
 
         <!-- MAIN SCROLLABLE CONTENT -->
-        <main class="flex-1 h-full overflow-y-auto bg-gray-50/50 dark:bg-gray-900 p-4 md:p-8 pb-24 md:pb-8">
+        <main class="flex-1 h-full overflow-y-auto bg-gray-50/50 dark:bg-gray-900 p-4 md:p-8 pb-24 md:pb-8 relative">
             
             <!-- DASHBOARD TAB -->
             <div id="tab-dashboard" class="tab active max-w-7xl mx-auto">
@@ -442,17 +426,20 @@
             
         </main>
         
-        <!-- MOBILE BOTTOM NAVIGATION -->
-        <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex justify-around items-center safe-area-pb">
-            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
-            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
-            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-cubes-stacked text-lg mb-1"></i><span class="text-[10px] font-medium">Stock</span></button>
-            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-list-ul text-lg mb-1"></i><span class="text-[10px] font-medium">Ledger</span></button>
-            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[60px] transition-colors"><i class="fa-solid fa-gear text-lg mb-1"></i><span class="text-[10px] font-medium">Config</span></button>
+        <!-- MOBILE BOTTOM NAVIGATION (UPDATED TO INCLUDE ALL TABS!) -->
+        <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-1 py-1 flex justify-start sm:justify-center items-center safe-area-pb overflow-x-auto no-scrollbar gap-1">
+            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
+            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
+            <button onclick="document.getElementById('btn-purchases').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-boxes-packing text-lg mb-1"></i><span class="text-[10px] font-medium">Buy</span></button>
+            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-cubes-stacked text-lg mb-1"></i><span class="text-[10px] font-medium">Stock</span></button>
+            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-list-ul text-lg mb-1"></i><span class="text-[10px] font-medium">Ledger</span></button>
+            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[10px] font-medium">Analytics</span></button>
+            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-gear text-lg mb-1"></i><span class="text-[10px] font-medium">Config</span></button>
         </nav>
         
     </div>
 
+    <!-- Small Script to sync Mobile Bottom Navigation Colors instantly -->
     <script>
         function updateMobileNav(activeBtn) {
             document.querySelectorAll('.mob-nav-btn').forEach(btn => {
@@ -461,10 +448,12 @@
             });
             activeBtn.classList.remove('text-gray-400');
             activeBtn.classList.add('text-primary');
+            // Scroll to top on mobile tab switch
             document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
     
+    <!-- Link to your App logic -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
