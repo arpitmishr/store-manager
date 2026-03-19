@@ -30,6 +30,47 @@ const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('filter-trans-start').value = todayStr;
 document.getElementById('filter-trans-end').value = todayStr;
 
+
+// ==========================================
+// ====== SATISFYING SUCCESS ANIMATION ======
+// ==========================================
+function showSuccessAnimation(msg = "Success!") {
+    const overlay = document.getElementById('success-overlay');
+    const card = document.getElementById('success-card');
+    const iconContainer = document.getElementById('success-icon-container');
+    
+    document.getElementById('success-msg').innerText = msg;
+    
+    // Make visible in DOM
+    overlay.classList.remove('hidden');
+    // Trigger reflow to restart CSS transitions
+    void overlay.offsetWidth;
+    
+    // Fade in overlay & scale up card
+    overlay.classList.remove('opacity-0');
+    overlay.classList.add('opacity-100', 'pointer-events-auto');
+    card.classList.remove('scale-50');
+    card.classList.add('scale-100');
+    
+    // Restart popping animation
+    iconContainer.style.animation = 'none';
+    void iconContainer.offsetWidth; 
+    iconContainer.style.animation = null;
+
+    // Auto-hide after 2 seconds
+    setTimeout(() => {
+        overlay.classList.remove('opacity-100', 'pointer-events-auto');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        card.classList.remove('scale-100');
+        card.classList.add('scale-50');
+        
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 300); // Wait for fade-out transition
+    }, 2000);
+}
+
+
 // ----- GLOBAL YEAR FILTER STATE -----
 let globalYearFilter = "All";
 
@@ -245,7 +286,7 @@ function setupPredictiveSearch(inputId, dropdownId, isSale) {
         // Categorize by Stock Level
         const grouped = {
             "🟢 In Stock":[],
-            "🟠 Low Stock": [],
+            "🟠 Low Stock":[],
             "🔴 Out of Stock":[]
         };
 
@@ -547,7 +588,7 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
                 }
             }
             await batch.commit(); 
-            alert("Return processed successfully!");
+            showSuccessAnimation("Return Processed Successfully!");
         } catch (err) {
             console.error(err);
             alert("Error processing the return.");
@@ -636,7 +677,7 @@ function runAnalytics() {
     document.getElementById('ana-margin').innerText = `${margin}%`;
     document.getElementById('ana-stock').innerText = totalStock;
 
-    let totalInvValue = 0; let abcArray = [];
+    let totalInvValue = 0; let abcArray =[];
     for (const[name, data] of Object.entries(itemStats)) {
         totalInvValue += data.invValue; abcArray.push({ name, value: data.invValue });
     }
@@ -834,7 +875,9 @@ saleForm.addEventListener('submit', async (e) => {
         updateCartUI();
         saleForm.reset();
         document.getElementById('sale-cost').value = '';
-        alert("All items successfully saved! Inventory adjusted.");
+        
+        // Trigger Happy Animation!
+        showSuccessAnimation("Standard Sale Recorded!");
         
     } catch (error) { 
         console.error(error); 
@@ -856,7 +899,10 @@ cosmeticForm.addEventListener('submit', async (e) => {
     try {
         await addDoc(collection(db, "transactions"), { type: "Cosmetic Sale", item, qty, cost, rate, amount, date });
         cosmeticForm.reset();
-        alert("Cosmetic Sale successfully saved!");
+        
+        // Trigger Happy Animation!
+        showSuccessAnimation("Cosmetic Sale Saved!");
+        
     } catch (e) { console.error(e); }
 });
 
@@ -886,7 +932,10 @@ purchaseForm.addEventListener('submit', async (e) => {
         await batch.commit();
 
         purchaseForm.reset();
-        alert("Purchase successfully saved!");
+        
+        // Trigger Happy Animation!
+        showSuccessAnimation("Purchase Recorded!");
+        
     } catch (e) { 
         console.error(e); 
         alert("Error saving purchase.");
@@ -902,8 +951,15 @@ inventoryForm.addEventListener('submit', async (e) => {
     if (isNaN(qty)) qty = 0; if (isNaN(price)) price = 0;
     const editId = inventoryForm.getAttribute('data-edit-id'); 
 
-    if (editId) { await updateDoc(doc(db, "inventory", editId), { name, qty, price }); resetInventoryForm(); } 
-    else { await addDoc(collection(db, "inventory"), { name, qty, price }); inventoryForm.reset(); }
+    if (editId) { 
+        await updateDoc(doc(db, "inventory", editId), { name, qty, price }); 
+        resetInventoryForm(); 
+        showSuccessAnimation("Item Updated!");
+    } else { 
+        await addDoc(collection(db, "inventory"), { name, qty, price }); 
+        inventoryForm.reset(); 
+        showSuccessAnimation("Item Added to Stock!");
+    }
 });
 
 document.getElementById('btn-inv-cancel').addEventListener('click', resetInventoryForm);
@@ -971,7 +1027,9 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
                     await addDoc(collection(db, "inventory"), { name: name.trim(), qty, price });
                 }
             }
-            alert("Inventory successfully updated from Excel!");
+            
+            showSuccessAnimation("Excel Successfully Imported!");
+            
         } catch (error) {
             console.error(error); alert("An error occurred during import. Check the console for details.");
         } finally {
@@ -1015,8 +1073,11 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
                 }
             }
         }
-        if(mergeCount > 0) alert(`Success! Merged duplicates across ${mergeCount} item name(s).`);
-        else alert("No duplicates found. Your inventory is clean!");
+        if(mergeCount > 0) {
+            showSuccessAnimation(`Merged ${mergeCount} Duplicate Groups!`);
+        } else {
+            alert("No duplicates found. Your inventory is clean!");
+        }
 
     } catch (err) { console.error(err); alert("An error occurred during merge.");
     } finally { btn.innerHTML = ogText; btn.disabled = false; }
