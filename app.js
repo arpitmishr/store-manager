@@ -141,6 +141,9 @@ function startDatabaseListeners() {
         document.getElementById('dash-purchases').innerText = `₹${totalPurchases.toFixed(2)}`;
         
         renderTransactionsTable();
+      // --> ADD THESE LINES HERE inside the snapshot listener <--
+        updateDashboardMonths(allTransactions);
+        renderDashboardTopItems();
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
     });
 }
@@ -239,6 +242,98 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         }
     }
 });
+
+
+
+
+
+
+
+
+
+
+// ==========================================
+// ====== DASHBOARD WIDGETS LOGIC ===========
+// ==========================================
+
+const dashMonthSelect = document.getElementById('dash-top-month');
+const dashTypeSelect = document.getElementById('dash-top-type');
+
+// Listeners to re-render the list when dropdowns change
+dashMonthSelect.addEventListener('change', renderDashboardTopItems);
+dashTypeSelect.addEventListener('change', renderDashboardTopItems);
+
+function renderDashboardTopItems() {
+    const selectedMonth = dashMonthSelect.value;
+    const selectedType = dashTypeSelect.value;
+    const listContainer = document.getElementById('dash-top-list');
+    
+    let itemSalesMap = {};
+
+    // 1. Filter and Calculate Sales
+    allTransactions.forEach(t => {
+        // Only process Sales
+        if (!t.type.includes('Sale')) return;
+
+        // Apply Type Filter
+        if (selectedType !== 'All' && t.type !== selectedType) return;
+
+        // Apply Month Filter
+        const tDate = new Date(t.date);
+        const monthKey = tDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (selectedMonth !== 'All' && monthKey !== selectedMonth) return;
+
+        // Add or Subtract Quantities (Net Sold)
+        if (!itemSalesMap[t.item]) itemSalesMap[t.item] = 0;
+        
+        if (t.type === 'Sale' || t.type === 'Cosmetic Sale') {
+            itemSalesMap[t.item] += Number(t.qty);
+        } else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') {
+            itemSalesMap[t.item] -= Number(t.qty);
+        }
+    });
+
+    // 2. Convert to Array and Sort by Top Selling
+    let sortedItems = Object.keys(itemSalesMap)
+        .map(itemName => ({ name: itemName, sold: itemSalesMap[itemName] }))
+        .filter(item => item.sold > 0) // Only show items with positive sales
+        .sort((a, b) => b.sold - a.sold)
+        .slice(0, 10); // Show Top 10
+
+    // 3. Render the UI List
+    listContainer.innerHTML = '';
+    if (sortedItems.length === 0) {
+        listContainer.innerHTML = `<li style="text-align:center; padding: 20px; color: #95a5a6;">No sales found for this filter.</li>`;
+        return;
+    }
+
+    let rank = 1;
+    sortedItems.forEach(item => {
+        let rankColor = rank === 1 ? '#f1c40f' : (rank === 2 ? '#bdc3c7' : (rank === 3 ? '#cd7f32' : '#7f8c8d'));
+        let rankIcon = rank <= 3 ? `🏆` : `<span style="display:inline-block; width:20px; text-align:center; color:#fff; background:${rankColor}; border-radius:50%; font-size:12px; line-height:20px;">${rank}</span>`;
+        
+        listContainer.innerHTML += `
+            <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <div style="font-size: 14px;">
+                    <span style="margin-right: 10px;">${rankIcon}</span>
+                    <span style="font-weight: bold;">${item.name}</span>
+                </div>
+                <div style="font-size: 13px; font-weight: bold; color: #27ae60; background: rgba(39, 174, 96, 0.1); padding: 4px 8px; border-radius: 4px;">
+                    ${item.sold} sold
+                </div>
+            </li>
+        `;
+        rank++;
+    });
+}
+
+
+
+
+
+
+
+
 
 
 // ==========================================
@@ -608,3 +703,31 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
     } catch (err) { console.error(err); alert("An error occurred during merge.");
     } finally { btn.innerText = ogText; btn.disabled = false; }
 });
+
+
+
+// Populates the "Select Month" dropdown based on existing data
+function updateDashboardMonths(transactions) {
+    const currentSelection = dashMonthSelect.value;
+    let monthsSet = new Set();
+    
+    // Add current month by default so it's never empty
+    monthsSet.add(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
+
+    transactions.forEach(t => {
+        const d = new Date(t.date);
+        monthsSet.add(d.toLocaleString('default', { month: 'long', year: 'numeric' }));
+    });
+
+    let html = ''; // Removed the 'All Months' option to focus strictly on Month-by-Month as requested
+    Array.from(monthsSet).forEach(m => {
+        html += `<option value="${m}">${m}</option>`;
+    });
+
+    dashMonthSelect.innerHTML = html;
+
+    // Restore previous selection if it exists, otherwise it defaults to top (Current month)
+    if (currentSelection && monthsSet.has(currentSelection)) {
+        dashMonthSelect.value = currentSelection;
+    }
+}
