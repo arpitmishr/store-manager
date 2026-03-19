@@ -146,6 +146,7 @@ function startDatabaseListeners() {
         updateDashboardMonths(allTransactions);
         renderDashboardTopItems();
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+      updateDashboardMetrics();
     });
 }
 
