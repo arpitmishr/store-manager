@@ -42,17 +42,61 @@
 
         <div class="main-content">
             <!-- DASHBOARD TAB -->
-            <!-- DASHBOARD TAB -->
+         <!-- DASHBOARD TAB -->
 <div id="tab-dashboard" class="tab active">
     <h1>Dashboard</h1>
-    <!-- Top KPI Cards -->
-    <div class="cards">
-        <div class="card"><h3>Total Sales (Net)</h3><p id="dash-sales">₹0.00</p></div>
-        <div class="card"><h3>Total Purchases (Net)</h3><p id="dash-purchases">₹0.00</p></div>
-        <div class="card"><h3>Items in Stock</h3><p id="dash-inventory">0</p></div>
+    
+    <!-- Section 1: Today's Snapshot -->
+    <h3 style="border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 0; color: #2c3e50;">📅 Today's Snapshot</h3>
+    <div class="cards" style="margin-bottom: 30px;">
+        <div class="card">
+            <h3 style="font-size: 14px;">Today's Sales</h3>
+            <p id="dash-today-sales" style="color:#27ae60; font-size: 24px;">₹0.00</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Today's Profit</h3>
+            <p id="dash-today-profit" style="color:#2980b9; font-size: 24px;">₹0.00</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Profit Margin</h3>
+            <p id="dash-today-margin" style="color:#e67e22; font-size: 24px;">0.0%</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Items Sold</h3>
+            <p id="dash-today-items" style="color:#8e44ad; font-size: 24px;">0</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Top Trending Item Today</h3>
+            <p id="dash-today-trending" style="color:#d35400; font-size: 18px; font-weight: bold; margin-top: 10px;">N/A</p>
+        </div>
     </div>
 
-    <!-- Dashboard Extras Grid -->
+    <!-- Section 2: Overall Metrics -->
+    <h3 style="border-bottom: 2px solid #2ecc71; padding-bottom: 5px; color: #2c3e50;">📊 Overall Lifetime Metrics</h3>
+    <div class="cards">
+        <div class="card">
+            <h3 style="font-size: 14px;">Overall Revenue</h3>
+            <p id="dash-overall-revenue">₹0.00</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Overall Profit</h3>
+            <p id="dash-overall-profit">₹0.00</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Inventory Value</h3>
+            <p id="dash-inv-value">₹0.00</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Low Stock Items (≤3)</h3>
+            <p id="dash-low-stock" style="color:#e74c3c;">0</p>
+        </div>
+        <div class="card">
+            <h3 style="font-size: 14px;">Total Items in Stock</h3>
+            <p id="dash-inventory">0</p>
+        </div>
+    </div>
+
+    <!-- Section 3: Dashboard Extras Grid -->
     <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px;">
         
         <!-- Top Selling Items Card -->
@@ -75,15 +119,13 @@
             </div>
 
             <ul id="dash-top-list" style="list-style: none; padding: 0; margin: 0;">
-                <!-- Dynamically populated list goes here -->
+                <!-- Dynamically populated list -->
             </ul>
         </div>
         
-        <!-- You can add an empty container here for future dashboard widgets -->
         <div style="flex: 1; min-width: 320px;"></div>
     </div>
 </div>
-
             <!-- TRANSACTIONS TAB -->
             <div id="tab-transactions" class="tab">
                 <h1>Transactions Ledger</h1>
