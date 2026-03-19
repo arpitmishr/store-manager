@@ -42,90 +42,90 @@
 
         <div class="main-content">
             <!-- DASHBOARD TAB -->
-         <!-- DASHBOARD TAB -->
-<div id="tab-dashboard" class="tab active">
-    <h1>Dashboard</h1>
-    
-    <!-- Section 1: Today's Snapshot -->
-    <h3 style="border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 0; color: #2c3e50;">📅 Today's Snapshot</h3>
-    <div class="cards" style="margin-bottom: 30px;">
-        <div class="card">
-            <h3 style="font-size: 14px;">Today's Sales</h3>
-            <p id="dash-today-sales" style="color:#27ae60; font-size: 24px;">₹0.00</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Today's Profit</h3>
-            <p id="dash-today-profit" style="color:#2980b9; font-size: 24px;">₹0.00</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Profit Margin</h3>
-            <p id="dash-today-margin" style="color:#e67e22; font-size: 24px;">0.0%</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Items Sold</h3>
-            <p id="dash-today-items" style="color:#8e44ad; font-size: 24px;">0</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Top Trending Item Today</h3>
-            <p id="dash-today-trending" style="color:#d35400; font-size: 18px; font-weight: bold; margin-top: 10px;">N/A</p>
-        </div>
-    </div>
-
-    <!-- Section 2: Overall Metrics -->
-    <h3 style="border-bottom: 2px solid #2ecc71; padding-bottom: 5px; color: #2c3e50;">📊 Overall Lifetime Metrics</h3>
-    <div class="cards">
-        <div class="card">
-            <h3 style="font-size: 14px;">Overall Revenue</h3>
-            <p id="dash-overall-revenue">₹0.00</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Overall Profit</h3>
-            <p id="dash-overall-profit">₹0.00</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Inventory Value</h3>
-            <p id="dash-inv-value">₹0.00</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Low Stock Items (≤3)</h3>
-            <p id="dash-low-stock" style="color:#e74c3c;">0</p>
-        </div>
-        <div class="card">
-            <h3 style="font-size: 14px;">Total Items in Stock</h3>
-            <p id="dash-inventory">0</p>
-        </div>
-    </div>
-
-    <!-- Section 3: Dashboard Extras Grid -->
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px;">
-        
-        <!-- Top Selling Items Card -->
-        <div class="form-container" style="flex: 1; min-width: 320px; border-top: 5px solid #f39c12; padding: 20px;">
-            <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">🏆 Top Selling Items by Month</h3>
-            
-            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 120px;">
-                    <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Select Month</label>
-                    <select id="dash-top-month" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;"></select>
+            <div id="tab-dashboard" class="tab active">
+                <h1>Dashboard</h1>
+                
+                <!-- Section 1: Today's Snapshot -->
+                <h3 style="border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 0; color: #2c3e50;">📅 Today's Snapshot</h3>
+                <div class="cards" style="margin-bottom: 30px;">
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Today's Sales</h3>
+                        <p id="dash-today-sales" style="color:#27ae60; font-size: 24px;">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Today's Profit</h3>
+                        <p id="dash-today-profit" style="color:#2980b9; font-size: 24px;">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Profit Margin</h3>
+                        <p id="dash-today-margin" style="color:#e67e22; font-size: 24px;">0.0%</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Items Sold</h3>
+                        <p id="dash-today-items" style="color:#8e44ad; font-size: 24px;">0</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Top Trending Item Today</h3>
+                        <p id="dash-today-trending" style="color:#d35400; font-size: 18px; font-weight: bold; margin-top: 10px;">N/A</p>
+                    </div>
                 </div>
-                <div style="flex: 1; min-width: 120px;">
-                    <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Filter by Type</label>
-                    <select id="dash-top-type" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="All">All Items</option>
-                        <option value="Sale">Inventory Only</option>
-                        <option value="Cosmetic Sale">Cosmetics Only</option>
-                    </select>
+
+                <!-- Section 2: Overall Metrics -->
+                <h3 style="border-bottom: 2px solid #2ecc71; padding-bottom: 5px; color: #2c3e50;">📊 Overall Lifetime Metrics</h3>
+                <div class="cards">
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Overall Revenue</h3>
+                        <p id="dash-overall-revenue">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Overall Profit</h3>
+                        <p id="dash-overall-profit">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Inventory Value</h3>
+                        <p id="dash-inv-value">₹0.00</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Low Stock Items (≤3)</h3>
+                        <p id="dash-low-stock" style="color:#e74c3c;">0</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="font-size: 14px;">Total Items in Stock</h3>
+                        <p id="dash-inventory">0</p>
+                    </div>
+                </div>
+
+                <!-- Section 3: Dashboard Extras Grid -->
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 30px;">
+                    
+                    <!-- Top Selling Items Card -->
+                    <div class="form-container" style="flex: 1; min-width: 320px; border-top: 5px solid #f39c12; padding: 20px;">
+                        <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">🏆 Top Selling Items by Month</h3>
+                        
+                        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Select Month</label>
+                                <select id="dash-top-month" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;"></select>
+                            </div>
+                            <div style="flex: 1; min-width: 120px;">
+                                <label style="font-size: 12px; font-weight: bold; color: #7f8c8d;">Filter by Type</label>
+                                <select id="dash-top-type" style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;">
+                                    <option value="All">All Items</option>
+                                    <option value="Sale">Inventory Only</option>
+                                    <option value="Cosmetic Sale">Cosmetics Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <ul id="dash-top-list" style="list-style: none; padding: 0; margin: 0;">
+                            <!-- Dynamically populated list -->
+                        </ul>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 320px;"></div>
                 </div>
             </div>
 
-            <ul id="dash-top-list" style="list-style: none; padding: 0; margin: 0;">
-                <!-- Dynamically populated list -->
-            </ul>
-        </div>
-        
-        <div style="flex: 1; min-width: 320px;"></div>
-    </div>
-</div>
             <!-- TRANSACTIONS TAB -->
             <div id="tab-transactions" class="tab">
                 <h1>Transactions Ledger</h1>
@@ -236,24 +236,35 @@
                 <h1>Record Sales</h1>
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                     
-                    <!-- Form 1: Standard Sale -->
+                    <!-- Form 1: Standard Sale with Cart Feature -->
                     <div class="form-container" style="flex: 1; min-width: 300px; border-top: 5px solid #27ae60;">
                         <h3 style="margin-top: 0;">Standard Inventory Sale</h3>
-                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Select an item from stock. Quantity will be deducted.</p>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: -10px;">Select items to add to your list, then save.</p>
                         <form id="form-sale">
                             <label style="font-weight:bold; font-size:14px;">Search & Select Item</label>
-<input type="text" id="sale-item" list="inventory-items-list" placeholder="Start typing item name..." required style="margin-bottom: 10px; width: 100%;">
+                            <input type="text" id="sale-item" list="inventory-items-list" placeholder="Start typing item name..." style="margin-bottom: 10px; width: 100%;">
                             
                             <label style="font-weight:bold; font-size:14px;">Purchased Cost (Per Pcs)</label>
                             <input type="number" id="sale-cost" placeholder="Auto-fetched Cost" readonly style="background-color: var(--sidebar-bg); cursor: not-allowed; margin-bottom: 10px;" title="This is fetched automatically from inventory">
                             
                             <label style="font-weight:bold; font-size:14px;">Quantity to Sell</label>
-                            <input type="number" id="sale-qty" placeholder="Quantity Sold" required style="margin-bottom: 10px;">
+                            <input type="number" id="sale-qty" placeholder="Quantity Sold" style="margin-bottom: 10px;">
                             
                             <label style="font-weight:bold; font-size:14px;">Selling Rate (Per Pcs)</label>
-                            <input type="number" id="sale-rate" placeholder="Sales Rate Per Pcs (₹)" required step="0.01">
+                            <input type="number" id="sale-rate" placeholder="Sales Rate Per Pcs (₹)" step="0.01">
                             
-                            <button type="submit" style="background-color: #27ae60;">Save Standard Sale</button>
+                            <!-- Cart Buttons and Display -->
+                            <div style="display: flex; gap: 10px; margin-top: 15px; margin-bottom: 10px;">
+                                <button type="button" id="btn-add-to-cart" style="background-color: #f39c12; flex: 1; padding: 10px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">+ Add Item to List</button>
+                            </div>
+
+                            <div id="cart-container" style="display: none; background: rgba(0,0,0,0.03); border: 1px solid #ccc; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #bbb; padding-bottom: 5px;">Items to Sell</h4>
+                                <ul id="cart-list" style="list-style: none; padding: 0; margin: 0; font-size: 13px;"></ul>
+                                <p style="margin: 10px 0 0 0; text-align: right; font-weight: bold; font-size: 16px;">Total: ₹<span id="cart-total">0.00</span></p>
+                            </div>
+                            
+                            <button type="submit" id="btn-save-sale" style="background-color: #27ae60; width: 100%; border: none; padding: 10px; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Save All Sales</button>
                         </form>
                     </div>
 
