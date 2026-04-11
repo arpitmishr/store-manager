@@ -182,34 +182,26 @@ tabs.forEach(tab => {
 });
 
 // ----- DATABASE LISTENERS -----
+// Add a variable at the top of your JS or right above this function to hold the search term
+let currentInventorySearch = "";
+
 function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        allInventory =[];
-        let rowsHtml =[];
+        allInventory = [];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
             item.id = docSnap.id;
             allInventory.push(item);
-
-            const itemName = item.name || "Unknown";
-            const itemQty = Number(item.qty) || 0;
-            const itemPrice = Number(item.price) || 0;
-
-            rowsHtml.push(`<tr><td class="px-6 py-4">${itemName}</td><td class="px-6 py-4">${itemQty}</td><td class="px-6 py-4">₹${itemPrice.toFixed(2)}</td>
-                <td class="px-6 py-4 flex gap-2"><button class="btn-edit bg-warning hover:bg-yellow-500 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}"><i class="fa-solid fa-pen-to-square pointer-events-none"></i></button>
-                <button class="btn-delete bg-danger hover:bg-red-600 text-white rounded px-3 py-1 transition-colors" data-id="${item.id}"><i class="fa-solid fa-trash pointer-events-none"></i></button></td></tr>`);
         });
 
-        document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
+        renderInventoryTable(); // Call our new rendering function
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
-        allTransactions =[];
-
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
             trans.id = docSnap.id; 
