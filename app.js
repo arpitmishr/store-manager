@@ -182,8 +182,9 @@ tabs.forEach(tab => {
 });
 
 // ----- DATABASE LISTENERS -----
-// Add a variable at the top of your JS or right above this function to hold the search term
+// --- NEW INVENTORY STATE VARIABLES ---
 let currentInventorySearch = "";
+let currentInventoryFilter = "all"; // 'all', 'out', or 'low'
 
 function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
@@ -195,7 +196,9 @@ function startDatabaseListeners() {
             allInventory.push(item);
         });
 
-        renderInventoryTable(); // Call our new rendering function
+        // Update the new UI features
+        updateInventoryStats();
+        renderInventoryTable();
         
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
@@ -934,13 +937,132 @@ purchaseForm.addEventListener('submit', async (e) => {
     }
 });
 
-// ----- INVENTORY ADD/EDIT/DELETE -----
+// ==========================================
+// ====== INVENTORY REDESIGN LOGIC ==========
+// ==========================================
+
+// 1. Render Top Stat Cards
+function updateInventoryStats() {
+    let totalItems = allInventory.length;
+    let outCount = 0;
+    let lowCount = 0;
+    let totalValue = 0;
+
+    allInventory.forEach(item => {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        
+        totalValue += (qty * price);
+        if (qty === 0) outCount++;
+        else if (qty <= 2) lowCount++; // Set to 2 based on your new design
+    });
+
+    document.getElementById('stat-inv-total').innerText = totalItems;
+    document.getElementById('stat-inv-value').innerText = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    document.getElementById('stat-inv-out').innerText = outCount;
+    document.getElementById('stat-inv-low').innerText = lowCount;
+}
+
+// 2. Render Table with Filters, Badges & Search
+function renderInventoryTable() {
+    let rowsHtml = [];
+    const query = currentInventorySearch.toLowerCase().trim();
+
+    // Filter Items based on Tabs & Search
+    let filtered = allInventory.filter(item => {
+        const itemName = (item.name || "").toLowerCase();
+        const qty = Number(item.qty) || 0;
+        
+        // Search filter
+        if (query && !itemName.includes(query)) return false;
+        
+        // Tab Filter
+        if (currentInventoryFilter === 'out' && qty !== 0) return false;
+        if (currentInventoryFilter === 'low' && (qty === 0 || qty > 2)) return false;
+        
+        return true;
+    });
+
+    filtered.forEach((item) => {
+        const itemName = item.name || "Unknown";
+        const itemQty = Number(item.qty) || 0;
+        const itemPrice = Number(item.price) || 0;
+        const stockValue = itemQty * itemPrice;
+
+        // Generate Status Badge
+        let badgeHtml = "";
+        if (itemQty === 0) {
+            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full whitespace-nowrap">Out of stock</span>`;
+        } else if (itemQty <= 2) {
+            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full whitespace-nowrap">Low &mdash; ${itemQty} left</span>`;
+        } else {
+            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full whitespace-nowrap">${itemQty} in stock</span>`;
+        }
+
+        rowsHtml.push(`
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-5 py-4">
+                <div class="font-medium text-gray-900 dark:text-white">${itemName}</div>
+            </td>
+            <td class="px-5 py-4 text-right text-gray-900 dark:text-gray-100 font-medium">${itemQty}</td>
+            <td class="px-5 py-4 text-right text-gray-900 dark:text-gray-100">₹${itemPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="px-5 py-4 text-right text-gray-600 dark:text-gray-400 font-medium">₹${stockValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="px-5 py-4 text-right">${badgeHtml}</td>
+            <td class="px-5 py-4 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="btn-edit w-8 h-8 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:text-primary hover:border-primary dark:hover:text-primary transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}" title="Edit">
+                        <i class="fa-solid fa-pen pointer-events-none text-xs"></i>
+                    </button>
+                    <button class="btn-delete w-8 h-8 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-danger hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:border-red-800 transition-colors" data-id="${item.id}" title="Delete">
+                        <i class="fa-solid fa-xmark pointer-events-none"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`);
+    });
+
+    if (filtered.length === 0) {
+        rowsHtml.push(`<tr><td colspan="6" class="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No items found.</td></tr>`);
+    }
+
+    document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
+}
+
+// 3. Search & Tab Listeners
+document.getElementById('search-inventory').addEventListener('input', (e) => {
+    currentInventorySearch = e.target.value;
+    renderInventoryTable();
+});
+
+document.querySelectorAll('.inv-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        // Reset styles on all tabs
+        document.querySelectorAll('.inv-tab').forEach(t => {
+            t.classList.remove('active', 'bg-white', 'dark:bg-gray-600', 'text-primary', 'shadow-sm', 'border-gray-200', 'dark:border-gray-500');
+            t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+        });
+        
+        // Add active styles to clicked tab
+        const activeBtn = e.target;
+        activeBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+        activeBtn.classList.add('active', 'bg-white', 'dark:bg-gray-600', 'text-primary', 'shadow-sm', 'border-gray-200', 'dark:border-gray-500');
+        
+        currentInventoryFilter = activeBtn.getAttribute('data-filter');
+        renderInventoryTable();
+    });
+});
+
+// 4. Form Submit Logic (Add/Edit)
 const inventoryForm = document.getElementById('form-inventory');
 inventoryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('inv-name').value.trim();
-    let qty = parseInt(document.getElementById('inv-qty').value); let price = parseFloat(document.getElementById('inv-price').value);
-    if (isNaN(qty)) qty = 0; if (isNaN(price)) price = 0;
+    let qty = parseInt(document.getElementById('inv-qty').value); 
+    let price = parseFloat(document.getElementById('inv-price').value);
+    
+    if (isNaN(qty)) qty = 0; 
+    if (isNaN(price)) price = 0;
+    
     const editId = inventoryForm.getAttribute('data-edit-id'); 
 
     if (editId) { 
@@ -954,17 +1076,25 @@ inventoryForm.addEventListener('submit', async (e) => {
     }
 });
 
+// 5. Form Cancel Logic
 document.getElementById('btn-inv-cancel').addEventListener('click', resetInventoryForm);
+
 function resetInventoryForm() {
-    inventoryForm.reset(); inventoryForm.removeAttribute('data-edit-id');
+    inventoryForm.reset(); 
+    inventoryForm.removeAttribute('data-edit-id');
     document.getElementById('btn-inv-submit').innerText = "Save";
-    document.getElementById('inv-form-title').innerText = "Add Item";
+    document.getElementById('inv-form-title').innerText = "Add new item";
     document.getElementById('btn-inv-cancel').style.display = "none";
 }
 
+// 6. Table Edit/Delete Click Logic
 document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
     const btnDel = e.target.closest('.btn-delete');
-    if (btnDel) if (confirm("Delete this item?")) await deleteDoc(doc(db, "inventory", btnDel.getAttribute('data-id')));
+    if (btnDel) {
+        if (confirm("Delete this item?")) {
+            await deleteDoc(doc(db, "inventory", btnDel.getAttribute('data-id')));
+        }
+    }
     
     const btnEdit = e.target.closest('.btn-edit');
     if (btnEdit) {
@@ -972,12 +1102,16 @@ document.querySelector('#table-inventory tbody').addEventListener('click', async
         document.getElementById('inv-qty').value = btnEdit.getAttribute('data-qty');
         document.getElementById('inv-price').value = btnEdit.getAttribute('data-price');
         inventoryForm.setAttribute('data-edit-id', btnEdit.getAttribute('data-id'));
+        
         document.getElementById('btn-inv-submit').innerText = "Update";
-        document.getElementById('inv-form-title').innerText = `Editing: ${btnEdit.getAttribute('data-name')}`;
+        document.getElementById('inv-form-title').innerText = `Edit item`;
         document.getElementById('btn-inv-cancel').style.display = "inline-block";
+        
+        document.getElementById('inv-name').focus();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 });
+
 
 
 // ==========================================
