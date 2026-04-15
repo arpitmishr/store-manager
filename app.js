@@ -543,7 +543,10 @@ function renderTransactionsTable() {
 
 document.querySelector('#table-transactions tbody').addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-return')) {
-        const id = e.target.getAttribute('data-id');
+        const btn = e.target;
+        if (btn.disabled) return; // Prevent double clicking return
+
+        const id = btn.getAttribute('data-id');
         const t = allTransactions.find(x => x.id === id);
         if (!t) return;
 
@@ -555,6 +558,12 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
             alert(`Invalid quantity! Must be between 1 and ${t.qty}`);
             return;
         }
+
+        // Freeze button
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         let returnAmount = (t.amount / t.qty) * returnQty;
         let newType = t.type === 'Sale' ? 'Sale Return' : (t.type === 'Purchase' ? 'Purchase Return' : 'Cosmetic Return');
@@ -587,9 +596,15 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         } catch (err) {
             console.error(err);
             alert("Error processing the return.");
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 });
+
+
+
 
 
 // ==========================================
@@ -819,7 +834,15 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     }
 
     let amount = qty * rate;
-    saleCart.push({ item, qty, rate, amount });
+
+    // FIX: Check if item already exists in the cart, if yes just increase qty to prevent math errors
+    const existingIndex = saleCart.findIndex(c => c.item === item && c.rate === rate);
+    if (existingIndex !== -1) {
+        saleCart[existingIndex].qty += qty;
+        saleCart[existingIndex].amount += amount;
+    } else {
+        saleCart.push({ item, qty, rate, amount });
+    }
     
     document.getElementById('sale-item').value = '';
     document.getElementById('sale-qty').value = '';
@@ -829,10 +852,16 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     updateCartUI();
 });
 
+
+
+
 // INSTANT MULTI-SALE SAVE
 const saleForm = document.getElementById('form-sale');
 saleForm.addEventListener('submit', async (e) => {
     e.preventDefault(); 
+    
+    const submitBtn = document.getElementById('btn-save-sale');
+    if (submitBtn.disabled) return; // FIX: Prevent double clicks while processing
     
     const pendingItem = document.getElementById('sale-item').value.trim();
     if (pendingItem) {
@@ -843,6 +872,12 @@ saleForm.addEventListener('submit', async (e) => {
         alert("No items in the list to sell!");
         return;
     }
+
+    // --- LOCK UI & SHOW LOADING ---
+    const originalBtnHTML = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing...`;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
     try {
         const batch = writeBatch(db);
@@ -860,13 +895,14 @@ saleForm.addEventListener('submit', async (e) => {
             const localInvItem = allInventory.find(inv => inv.name === cartItem.item);
             if (localInvItem) {
                 let newQty = Number(localInvItem.qty) - cartItem.qty;
-                batch.update(doc(db, "inventory", localInvItem.id), { qty: newQty < 0 ? 0 : newQty });
+                localInvItem.qty = newQty < 0 ? 0 : newQty; // Update local state inside loop to prevent double deduction issues
+                batch.update(doc(db, "inventory", localInvItem.id), { qty: localInvItem.qty });
             }
         }
 
         await batch.commit(); 
 
-        saleCart =[];
+        saleCart = [];
         updateCartUI();
         saleForm.reset();
         document.getElementById('sale-cost').value = '';
@@ -877,13 +913,32 @@ saleForm.addEventListener('submit', async (e) => {
     } catch (error) { 
         console.error(error); 
         alert("An error occurred while saving the sale.");
+    } finally {
+        // --- UNLOCK UI ---
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
     }
 });
+
+
+
+
 
 // COSMETIC SALE 
 const cosmeticForm = document.getElementById('form-cosmetic');
 cosmeticForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const submitBtn = cosmeticForm.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) return;
+
+    // Lock UI
+    const originalBtnHTML = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
     const item = document.getElementById('cosmetic-item').value.trim() + " (Cosmetic)";
     let qty = parseInt(document.getElementById('cosmetic-qty').value);
     let cost = parseFloat(document.getElementById('cosmetic-cost').value);
@@ -895,16 +950,35 @@ cosmeticForm.addEventListener('submit', async (e) => {
         await addDoc(collection(db, "transactions"), { type: "Cosmetic Sale", item, qty, cost, rate, amount, date });
         cosmeticForm.reset();
         
-        // Trigger Happy Animation!
         showSuccessAnimation("Cosmetic Sale Saved!");
-        
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e);
+        alert("Error saving cosmetic sale."); 
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
 });
+
+
+
+
 
 // INSTANT PURCHASE SAVE
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    const submitBtn = purchaseForm.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) return;
+
+    // Lock UI
+    const originalBtnHTML = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
     const item = document.getElementById('purchase-item').value.trim();
     let qty = parseInt(document.getElementById('purchase-qty').value);
     let amount = parseFloat(document.getElementById('purchase-amount').value);
@@ -927,15 +1001,18 @@ purchaseForm.addEventListener('submit', async (e) => {
         await batch.commit();
 
         purchaseForm.reset();
-        
-        // Trigger Happy Animation!
         showSuccessAnimation("Purchase Recorded!");
         
     } catch (e) { 
         console.error(e); 
         alert("Error saving purchase.");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
     }
 });
+
 
 // ==========================================
 // ====== INVENTORY REDESIGN LOGIC ==========
