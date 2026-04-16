@@ -205,6 +205,8 @@ function startDatabaseListeners() {
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
+        allTransactions = []; // FIX: Added this to empty the array before adding so it stops infinitely duplicating items
+
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
             trans.id = docSnap.id; 
@@ -381,6 +383,7 @@ function updateDashboardMetrics() {
                 todayItemTrends[t.item] = (todayItemTrends[t.item] || 0) + qty; 
             }
         } else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') {
+            // NOTE: Retained to calculate accurate totals for past returns if they still exist
             overallSales -= amt;
             let cost = t.type === 'Sale Return' ? ((invMap[t.item]?.cost || 0) * qty) : ((Number(t.cost) || 0) * qty);
             overallCogs -= cost;
@@ -566,18 +569,23 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         btn.classList.add('opacity-50', 'cursor-not-allowed');
 
         let returnAmount = (t.amount / t.qty) * returnQty;
-        let newType = t.type === 'Sale' ? 'Sale Return' : (t.type === 'Purchase' ? 'Purchase Return' : 'Cosmetic Return');
 
         try {
             const batch = writeBatch(db);
-            const date = new Date().toISOString();
 
-            let returnPayload = { type: newType, item: t.item, qty: returnQty, amount: returnAmount, date: date };
-            if (t.type === 'Cosmetic Sale') returnPayload.cost = t.cost; 
+            // FIX: Instead of adding a new "Return" transaction, we delete or update the original!
+            if (returnQty === t.qty) {
+                // Completely remove the transaction if returned fully (Cleans up the ledger!)
+                batch.delete(doc(db, "transactions", t.id));
+            } else {
+                // If it's a partial return, we simply reduce the quantity and amount of the original item
+                batch.update(doc(db, "transactions", t.id), {
+                    qty: t.qty - returnQty,
+                    amount: t.amount - returnAmount
+                });
+            }
             
-            const transRef = doc(collection(db, "transactions"));
-            batch.set(transRef, returnPayload);
-            
+            // Adjust Inventory Stock Level accordingly
             if (t.type !== 'Cosmetic Sale') {
                 const localInvItem = allInventory.find(i => i.name === t.item);
                 if (localInvItem) {
