@@ -156,6 +156,9 @@
                 <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <i class="fa-solid fa-magnifying-glass-chart w-5"></i> Analytics
                 </button>
+                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+    <i class="fa-solid fa-fire w-5"></i> Trend Engine
+</button>
             </nav>
 
             <div class="p-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
@@ -177,6 +180,10 @@
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
                     <div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20 shadow-sm"><i class="fa-regular fa-calendar mr-1"></i> Today</div>
                 </div>
+
+                <div id="tab-trends" class="tab max-w-7xl mx-auto">
+    <div id="trend-tab-container"></div>
+</div>
                 
                 <!-- Today's Snapshot -->
                 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
@@ -533,6 +540,7 @@
             <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-list-ul text-lg mb-1"></i><span class="text-[10px] font-medium">Ledger</span></button>
             <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[10px] font-medium">Analytics</span></button>
             <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-gear text-lg mb-1"></i><span class="text-[10px] font-medium">Config</span></button>
+            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-fire text-lg mb-1"></i><span class="text-[10px] font-medium">Trends</span></button>
         </nav>
         
     </div>
@@ -553,5 +561,6 @@
     
     <!-- Link to your App logic -->
     <script type="module" src="app.js"></script>
+    <script src="trend-engine.js"></script>
 </body>
 </html>
