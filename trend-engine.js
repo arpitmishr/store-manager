@@ -998,4 +998,23 @@ const TrendEngine = (() => {
   }
 
   function recordSale(saleObj) {
-    const history = Utils.ls.get('te_sales_history') ||
+   const history = Utils.ls.get('te_sales_history') ||[];
+        history.push({ ...saleObj, id: `local_${Date.now()}` });
+        Utils.ls.set('te_sales_history', history.slice(-1000));
+    }
+
+    return {
+        init, 
+        renderTab, 
+        refresh, 
+        setStock, 
+        recordSale,
+        _switchTab, 
+        _filterNotifs, 
+        _markAllRead, 
+        _readNotif
+    };
+})();
+
+// Expose to window so app.js can trigger it
+window.TrendEngine = TrendEngine;
