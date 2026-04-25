@@ -1,6 +1,6 @@
 // Import Firebase SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDocs, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, updateDoc, getDocs, where, writeBatch, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // Your Firebase configuration
@@ -16,6 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+window.db = db;
+window.doc = doc;
+window.collection = collection;
+window.setDoc = setDoc;
+window.getDoc = getDoc;
 
 let unsubInventory = null;
 let unsubTransactions = null;
@@ -147,6 +153,13 @@ onAuthStateChanged(auth, (user) => {
         startDatabaseListeners();
         setupPredictiveSearch('sale-item', 'sale-item-dropdown', true);
         setupPredictiveSearch('purchase-item', 'purchase-item-dropdown', false);
+        
+        setTimeout(() => {
+            if(window.TrendEngine) {
+                TrendEngine.init(db);
+                TrendEngine.renderTab('trend-tab-container');
+            }
+        }, 1500);
     } else {
         document.getElementById('login-container').style.display = 'flex';
         document.getElementById('app-container').style.display = 'none';
@@ -168,7 +181,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
 // ----- TAB NAVIGATION -----
-const tabs =['dashboard', 'transactions', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
+const tabs =['dashboard', 'transactions', 'trends', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
 tabs.forEach(tab => {
     document.getElementById(`btn-${tab}`).addEventListener('click', () => {
         tabs.forEach(t => {
@@ -182,21 +195,23 @@ tabs.forEach(tab => {
 });
 
 // ----- DATABASE LISTENERS -----
-// --- NEW INVENTORY STATE VARIABLES ---
 let currentInventorySearch = "";
-let currentInventoryFilter = "all"; // 'all', 'out', or 'low'
+let currentInventoryFilter = "all";
 
 function startDatabaseListeners() {
     unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        allInventory = [];
+        allInventory =[];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
             item.id = docSnap.id;
             allInventory.push(item);
+            
+            if (window.TrendEngine) {
+                TrendEngine.setStock(item.name, Number(item.qty));
+            }
         });
 
-        // Update the new UI features
         updateInventoryStats();
         renderInventoryTable();
         
@@ -205,7 +220,7 @@ function startDatabaseListeners() {
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
-        allTransactions = []; // FIX: Added this to empty the array before adding so it stops infinitely duplicating items
+        allTransactions =[];
 
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
@@ -213,13 +228,19 @@ function startDatabaseListeners() {
             allTransactions.push(trans);
         });
         
-        updateYearDropdown(allTransactions); // Update the dropdown lists!
+        window.allTransactions = allTransactions;
         
+        updateYearDropdown(allTransactions);
         renderTransactionsTable();
         updateDashboardMonths(allTransactions);
         renderDashboardTopItems();
         updateDashboardMetrics();
+        
         if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+        
+        if (document.getElementById('tab-trends') && document.getElementById('tab-trends').classList.contains('active') && window.TrendEngine) {
+            TrendEngine.refresh();
+        }
     });
 }
 
@@ -227,6 +248,8 @@ function stopDatabaseListeners() {
     if (unsubInventory) unsubInventory();
     if (unsubTransactions) unsubTransactions();
 }
+
+
 
 
 // ==========================================
