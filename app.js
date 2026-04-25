@@ -182,17 +182,35 @@ document.getElementById('btn-logout').addEventListener('click', () => signOut(au
 
 // ----- TAB NAVIGATION -----
 const tabs =['dashboard', 'transactions', 'trends', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
+
 tabs.forEach(tab => {
-    document.getElementById(`btn-${tab}`).addEventListener('click', () => {
-        tabs.forEach(t => {
-            document.getElementById(`tab-${t}`).classList.remove('active');
-            document.getElementById(`btn-${t}`).classList.remove('active');
+    const btn = document.getElementById(`btn-${tab}`);
+    if(btn) {
+        btn.addEventListener('click', () => {
+            tabs.forEach(t => {
+                const tabEl = document.getElementById(`tab-${t}`);
+                const btnEl = document.getElementById(`btn-${t}`);
+                if(tabEl) tabEl.classList.remove('active');
+                if(btnEl) btnEl.classList.remove('active');
+            });
+            
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`btn-${tab}`).classList.add('active');
+            
+            if(tab === 'analytics') setTimeout(runAnalytics, 10); 
+            
+            // Guarantee Trend Engine draws when clicked if it hasn't yet
+            if(tab === 'trends' && window.TrendEngine) {
+                if(!document.getElementById('te-root')) {
+                    TrendEngine.renderTab('trend-tab-container');
+                }
+            }
         });
-        document.getElementById(`tab-${tab}`).classList.add('active');
-        document.getElementById(`btn-${tab}`).classList.add('active');
-        if(tab === 'analytics') setTimeout(runAnalytics, 10); 
-    });
+    }
 });
+
+
+
 
 // ----- DATABASE LISTENERS -----
 let currentInventorySearch = "";
