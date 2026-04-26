@@ -217,18 +217,17 @@ let currentInventorySearch = "";
 let currentInventoryFilter = "all";
 
 function startDatabaseListeners() {
-    unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
+   unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
         allInventory =[];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
             item.id = docSnap.id;
             allInventory.push(item);
-            
-            if (window.TrendEngine) {
-                TrendEngine.setStock(item.name, Number(item.qty));
-            }
         });
+
+        // Add this one magical line so Trend Engine can see your stock
+        window.allInventory = allInventory;
 
         updateInventoryStats();
         renderInventoryTable();
