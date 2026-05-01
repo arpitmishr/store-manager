@@ -4,19 +4,18 @@
 // ============================================================================
 
 const TrendEngine = (() => {
-    let teChartInstance = null; // Store chart instance to prevent overlaps
+    let teChartInstance = null; 
 
     const STATE = {
         initialized: false,
-        insights: [],
+        healthMetrics: { optimal: 0, stockoutRisk: 0, overstocked: 0 }, // Replaces old insights
         events: [],
         yoy: [],
         monthlyYoY: { cmSales: 0, lymSales: 0, change: 0 },
         chartData: { labels: [], currentYear: [], lastYear: [] },
-        forecast: [], // New: Upcoming demand predictions
+        forecast: [],
         deadStock: [],
         marginLeaks: [],
-        stockoutRisks: [],
         hotItems: []
     };
 
@@ -46,11 +45,22 @@ const TrendEngine = (() => {
             if (!window.allTransactions || !window.allInventory) return;
             
             // Reset state
-            STATE.insights = []; STATE.events = []; STATE.yoy = []; STATE.deadStock = []; 
-            STATE.marginLeaks = []; STATE.stockoutRisks = []; STATE.hotItems = []; STATE.forecast = [];
+            STATE.events = []; STATE.yoy = []; STATE.deadStock = []; 
+            STATE.hotItems = []; STATE.forecast = [];
+            STATE.healthMetrics = { optimal: 0, stockoutRisk: 0, overstocked: 0 };
 
             const now = new Date();
             const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth(); // 0 = Jan, 11 = Dec
+            
+            // SEASONALITY DEFINITION: Winter is Oct(9) through Feb(1)
+            const isWinterSeason = (currentMonth >= 9 || currentMonth <= 1);
+            
+            // Helper to check if an item is a Winter Item (Contains "G Frock" or standalone "G")
+            const isWinterItem = (itemName) => {
+                const lowerName = itemName.toLowerCase();
+                return lowerName.includes('g frock') || lowerName.match(/\bg\b/); 
+            };
             
             // 1. Group Transactions by Item
             const itemTx = {};
@@ -66,12 +76,11 @@ const TrendEngine = (() => {
             STATE.chartData.lastYear = new Array(12).fill(0);
 
             let cmSales = 0, lymSales = 0;
-            let currentMonthStart = new Date(currentYear, now.getMonth(), 1);
-            let lastYearMonthStart = new Date(currentYear - 1, now.getMonth(), 1);
-            let lastYearMonthEnd = new Date(currentYear - 1, now.getMonth() + 1, 0, 23, 59, 59);
+            let currentMonthStart = new Date(currentYear, currentMonth, 1);
+            let lastYearMonthStart = new Date(currentYear - 1, currentMonth, 1);
+            let lastYearMonthEnd = new Date(currentYear - 1, currentMonth + 1, 0, 23, 59, 59);
             
-            let totalTySales = 0;
-            let totalLySales = 0;
+            let totalTySales = 0, totalLySales = 0;
 
             window.allTransactions.forEach(t => {
                 if(!t.type.includes('Sale')) return;
@@ -80,32 +89,26 @@ const TrendEngine = (() => {
                 let y = d.getFullYear();
                 let amt = Number(t.amount) || 0;
 
-                // Graph population
-                if (y === currentYear) {
-                    STATE.chartData.currentYear[m] += amt;
-                    totalTySales += amt;
-                }
-                if (y === currentYear - 1) {
-                    STATE.chartData.lastYear[m] += amt;
-                    totalLySales += amt;
-                }
+                if (y === currentYear) { STATE.chartData.currentYear[m] += amt; totalTySales += amt; }
+                if (y === currentYear - 1) { STATE.chartData.lastYear[m] += amt; totalLySales += amt; }
 
-                // Current Month Exact YoY
                 if (d >= currentMonthStart) cmSales += amt;
                 if (d >= lastYearMonthStart && d <= lastYearMonthEnd) lymSales += amt;
             });
 
             STATE.monthlyYoY = { cmSales, lymSales, change: lymSales > 0 ? ((cmSales - lymSales) / lymSales) * 100 : 0 };
-            
-            // Calculate Global Growth Factor for Forecasting
             let globalGrowthFactor = totalLySales > 0 ? (totalTySales / totalLySales) : 1.1; 
-            if(globalGrowthFactor > 2) globalGrowthFactor = 2; // Cap insane spikes
-            if(globalGrowthFactor < 0.5) globalGrowthFactor = 0.5; // Floor catastrophic drops
+            if(globalGrowthFactor > 1.5) globalGrowthFactor = 1.5; 
+            if(globalGrowthFactor < 0.5) globalGrowthFactor = 0.5;
 
-            // 3. AI-Style Predictive Demand (Forecast Next 30 Days)
+            // 3. AI Predictive Demand (Forecast Next 30 Days)
             let futureStartLy = new Date(now); futureStartLy.setFullYear(currentYear - 1);
             let futureEndLy = new Date(futureStartLy); futureEndLy.setDate(futureEndLy.getDate() + 30);
             
+            let t30 = new Date(now); t30.setDate(now.getDate() - 30);
+            let t14 = new Date(now); t14.setDate(now.getDate() - 14);
+            let t7 = new Date(now); t7.setDate(now.getDate() - 7);
+
             let projectedDemandMap = {};
             window.allTransactions.forEach(t => {
                 if(!t.type.includes('Sale')) return;
@@ -117,15 +120,34 @@ const TrendEngine = (() => {
 
             window.allInventory.forEach(inv => {
                 let pastDemand = projectedDemandMap[inv.name] || 0;
-                
-                // Advanced Algorithm: (Past Demand * Global Growth) + recent 7-day velocity spike weight
                 let sales = itemTx[inv.name]?.sales || [];
-                let recent7 = sales.filter(t => new Date(t.date) >= new Date(now.getTime() - 7*86400000)).reduce((sum, t) => sum + Number(t.qty), 0);
                 
-                // If it's selling super fast recently, boost the projection
-                let projectedQty = Math.ceil((pastDemand * globalGrowthFactor) + (recent7 * 2)); 
+                // Get recent sales velocity
+                let recent30 = sales.filter(t => new Date(t.date) >= t30).reduce((sum, t) => sum + Number(t.qty), 0);
+                let recent7 = sales.filter(t => new Date(t.date) >= t7).reduce((sum, t) => sum + Number(t.qty), 0);
+                let prev7 = sales.filter(t => new Date(t.date) >= t14 && new Date(t.date) < t7).reduce((sum, t) => sum + Number(t.qty), 0);
                 
-                if (projectedQty > 2) { // Only forecast meaningful demand
+                // SEASONALITY GUARD: Skip Winter clothes if we are NOT in Winter
+                if (isWinterItem(inv.name) && !isWinterSeason) {
+                    return; 
+                }
+
+                // Smooth projection: 60% weight to recent 30 days, 40% to historical seasonality
+                let projectedQty = Math.ceil((recent30 * 0.6) + (pastDemand * globalGrowthFactor * 0.4)); 
+                
+                // Inventory Health Engine (replaces old insights)
+                if (inv.qty > 0 || projectedQty > 0) {
+                    if (projectedQty > inv.qty && projectedQty > 0) {
+                        STATE.healthMetrics.stockoutRisk++;
+                    } else if (inv.qty > (projectedQty * 3) && inv.qty > 5) {
+                        STATE.healthMetrics.overstocked++;
+                    } else if (inv.qty > 0) {
+                        STATE.healthMetrics.optimal++;
+                    }
+                }
+
+                // Populate Order Forecast Data
+                if (projectedQty > 0) { 
                     let gap = projectedQty - Number(inv.qty);
                     if (gap > 0) {
                         STATE.forecast.push({
@@ -136,46 +158,36 @@ const TrendEngine = (() => {
                         });
                     }
                 }
-            });
-            STATE.forecast.sort((a,b) => b.suggestedOrder - a.suggestedOrder); // Highest need first
 
-            // 4. Hot Items & Dead Stock Analysis
-            let t30 = new Date(); t30.setDate(now.getDate() - 30);
-            let t7 = new Date(); t7.setDate(now.getDate() - 7);
-
-            window.allInventory.forEach(inv => {
-                let sales = itemTx[inv.name]?.sales || [];
-                
                 // Dead Stock (Unsold for 45+ days)
                 let lastSaleDate = sales.length > 0 ? new Date(sales[0].date) : null;
                 let daysSince = lastSaleDate ? Utils.daysDiff(lastSaleDate, now) : 999;
                 let lockedCapital = inv.qty * inv.price;
 
-                if (inv.qty > 0 && daysSince >= 45 && lockedCapital >= 200) {
+                if (inv.qty > 0 && daysSince >= 45 && lockedCapital >= 100) {
                     STATE.deadStock.push({ item: inv.name, qty: inv.qty, days: daysSince, value: lockedCapital });
                 }
 
-                // Hot Items (Sales jumped >150% in last 7 days vs previous 23 days)
-                let recent30 = sales.filter(t => new Date(t.date) >= t30).reduce((sum, t) => sum + Number(t.qty), 0);
-                let recent7 = sales.filter(t => new Date(t.date) >= t7).reduce((sum, t) => sum + Number(t.qty), 0);
-                let prev23 = recent30 - recent7;
-                let burn23 = prev23 / 23;
-                let burn7 = recent7 / 7;
-
-                if (burn23 > 0 && burn7 > (burn23 * 1.5) && recent7 > 5) {
-                    STATE.hotItems.push({ item: inv.name, jump: Math.round(((burn7 - burn23) / burn23) * 100), recent7 });
+                // Hot Items (Growth in last 7 days compared to previous 7 days)
+                if (recent7 > prev7 && recent7 >= 2) {
+                    let jump = prev7 === 0 ? 100 : Math.round(((recent7 - prev7) / prev7) * 100);
+                    if (jump >= 20) { // Require at least 20% jump to be considered "Hot"
+                        STATE.hotItems.push({ item: inv.name, jump, recent7 });
+                    }
                 }
             });
+            
+            STATE.forecast.sort((a,b) => b.suggestedOrder - a.suggestedOrder); 
             STATE.deadStock.sort((a,b) => b.value - a.value);
             STATE.hotItems.sort((a,b) => b.jump - a.jump);
 
-            // 5. Regional Event Engine
-            let upcoming = getLocalEvents(now.getFullYear()).filter(e => {
-                let diff = Utils.daysDiff(now, e.start);
-                return diff >= -5 && diff <= 45; 
-            });
+            // 4. Regional Event Engine (Fixed to always find Next Events)
+            let allEvents = [...getLocalEvents(currentYear), ...getLocalEvents(currentYear + 1)];
+            
+            // Filter only upcoming events and sort chronologically
+            let upcomingEvents = allEvents.filter(e => e.start >= now).sort((a, b) => a.start - b.start).slice(0, 2);
 
-            upcoming.forEach(e => {
+            upcomingEvents.forEach(e => {
                 let lyStart = new Date(e.start); lyStart.setFullYear(lyStart.getFullYear() - 1);
                 let lyEnd = new Date(e.end); lyEnd.setFullYear(lyEnd.getFullYear() - 1);
 
@@ -190,28 +202,17 @@ const TrendEngine = (() => {
                     let inv = window.allInventory.find(i => i.name === item);
                     let currentStock = inv ? inv.qty : 0;
                     if (currentStock < lyQty * 0.8) {
-                        eventAction += `<li><b class="text-gray-900 dark:text-white">${item}</b>: Have ${currentStock}, Need ~${lyQty}</li>`;
+                        eventAction += `<li><b class="text-gray-900 dark:text-white">${item}</b>: Stock ${currentStock}, Sold ~${lyQty} last year</li>`;
                     }
                 });
 
                 STATE.events.push({
-                    name: e.name, type: e.type, days: Utils.daysDiff(now, e.start),
-                    actionHtml: eventAction || "<li class='text-green-600 font-semibold'>Inventory fully prepared based on last year's event data.</li>"
+                    name: e.name, 
+                    type: e.type, 
+                    days: Utils.daysDiff(now, e.start),
+                    actionHtml: eventAction || "<li class='text-green-600 font-semibold'>Inventory looks fully prepared based on last year.</li>"
                 });
             });
-
-            // 6. Generate "Sharp Insights" (Diagnostic Top Bar)
-            if (STATE.forecast.length > 0) {
-                STATE.insights.push({ type: 'forecast', icon: '📦', text: `<b>Order Required:</b> <b>${STATE.forecast[0].item}</b> is projected to sell ${STATE.forecast[0].projected} units next month. You only have ${STATE.forecast[0].currentStock}.` });
-            }
-            if (STATE.monthlyYoY.change <= -10) {
-                STATE.insights.push({ type: 'yoy', icon: '🚨', text: `<b>Revenue Warning:</b> You are down ${Math.abs(STATE.monthlyYoY.change).toFixed(1)}% this month compared to exactly the same time last year.`});
-            } else if (STATE.monthlyYoY.change >= 15) {
-                STATE.insights.push({ type: 'yoy', icon: '🚀', text: `<b>Massive Growth:</b> You are up ${STATE.monthlyYoY.change.toFixed(1)}% this month compared to last year. Keep it up!`});
-            }
-            if (STATE.events.length > 0 && STATE.events[0].actionHtml.includes('<b')) {
-                STATE.insights.push({ type: 'event', icon: '🎪', text: `<b>${STATE.events[0].name} is near.</b> Historical data suggests you are short on key supplies.` });
-            }
         }
     };
 
@@ -224,12 +225,6 @@ const TrendEngine = (() => {
                 .te-wrapper { font-family: 'Inter', sans-serif; display: flex; flex-direction: column; gap: 24px; padding-bottom: 20px;}
                 .te-section-title { font-size: 14px; font-weight: 800; color: #4b5563; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display:flex; align-items:center; gap:8px;}
                 .dark-mode .te-section-title { color: #d1d5db; }
-                
-                .te-insight-card { display: flex; gap: 16px; padding: 16px; border-radius: 12px; background: white; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.02); align-items: center; cursor: pointer; transition: transform 0.2s; }
-                .te-insight-card:hover { transform: translateY(-2px); border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);}
-                .dark-mode .te-insight-card { background: #1f2937; border-color: #374151; }
-                .te-insight-icon { font-size: 28px; flex-shrink: 0; background: #f3f4f6; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-                .dark-mode .te-insight-icon { background: #374151; }
                 
                 .te-grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
                 @media(min-width: 768px) { .te-grid-2 { grid-template-columns: 1fr 1fr; } }
@@ -249,11 +244,9 @@ const TrendEngine = (() => {
                 .dark-mode .te-table td { border-color: #374151; color: #f9fafb; }
                 .te-table tr:last-child td { border-bottom: none; }
                 
-                /* Badges */
                 .badge-order { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 99px; font-weight: 700; font-size: 12px;}
                 .dark-mode .badge-order { background: #7f1d1d; color: #fca5a5; }
 
-                /* Modal */
                 #te-drill-modal { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px; }
                 .te-drill-content { background: white; width: 100%; max-width: 600px; max-height: 80vh; border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
                 .dark-mode .te-drill-content { background: #1f2937; border: 1px solid #374151; }
@@ -269,7 +262,6 @@ const TrendEngine = (() => {
             const ctx = document.getElementById('te-yoy-chart');
             if (!ctx) return;
 
-            // Destroy previous instance to prevent overlapping hover glitches
             if (teChartInstance) {
                 teChartInstance.destroy();
             }
@@ -337,16 +329,27 @@ const TrendEngine = (() => {
 
             // --- HTML GENERATORS ---
 
-            // 1. Insights & Alerts
-            let insightsHtml = STATE.insights.map(i => `
-                <div class="te-insight-card">
-                    <div class="te-insight-icon">${i.icon}</div>
-                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-snug">${i.text}</div>
+            // 1. New Health Metrics
+            let healthHtml = `
+                <div class="te-data-card !p-4 border-l-4 !border-l-green-500 flex items-center justify-between">
+                    <div><div class="text-xs font-bold text-gray-500 uppercase">Optimal Flow</div>
+                    <div class="text-xl font-black text-green-600">${STATE.healthMetrics.optimal} Items</div></div>
+                    <i class="fa-solid fa-check-circle text-2xl text-green-200 dark:text-green-900"></i>
                 </div>
-            `).join('');
+                <div class="te-data-card !p-4 border-l-4 !border-l-orange-500 flex items-center justify-between">
+                    <div><div class="text-xs font-bold text-gray-500 uppercase">Stockout Risk</div>
+                    <div class="text-xl font-black text-orange-600">${STATE.healthMetrics.stockoutRisk} Items</div></div>
+                    <i class="fa-solid fa-triangle-exclamation text-2xl text-orange-200 dark:text-orange-900"></i>
+                </div>
+                <div class="te-data-card !p-4 border-l-4 !border-l-blue-500 flex items-center justify-between">
+                    <div><div class="text-xs font-bold text-gray-500 uppercase">Overstocked</div>
+                    <div class="text-xl font-black text-blue-600">${STATE.healthMetrics.overstocked} Items</div></div>
+                    <i class="fa-solid fa-boxes-stacked text-2xl text-blue-200 dark:text-blue-900"></i>
+                </div>
+            `;
 
-            // 2. Upcoming Demand Forecast (Predictive Engine)
-            let forecastHtml = STATE.forecast.slice(0, 6).map(f => `
+            // 2. Upcoming Demand Forecast
+            let forecastHtml = STATE.forecast.slice(0, 10).map(f => `
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="font-semibold cursor-pointer text-blue-600 dark:text-blue-400" onclick="TrendEngine.openDrillDownItem('${f.item}')">${f.item}</td>
                     <td class="text-right text-gray-500 dark:text-gray-400">${f.currentStock}</td>
@@ -356,20 +359,20 @@ const TrendEngine = (() => {
             `).join('');
 
             // 3. Regional Event Engine
-            let eventsHtml = STATE.events.slice(0, 2).map(e => `
+            let eventsHtml = STATE.events.map(e => `
                 <div class="te-data-card">
-                    <div class="te-card-strip"></div>
+                    <div class="te-card-strip" style="background-color:#a855f7;"></div>
                     <div class="flex justify-between items-center mb-3">
                         <h4 class="font-bold text-gray-900 dark:text-white text-base">${e.name}</h4>
-                        <span class="text-xs font-bold px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">${e.days <= 0 ? 'Active Now' : 'In '+e.days+' Days'}</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">${e.days === 0 ? 'Today' : 'In '+e.days+' Days'}</span>
                     </div>
-                    <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Historical Shortages:</div>
+                    <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Historical Recommendations:</div>
                     <ul class="list-disc pl-4 text-sm text-gray-600 dark:text-gray-300 space-y-1">${e.actionHtml}</ul>
                 </div>
             `).join('');
 
             // 4. Hot Items (Velocity)
-            let hotHtml = STATE.hotItems.slice(0, 4).map(h => `
+            let hotHtml = STATE.hotItems.slice(0, 5).map(h => `
                 <tr>
                     <td class="font-medium">${h.item}</td>
                     <td class="text-right text-green-500 font-bold">↑ ${h.jump}%</td>
@@ -378,7 +381,7 @@ const TrendEngine = (() => {
             `).join('');
 
             // 5. Dead Stock
-            let deadHtml = STATE.deadStock.slice(0, 4).map(d => `
+            let deadHtml = STATE.deadStock.slice(0, 5).map(d => `
                 <tr>
                     <td class="font-medium">${d.item}</td>
                     <td class="text-right text-red-500 font-bold">${d.days} days</td>
@@ -401,9 +404,8 @@ const TrendEngine = (() => {
                         </button>
                     </div>
 
-                    <!-- Visual Graph + Alerts Row -->
+                    <!-- Visual Graph + Inventory Health Row -->
                     <div class="te-grid-3">
-                        <!-- Chart Section (Takes up 2 columns on wide screens) -->
                         <div class="lg:col-span-2 te-data-card !p-0 flex flex-col">
                             <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                                 <h3 class="font-bold text-gray-800 dark:text-gray-200"><i class="fa-solid fa-chart-area text-blue-500 mr-2"></i> Revenue Trajectory (YoY)</h3>
@@ -416,10 +418,9 @@ const TrendEngine = (() => {
                             </div>
                         </div>
 
-                        <!-- Top Alerts Column -->
                         <div class="flex flex-col gap-3">
-                            <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-1 ml-1"><i class="fa-solid fa-bell text-yellow-500 mr-2"></i> Engine Insights</h3>
-                            ${insightsHtml || '<div class="p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-center text-gray-500 text-sm">All systems normal.</div>'}
+                            <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-1 ml-1"><i class="fa-solid fa-heart-pulse text-red-500 mr-2"></i> Inventory Health</h3>
+                            ${healthHtml}
                         </div>
                     </div>
 
@@ -437,7 +438,7 @@ const TrendEngine = (() => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${forecastHtml || '<tr><td colspan="4" class="text-center text-muted py-8">Inventory is sufficient for projected upcoming demand.</td></tr>'}
+                                    ${forecastHtml || '<tr><td colspan="4" class="text-center text-muted py-8">Inventory is completely sufficient for projected upcoming demand.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -447,16 +448,16 @@ const TrendEngine = (() => {
                     <div class="te-grid-2 mt-4">
                         <div>
                             <div class="te-section-title"><i class="fa-solid fa-calendar-days text-purple-500"></i> Event Intelligence</div>
-                            <div class="flex flex-col gap-4">${eventsHtml || '<div class="text-sm text-gray-500 border rounded-xl p-4 text-center">No major localized events detected in the near horizon.</div>'}</div>
+                            <div class="flex flex-col gap-4">${eventsHtml}</div>
                         </div>
 
                         <div class="flex flex-col gap-6">
                             <!-- Hot Items -->
                             <div>
-                                <div class="te-section-title"><i class="fa-solid fa-fire text-orange-500"></i> Sudden Velocity Spikes (7 Days)</div>
+                                <div class="te-section-title"><i class="fa-solid fa-fire text-orange-500"></i> Velocity Spikes (Last 7 Days)</div>
                                 <div class="te-table-wrap shadow-sm">
                                     <table class="te-table">
-                                        <tbody>${hotHtml || '<tr><td colspan="3" class="text-center text-muted py-6">No extreme sales spikes detected recently.</td></tr>'}</tbody>
+                                        <tbody>${hotHtml || '<tr><td colspan="3" class="text-center text-muted py-6">No rapid sales spikes detected this week.</td></tr>'}</tbody>
                                     </table>
                                 </div>
                             </div>
@@ -486,7 +487,6 @@ const TrendEngine = (() => {
                 </div>
             `;
 
-            // Draw the Chart.js graph immediately after HTML renders
             setTimeout(() => {
                 this.renderChart();
             }, 50);
@@ -525,7 +525,6 @@ const TrendEngine = (() => {
             UI.render(containerId);
         },
 
-        // Sync button animation & re-render
         refresh() {
             const btn = document.getElementById('te-btn-sync');
             if (btn) {
