@@ -1,6 +1,6 @@
 // ============================================================================
 // TIER-4 LOCALIZED TREND ENGINE (ADVANCED ANALYTICS & PREDICTIONS)
-// Focuses on: AI-like Demand Forecasting, Festival Targeting, Customer Requests
+// Focuses on: AI Demand Forecasting, Dynamic Festival Targeting, Customer Requests
 // ============================================================================
 
 const TrendEngine = (() => {
@@ -8,7 +8,7 @@ const TrendEngine = (() => {
 
     const STATE = {
         initialized: false,
-        focusedEventId: null, // User can manually select an event to analyze
+        focusedEventId: null, 
         healthMetrics: { optimal: 0, stockoutRisk: 0, overstocked: 0 }, 
         events: [],
         yoy: [],
@@ -20,24 +20,72 @@ const TrendEngine = (() => {
         hotItems: []
     };
 
-    const getLocalEvents = (year) => [
-        { id: 'kanwar', name: 'Kanwar Yatra / Shravan', start: new Date(`${year}-07-20`), end: new Date(`${year}-08-10`), type: 'pilgrimage' },
-        { id: 'chaitra', name: 'Chaitra Navratri', start: new Date(`${year}-03-22`), end: new Date(`${year}-03-30`), type: 'festival' },
-        { id: 'sharad', name: 'Sharad Navratri', start: new Date(`${year}-10-10`), end: new Date(`${year}-10-19`), type: 'festival' },
-        { id: 'diwali', name: 'Diwali & Dhanteras', start: new Date(`${year}-10-28`), end: new Date(`${year}-11-03`), type: 'festival' },
-        { id: 'holi', name: 'Holi', start: new Date(`${year}-03-03`), end: new Date(`${year}-03-05`), type: 'festival' },
-        { id: 'makar', name: 'Makar Sankranti', start: new Date(`${year}-01-13`), end: new Date(`${year}-01-15`), type: 'festival' },
-        { id: 'rabi', name: 'Wheat Harvest (Rabi)', start: new Date(`${year}-04-10`), end: new Date(`${year}-05-15`), type: 'agriculture' },
-        { id: 'kharif', name: 'Paddy Harvest (Kharif)', start: new Date(`${year}-10-15`), end: new Date(`${year}-11-20`), type: 'agriculture' },
-        { id: 'wedding_w', name: 'Winter Weddings', start: new Date(`${year}-11-15`), end: new Date(`${year+1}-02-28`), type: 'wedding' },
-        { id: 'wedding_s', name: 'Summer Weddings', start: new Date(`${year}-04-15`), end: new Date(`${year}-06-15`), type: 'wedding' },
-        { id: 'school', name: 'Back to School Session', start: new Date(`${year}-06-25`), end: new Date(`${year}-07-15`), type: 'education' }
-    ];
+    // DYNAMIC FESTIVAL GENERATOR (Auto-resets year and creates pre-shopping windows)
+    const getLocalEvents = (year) => {
+        const createEvent = (id, name, month, day, type, preDays = 7, postDays = 1) => {
+            // Month is 0-indexed in JS Dates (0 = Jan, 11 = Dec)
+            let eventDate = new Date(year, month - 1, day);
+            let start = new Date(eventDate);
+            start.setDate(start.getDate() - preDays); // Start tracking trends 'X' days before
+            let end = new Date(eventDate);
+            end.setDate(end.getDate() + postDays); // End tracking 'Y' days after
+            return { id: id + '_' + year, name: name, start: start, end: end, type: type, exactDate: eventDate };
+        };
+
+        return [
+            createEvent('new_year', "New Year's Day", 1, 1, 'national', 5, 1),
+            createEvent('guru_gobind', "Guru Gobind Singh Jayanti", 1, 3, 'festival'),
+            createEvent('lohri', "Lohri", 1, 13, 'festival'),
+            createEvent('makar_sankranti', "Makar Sankranti", 1, 14, 'festival'),
+            createEvent('pongal', "Pongal", 1, 14, 'festival'),
+            createEvent('bhogali_bihu', "Bhogali Bihu", 1, 14, 'festival'),
+            createEvent('vasant_panchami', "Vasant Panchami", 1, 23, 'festival'),
+            createEvent('republic_day', "Republic Day", 1, 26, 'national', 3, 1),
+            createEvent('maha_shivaratri', "Maha Shivaratri", 2, 15, 'festival', 7, 1),
+            createEvent('holi', "Holi", 3, 4, 'festival', 12, 2),
+            createEvent('ugadi', "Ugadi", 3, 19, 'festival'),
+            createEvent('gudi_padwa', "Gudi Padwa", 3, 19, 'festival'),
+            createEvent('eid_al_fitr', "Eid al-Fitr", 3, 20, 'festival', 10, 2),
+            createEvent('ram_navami', "Ram Navami", 3, 26, 'festival'),
+            createEvent('good_friday', "Good Friday", 4, 3, 'festival'),
+            createEvent('easter', "Easter Sunday", 4, 5, 'festival'),
+            createEvent('mahavir_jayanti', "Mahavir Jayanti", 4, 6, 'festival'),
+            createEvent('vaisakhi', "Vaisakhi", 4, 14, 'festival'),
+            createEvent('bohag_bihu', "Bohag Bihu", 4, 14, 'festival'),
+            createEvent('vishu', "Vishu", 4, 14, 'festival'),
+            createEvent('buddha_purnima', "Buddha Purnima", 5, 1, 'festival'),
+            createEvent('eid_al_adha', "Eid al-Adha", 5, 27, 'festival', 10, 2),
+            createEvent('muharram', "Muharram", 6, 26, 'festival'),
+            createEvent('rath_yatra', "Rath Yatra", 7, 16, 'festival'),
+            createEvent('independence_day', "Independence Day", 8, 15, 'national', 3, 1),
+            createEvent('raksha_bandhan', "Raksha Bandhan", 8, 19, 'festival', 10, 1),
+            createEvent('janmashtami', "Janmashtami", 8, 25, 'festival'),
+            createEvent('milad_un_nabi', "Milad-un-Nabi", 8, 26, 'festival'),
+            createEvent('onam', "Onam", 8, 26, 'festival'),
+            createEvent('ganesh_chaturthi', "Ganesh Chaturthi", 9, 14, 'festival', 7, 3),
+            createEvent('gandhi_jayanti', "Gandhi Jayanti", 10, 2, 'national', 2, 1),
+            createEvent('durga_puja', "Durga Puja", 10, 17, 'festival', 12, 3),
+            createEvent('dussehra', "Dussehra", 10, 20, 'festival', 10, 2),
+            createEvent('karwa_chauth', "Karwa Chauth", 10, 29, 'festival', 7, 1),
+            createEvent('dhanteras', "Dhanteras", 11, 6, 'festival', 7, 1),
+            createEvent('diwali', "Diwali", 11, 8, 'festival', 15, 2),
+            createEvent('govardhan_puja', "Govardhan Puja", 11, 10, 'festival'),
+            createEvent('bhai_dooj', "Bhai Dooj", 11, 11, 'festival'),
+            createEvent('chhath_puja', "Chhath Puja", 11, 15, 'festival', 7, 2),
+            createEvent('guru_nanak_jayanti', "Guru Nanak Jayanti", 11, 24, 'festival'),
+            createEvent('christmas', "Christmas", 12, 25, 'festival', 12, 2),
+            
+            // Retained General Seasons
+            { id: 'wedding_w_' + year, name: 'Winter Weddings', start: new Date(`${year}-11-15`), end: new Date(`${year+1}-02-28`), type: 'wedding', exactDate: new Date(`${year}-12-15`) },
+            { id: 'wedding_s_' + year, name: 'Summer Weddings', start: new Date(`${year}-04-15`), end: new Date(`${year}-06-15`), type: 'wedding', exactDate: new Date(`${year}-05-15`) },
+            { id: 'school_' + year, name: 'Back to School', start: new Date(`${year}-06-25`), end: new Date(`${year}-07-15`), type: 'education', exactDate: new Date(`${year}-07-01`) }
+        ];
+    };
 
     const Utils = {
         money: v => `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
         daysDiff: (d1, d2) => Math.floor((d2 - d1) / 86400000),
-        formatDate: d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }),
+        formatDate: d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
         months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     };
 
@@ -143,8 +191,8 @@ const TrendEngine = (() => {
                     pastDemand = defaultProjectedMap[inv.name] || 0;
                 }
 
-                // AI Demand Intensity Formula
-                let demandIntensityScore = (recent7 * 2) + (requestsQty * 8) + (pastDemand * globalGrowthFactor);
+                // AI Demand Intensity Formula (Favors Custom Requests heavily)
+                let demandIntensityScore = (recent7 * 2) + (requestsQty * 10) + (pastDemand * globalGrowthFactor);
                 
                 // Weight: 30% recent sales, 70% past festival demand (if focused) or 40/60 if default + Add 100% of custom orders
                 let historyWeight = focusedEvent ? 0.7 : 0.4;
@@ -202,9 +250,12 @@ const TrendEngine = (() => {
             STATE.hotItems.sort((a,b) => b.score - a.score);
 
             // 5. Regional Event Engine (For the Event Cards)
-            let upcomingEvents = allEvents.filter(e => e.start >= now).sort((a, b) => a.start - b.start).slice(0, 2);
+            // Show up to 3 upcoming events
+            let upcomingEvents = allEvents.filter(e => e.exactDate >= now).sort((a, b) => a.exactDate - b.exactDate).slice(0, 3);
+            
+            // If the user manually targeted an event, pin it to the top of the cards
             if (focusedEvent && !upcomingEvents.find(e => e.id === focusedEvent.id)) {
-                upcomingEvents.unshift(focusedEvent); // Pin focused event to top
+                upcomingEvents.unshift(focusedEvent); 
             }
 
             upcomingEvents.forEach(e => {
@@ -229,7 +280,7 @@ const TrendEngine = (() => {
                 STATE.events.push({
                     name: e.name, 
                     type: e.type, 
-                    days: Utils.daysDiff(now, e.start),
+                    days: Utils.daysDiff(now, e.exactDate),
                     isFocused: e.id === STATE.focusedEventId,
                     actionHtml: eventAction || "<li class='text-green-600 font-semibold'>Inventory looks fully prepared based on last year.</li>"
                 });
@@ -377,8 +428,8 @@ const TrendEngine = (() => {
 
             // 6. Festival Selector Options
             let allEvents = [...getLocalEvents(new Date().getFullYear()), ...getLocalEvents(new Date().getFullYear() + 1)];
-            let eventOptions = allEvents.filter(e => e.start >= new Date() || e.id === STATE.focusedEventId).sort((a,b) => a.start - b.start)
-                .map(e => `<option value="${e.id}" ${STATE.focusedEventId === e.id ? 'selected' : ''}>${e.name} (${Utils.formatDate(e.start)})</option>`).join('');
+            let eventOptions = allEvents.filter(e => e.exactDate >= new Date() || e.id === STATE.focusedEventId).sort((a,b) => a.exactDate - b.exactDate)
+                .map(e => `<option value="${e.id}" ${STATE.focusedEventId === e.id ? 'selected' : ''}>${e.name} (${Utils.formatDate(e.exactDate)})</option>`).join('');
 
             // 7. Event Cards
             let eventsHtml = STATE.events.map(e => `
@@ -386,7 +437,7 @@ const TrendEngine = (() => {
                     <div class="te-card-strip" style="background-color:#a855f7;"></div>
                     <div class="flex justify-between items-center mb-3">
                         <h4 class="font-bold text-gray-900 dark:text-white text-base">${e.name} ${e.isFocused ? '<i class="fa-solid fa-crosshairs text-purple-500 ml-1"></i>' : ''}</h4>
-                        <span class="text-xs font-bold px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">${e.days === 0 ? 'Today' : 'In '+e.days+' Days'}</span>
+                        <span class="text-xs font-bold px-2 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded">${e.days <= 0 ? 'Today/Past' : 'In '+e.days+' Days'}</span>
                     </div>
                     <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Historical Recommendations:</div>
                     <ul class="list-disc pl-4 text-sm text-gray-600 dark:text-gray-300 space-y-1">${e.actionHtml}</ul>
@@ -398,17 +449,17 @@ const TrendEngine = (() => {
             el.innerHTML = `
                 <div class="te-wrapper">
                     <!-- Dashboard Header -->
-                    <div class="flex justify-between items-center bg-gradient-to-r from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-lg mb-2 text-white">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-lg mb-2 text-white gap-4">
                         <div>
                             <h2 class="text-2xl font-extrabold mb-1"><i class="fa-solid fa-microchip mr-2"></i> AI Predictive Engine</h2>
                             <p class="text-blue-100 text-sm">Target festivals and track customer wishlists to maximize profits.</p>
                         </div>
-                        <div class="flex gap-3">
-                            <select onchange="TrendEngine.setEvent(this.value)" class="bg-white text-gray-900 text-sm font-bold rounded-lg px-3 py-2 outline-none shadow-sm cursor-pointer">
+                        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <select onchange="TrendEngine.setEvent(this.value)" class="bg-white text-gray-900 text-sm font-bold rounded-lg px-3 py-2 outline-none shadow-sm cursor-pointer w-full sm:w-auto">
                                 <option value="">-- Target Festival: Auto --</option>
                                 ${eventOptions}
                             </select>
-                            <button id="te-btn-sync" onclick="TrendEngine.refresh()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center shadow-sm">
+                            <button id="te-btn-sync" onclick="TrendEngine.refresh()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center justify-center shadow-sm">
                                 <i class="fa-solid fa-rotate"></i>
                             </button>
                         </div>
@@ -585,7 +636,7 @@ const TrendEngine = (() => {
             }
 
             try {
-                // Instantly save to Firebase Customer Requests collection
+                // Save to Firebase (app.js listener will trigger an automatic UI refresh)
                 await window.addDoc(window.collection(window.db, "customer_requests"), {
                     item: item,
                     qty: qty,
@@ -593,7 +644,6 @@ const TrendEngine = (() => {
                 });
                 itemInput.value = '';
                 qtyInput.value = '';
-                // The Firebase onSnapshot listener in app.js will automatically detect this and refresh the UI.
             } catch(e) {
                 console.error(e);
                 alert("Failed to save request.");
