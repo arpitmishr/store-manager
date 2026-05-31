@@ -44,6 +44,12 @@
             transition: background-color 0.3s, color 0.3s; 
         }
 
+        /* --- JS COMPATIBILITY BRIDGE --- */
+        /* Replicates Tailwind classes that app.js uses so the logic doesn't break */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .block { display: block; }
+        
         /* Custom Colors & Themes */
         .text-cosmetic { color: var(--cosmetic) !important; }
         .bg-cosmetic { background-color: var(--cosmetic) !important; color: white !important; }
@@ -118,7 +124,7 @@
             background-color: var(--bs-tertiary-bg);
         }
         
-        /* Form inputs customization to match modern aesthetics */
+        /* Form inputs customization */
         .form-control, .form-select {
             background-color: var(--bs-secondary-bg);
             border: 1px solid var(--bs-border-color);
@@ -131,7 +137,7 @@
         }
     </style>
 
-    <!-- Dark Mode Sync Script (Prevents UI breaking with external app logic) -->
+    <!-- Dark Mode Sync Script -->
     <script>
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
@@ -151,7 +157,8 @@
 <body class="position-relative">
 
     <!-- GLOBAL SUCCESS ANIMATION OVERLAY -->
-    <div id="success-overlay" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index: 1060; backdrop-filter: blur(4px); pointer-events: none; opacity: 0; transition: opacity 0.3s;">
+    <!-- Swapped back to 'hidden flex' to respect JS toggle states -->
+    <div id="success-overlay" class="position-fixed top-0 start-0 w-100 h-100 hidden flex align-items-center justify-content-center bg-dark bg-opacity-50" style="z-index: 1060; backdrop-filter: blur(4px); transition: opacity 0.3s;">
         <div id="success-card" class="bg-body p-5 rounded-4 shadow-lg d-flex flex-column align-items-center justify-content-center text-center border" style="transform: scale(0.5); transition: transform 0.3s ease-out;">
             <div id="success-icon-container" class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center mb-4 shadow" style="width: 6rem; height: 6rem; font-size: 3rem;">
                 <i class="fa-solid fa-check"></i>
@@ -161,7 +168,8 @@
     </div>
 
     <!-- 1. LOGIN SCREEN -->
-    <div id="login-container" class="min-vh-100 d-flex align-items-center justify-content-center p-3">
+    <!-- Changed 'd-flex' to 'flex' so inline 'display: none' works from JS -->
+    <div id="login-container" class="min-vh-100 flex align-items-center justify-content-center p-3">
         <div class="card p-4 p-md-5 border-0 shadow-lg rounded-4 w-100 text-center bg-body" style="max-width: 400px;">
             <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4 text-white shadow" style="width: 4rem; height: 4rem; font-size: 1.5rem;">
                 <i class="fa-solid fa-store"></i>
@@ -179,13 +187,14 @@
                 <button type="submit" class="btn btn-primary btn-lg w-100 fw-semibold rounded-3 shadow-sm active-scale mt-2">
                     Secure Login
                 </button>
-                <p id="login-error" class="text-danger d-none mt-2 small fw-medium bg-danger bg-opacity-10 p-2 rounded-3 mb-0"></p>
+                <p id="login-error" class="text-danger hidden mt-2 small fw-medium bg-danger bg-opacity-10 p-2 rounded-3 mb-0"></p>
             </form>
         </div>
     </div>
 
     <!-- 2. MAIN APP CONTAINER -->
-    <div id="app-container" style="display: none;" class="vh-100 w-100 d-flex overflow-hidden">
+    <!-- Changed 'd-flex' to 'flex' so JS can toggle display properly -->
+    <div id="app-container" style="display: none;" class="vh-100 w-100 flex overflow-hidden">
         
         <!-- DESKTOP SIDEBAR -->
         <aside class="d-none d-md-flex flex-column bg-body border-end h-100 z-1" style="width: 256px;">
@@ -463,7 +472,8 @@
                                 <div class="position-relative">
                                     <label class="form-label small fw-bold mb-1">Select Item</label>
                                     <input type="text" id="sale-item" autocomplete="off" placeholder="Type item name..." class="form-control form-control-lg bg-tertiary border-0">
-                                    <div id="sale-item-dropdown" class="d-none position-absolute z-3 w-100 mt-1 bg-body border rounded-3 shadow-lg list-group list-group-flush" style="max-height: 15rem; overflow-y: auto;"></div>
+                                    <!-- Use 'hidden' instead of 'd-none' for dropdowns -->
+                                    <div id="sale-item-dropdown" class="hidden position-absolute z-3 w-100 mt-1 bg-body border rounded-3 shadow-lg list-group list-group-flush" style="max-height: 15rem; overflow-y: auto;"></div>
                                 </div>
                                 
                                 <div class="row g-3">
@@ -486,7 +496,8 @@
                                 </button>
                                 
                                 <!-- Cart -->
-                                <div id="cart-container" class="d-none mt-4 bg-tertiary border rounded-4 p-3 shadow-sm">
+                                <!-- Use 'hidden' instead of 'd-none' -->
+                                <div id="cart-container" class="hidden mt-4 bg-tertiary border rounded-4 p-3 shadow-sm">
                                     <h4 class="small fw-bold border-bottom pb-2 mb-3">Current Cart</h4>
                                     <ul id="cart-list" class="list-unstyled mb-0 d-flex flex-column gap-2 small" style="max-height: 12rem; overflow-y: auto;"></ul>
                                     <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-end">
@@ -556,7 +567,8 @@
                         <div class="position-relative">
                             <label class="form-label small fw-bold mb-1">Item Name</label>
                             <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search or create new..." class="form-control form-control-lg bg-tertiary border-0">
-                            <div id="purchase-item-dropdown" class="d-none position-absolute z-3 w-100 mt-1 bg-body border rounded-3 shadow-lg list-group list-group-flush" style="max-height: 15rem; overflow-y: auto;"></div>
+                            <!-- Use 'hidden' instead of 'd-none' -->
+                            <div id="purchase-item-dropdown" class="hidden position-absolute z-3 w-100 mt-1 bg-body border rounded-3 shadow-lg list-group list-group-flush" style="max-height: 15rem; overflow-y: auto;"></div>
                         </div>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
@@ -729,7 +741,7 @@
         }
     </script>
     
-    <!-- App Logic Scripts (Left strictly unmodified) -->
+    <!-- App Logic Scripts -->
     <script type="module" src="app.js"></script>
     <script src="trend-engine.js"></script>
 </body>
