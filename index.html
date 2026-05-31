@@ -1,16 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Shop Manager</title>
+    <title>Enterprise Operations | ShopManager</title>
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Tailwind CSS for Modern App UI -->
@@ -20,13 +17,23 @@
             darkMode: ['class', '.dark-mode'],
             theme: {
                 extend: {
-                    fontFamily: { sans:['Inter', 'system-ui', 'sans-serif'] },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
                     colors: {
-                        primary: '#3b82f6',
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
-                        cosmetic: '#f43f5e'
+                        // Upgraded to Enterprise SaaS Palette (Indigo/Slate/Emerald base)
+                        primary: '#4f46e5',   /* Indigo 600 */
+                        success: '#059669',   /* Emerald 600 */
+                        warning: '#d97706',   /* Amber 600 */
+                        danger: '#dc2626',    /* Red 600 */
+                        cosmetic: '#db2777',  /* Pink 600 */
+                        slate: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 
+                            800: '#1e293b', 900: '#0f172a'
+                        }
+                    },
+                    boxShadow: {
+                        'enterprise': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+                        'enterprise-hover': '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)'
                     }
                 }
             }
@@ -36,533 +43,596 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        /* Fixes native browser elements (datalist, scrollbar, date picker) visibility */
-        :root {
-            color-scheme: light;
-        }
-        .dark-mode {
-            color-scheme: dark;
-        }
+        :root { color-scheme: light; }
+        .dark-mode { color-scheme: dark; }
 
-        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.2s ease, color 0.2s ease; }
         
         /* Tab Switching Logic */
         .tab { display: none; }
-        .tab.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        .tab.active { display: block; animation: fadeSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Success Pop Animation */
-        @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            70% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
+        /* Nav Active States - Linear Style */
+        .nav-btn { position: relative; transition: all 0.2s; }
+        .nav-btn.active { background-color: rgba(79, 70, 229, 0.08); color: #4f46e5; font-weight: 600; }
+        .dark-mode .nav-btn.active { background-color: rgba(79, 70, 229, 0.15); color: #818cf8; }
+        .nav-btn.active::before {
+            content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 3px;
+            background-color: #4f46e5; border-radius: 0 4px 4px 0;
         }
-        .success-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-        /* Sidebar & Nav Active States */
-        .nav-btn.active { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; border-right: 4px solid #3b82f6; font-weight: 600; }
-        .dark-mode .nav-btn.active { background-color: rgba(59, 130, 246, 0.2); }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        /* Custom Scrollbar for dense views */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark-mode ::-webkit-scrollbar-thumb { background: #475569; }
         
-        /* Hidden Scrollbar for Mobile Nav */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Glassmorphism for Bottom Nav */
-        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
-        .dark-mode .glass-nav { background: rgba(31, 41, 55, 0.9); border-top-color: #374151; }
+        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-top: 1px solid rgba(0,0,0,0.05); }
+        .dark-mode .glass-nav { background: rgba(15, 23, 42, 0.85); border-top: 1px solid rgba(255,255,255,0.05); }
 
-        /* Fix Chrome/Edge Auto-fill text hiding in Dark Mode */
-        .dark-mode input:-webkit-autofill,
-        .dark-mode input:-webkit-autofill:hover, 
-        .dark-mode input:-webkit-autofill:focus, 
-        .dark-mode input:-webkit-autofill:active{
-            -webkit-box-shadow: 0 0 0 30px #111827 inset !important;
-            -webkit-text-fill-color: #f3f4f6 !important;
-            transition: background-color 5000s ease-in-out 0s;
+        /* Unified Form Focus */
+        input:focus, select:focus { outline: none; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); border-color: #4f46e5 !important; }
+
+        /* Card Container (Enterprise Style) */
+        .card {
+            background-color: #ffffff; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .dark-mode .card {
+            background-color: #1e293b; border-color: #334155; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.3);
+        }
+
+        /* Auto-fill fix */
+        .dark-mode input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+            -webkit-text-fill-color: #f1f5f9 !important;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 min-h-screen selection:bg-primary selection:text-white relative">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen selection:bg-primary selection:text-white relative">
 
     <!-- GLOBAL SUCCESS ANIMATION OVERLAY -->
-    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-none">
-        <div id="success-card" class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center justify-center transform scale-50 transition-transform duration-300 ease-out border border-gray-100 dark:border-gray-700">
-            <div id="success-icon-container" class="w-24 h-24 bg-success text-white rounded-full flex items-center justify-center text-5xl mb-5 shadow-lg shadow-success/30">
+    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/30 dark:bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 pointer-events-none">
+        <div id="success-card" class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center justify-center transform scale-50 transition-transform duration-300 ease-out border border-slate-200 dark:border-slate-700">
+            <div id="success-icon-container" class="w-20 h-20 bg-success text-white rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg shadow-success/20">
                 <i class="fa-solid fa-check"></i>
             </div>
-            <h2 id="success-msg" class="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Success!</h2>
+            <h2 id="success-msg" class="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Operation Successful</h2>
         </div>
     </div>
 
-    <!-- 1. LOGIN SCREEN -->
-    <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-full max-w-md text-center transform transition-all">
-            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-lg">
-                <i class="fa-solid fa-store"></i>
+    <!-- 1. LOGIN SCREEN (Enterprise Split Layout) -->
+    <div id="login-container" class="min-h-screen flex items-stretch justify-center bg-white dark:bg-slate-900">
+        <!-- Brand Side -->
+        <div class="hidden lg:flex flex-col justify-between w-1/2 bg-gradient-to-br from-primary to-indigo-900 p-16 text-white relative overflow-hidden">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+            <div class="relative z-10 flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-md"><i class="fa-solid fa-layer-group text-xl"></i></div>
+                <h1 class="text-2xl font-bold tracking-tight">ShopManager OS</h1>
             </div>
-            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Admin Login</h2>
-            <form id="form-login" class="space-y-4">
-                <div class="relative">
-                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="email" id="login-email" placeholder="Email Address" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
+            <div class="relative z-10">
+                <h2 class="text-5xl font-bold leading-tight mb-4 tracking-tight">Enterprise Resource Planning</h2>
+                <p class="text-indigo-200 text-lg max-w-md">Secure, real-time tracking of sales, analytics, and inventory forecasting driven by market intelligence.</p>
+            </div>
+            <div class="relative z-10 text-sm text-indigo-300">© 2026 Store Operations</div>
+        </div>
+        
+        <!-- Login Side -->
+        <div class="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-900">
+            <div class="w-full max-w-sm">
+                <div class="text-center lg:hidden mb-10">
+                    <div class="w-14 h-14 bg-primary text-white rounded-xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-md"><i class="fa-solid fa-layer-group"></i></div>
+                    <h1 class="text-2xl font-bold dark:text-white">ShopManager OS</h1>
                 </div>
-                <div class="relative">
-                    <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" id="login-password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:outline-none transition-all">
-                </div>
-                <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md transition-all active:scale-95">
-                    Secure Login
-                </button>
-                <p id="login-error" class="text-danger hidden mt-2 text-sm font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded-lg"></p>
-            </form>
+                
+                <h2 class="text-3xl font-bold mb-2 text-slate-900 dark:text-white tracking-tight">Welcome back</h2>
+                <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">Please enter your administrative credentials to continue.</p>
+                
+                <form id="form-login" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">Email Address</label>
+                        <input type="email" id="login-email" placeholder="admin@store.com" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">Password</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors">
+                    </div>
+                    <button type="submit" class="w-full bg-primary hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-sm transition-all text-sm mt-2">
+                        Sign in to Dashboard
+                    </button>
+                    <p id="login-error" class="text-danger hidden mt-2 text-sm font-medium bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-900/30"></p>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- 2. MAIN APP CONTAINER -->
     <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden">
         
-        <!-- DESKTOP SIDEBAR -->
-        <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-full z-10">
-            <div class="p-6 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700">
-                <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-bolt"></i></div>
-                <h2 class="text-lg font-bold tracking-tight">ShopManager</h2>
+        <!-- SIDEBAR -->
+        <aside class="hidden md:flex flex-col w-[260px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-20 flex-shrink-0">
+            <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
+                <div class="w-8 h-8 bg-primary rounded bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center text-white mr-3 shadow-sm"><i class="fa-solid fa-layer-group text-sm"></i></div>
+                <h2 class="text-base font-bold tracking-tight text-slate-900 dark:text-white">ShopManager</h2>
             </div>
             
-            <nav class="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-3">
-                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-chart-line w-5"></i> Dashboard
+            <nav class="flex-1 overflow-y-auto py-6 flex flex-col gap-1 px-3">
+                <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2 mt-2">Core Operations</div>
+                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i> Dashboard
                 </button>
-                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-list-ul w-5"></i> Transactions
+                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-book w-5 text-center"></i> General Ledger
                 </button>
-                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-cart-shopping w-5"></i> Record Sales
+                
+                <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2 mt-6">Execution</div>
+                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-cart-arrow-down w-5 text-center"></i> Record Sales
                 </button>
-                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-boxes-packing w-5"></i> Record Purchases
+                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-truck-fast w-5 text-center"></i> Procurement
                 </button>
-                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-cubes-stacked w-5"></i> Inventory
+                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Stock Control
                 </button>
-                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-magnifying-glass-chart w-5"></i> Analytics
+
+                <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-2 mt-6">Intelligence</div>
+                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Advanced Analytics
                 </button>
-                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-    <i class="fa-solid fa-fire w-5"></i> Trend Engine
-</button>
+                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-bolt w-5 text-center"></i> Trend Engine
+                </button>
             </nav>
 
-            <div class="p-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
-                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fa-solid fa-gear"></i> Settings
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <i class="fa-solid fa-sliders"></i> System Config
                 </button>
-                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-4 py-2 rounded-lg text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-3 py-2 rounded-md text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/10 mt-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> End Session
                 </button>
             </div>
         </aside>
 
-        <!-- MAIN SCROLLABLE CONTENT -->
-        <main class="flex-1 h-full overflow-y-auto bg-gray-50/50 dark:bg-gray-900 p-4 md:p-8 pb-24 md:pb-8 relative">
+        <!-- MAIN WORKSPACE -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden relative">
             
-            <!-- DASHBOARD TAB -->
-            <div id="tab-dashboard" class="tab active max-w-7xl mx-auto">
-                <div class="flex items-center justify-between mb-6">
-                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h1>
-                    <div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold border border-primary/20 shadow-sm"><i class="fa-regular fa-calendar mr-1"></i> Today</div>
+            <!-- TOP BAR (Global Context & Actions) -->
+            <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-10 shadow-sm">
+                <div class="flex items-center">
+                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white md:hidden">ShopManager</h2>
                 </div>
-
-  
                 
-                <!-- Today's Snapshot -->
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sales Today</p>
-                        <p id="dash-today-sales" class="text-2xl font-bold text-success mt-2">₹0.00</p>
+                <!-- Global Tools that app.js hooks into -->
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-lg px-2 py-1 border border-slate-200 dark:border-slate-700">
+                        <i class="fa-regular fa-calendar text-slate-400 text-xs ml-2"></i>
+                        <select id="global-year-filter" class="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 border-none focus:ring-0 cursor-pointer outline-none pr-2">
+                            <option value="All">All Years Context</option>
+                        </select>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit Today</p>
-                        <p id="dash-today-profit" class="text-2xl font-bold text-primary mt-2">₹0.00</p>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Margin</p>
-                        <p id="dash-today-margin" class="text-2xl font-bold text-warning mt-2">0.0%</p>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Items Sold</p>
-                        <p id="dash-today-items" class="text-2xl font-bold text-purple-500 mt-2">0</p>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Top Item</p>
-                        <p id="dash-today-trending" class="text-lg font-bold text-orange-500 mt-2 truncate">N/A</p>
-                    </div>
-                </div>
-
-                <!-- Overall Metrics -->
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2"><i class="fa-solid fa-earth-americas text-success mr-2"></i> Lifetime Metrics <span id="dash-year-label" class="text-sm font-normal text-gray-500 ml-2">(All Years)</span></h3>
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Total Profit</p><p id="dash-overall-profit" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Current Inv. Value</p><p id="dash-inv-value" class="text-lg font-bold">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Low Stock</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400">Total Items in Stock</p><p id="dash-inventory" class="text-lg font-bold">0</p></div>
-                </div>
-
-                <!-- Top Selling Items List -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden max-w-3xl">
-                    <div class="p-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <h3 class="text-lg font-bold"><i class="fa-solid fa-trophy text-warning mr-2"></i> Top Selling Items</h3>
-                        <div class="flex gap-2 w-full md:w-auto">
-                            <select id="dash-top-month" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary outline-none w-full md:w-auto"></select>
-                            <select id="dash-top-type" class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary outline-none w-full md:w-auto">
-                                <option value="All">All Items</option>
-                                <option value="Sale">Inventory</option>
-                                <option value="Cosmetic Sale">Cosmetics</option>
-                            </select>
-                        </div>
-                    </div>
-                    <ul id="dash-top-list" class="divide-y divide-gray-100 dark:divide-gray-700 max-h-96 overflow-y-auto p-2"></ul>
-                </div>
-            </div>
-
-            <div id="tab-trends" class="tab max-w-7xl mx-auto">
-    <div id="trend-tab-container"></div>
-</div>
-
-            <!-- TRANSACTIONS TAB -->
-            <div id="tab-transactions" class="tab max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold mb-1">Transactions Ledger</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Track all sales, purchases, and returns in one place.</p>
-                
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
-                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Start Date</label><input type="date" id="filter-trans-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">End Date</label><input type="date" id="filter-trans-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
-                    <button id="btn-trans-filter" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95"><i class="fa-solid fa-filter mr-1"></i> Apply</button>
-                    <button id="btn-trans-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear Filters</button>
-                </div>
-
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
-                    <table id="table-transactions" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700/50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
-                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ANALYTICS TAB -->
-            <div id="tab-analytics" class="tab max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">Business Insights <i class="fa-solid fa-chart-pie text-purple-500 ml-2"></i></h1>
-                
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex flex-wrap gap-4 items-end">
-                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Start Date</label><input type="date" id="ana-start" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">End Date</label><input type="date" id="ana-end" class="border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm"></div>
-                    <button id="btn-ana-filter" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Analyze</button>
-                    <button id="btn-ana-today" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Today</button>
-                    <button id="btn-ana-clear" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition active:scale-95">Clear</button>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Filtered Rev.</p><p id="ana-revenue" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Filtered Profit</p><p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Margin</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Current Units</p><p id="ana-stock" class="text-xl font-bold text-purple-500 mt-1">0</p></div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                    <div class="xl:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-monthly"></canvas></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-abc"></canvas></div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"><canvas id="chart-fsn"></canvas></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Top Products</h3><select id="filter-top-selling" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Top10">Top 10</option></select></div>
-                        <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Sold</th></tr></thead><tbody id="tbody-top-selling" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">Inventory Alert</h3><select id="filter-inv-status" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"><option value="All">All</option><option value="Low">Low (<= 3)</option></select></div>
-                        <div class="overflow-x-auto"><table class="min-w-full text-sm text-left"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-2 px-3">Item</th><th class="py-2 px-3 text-right">Stock</th></tr></thead><tbody id="tbody-inv-status" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table></div>
-                    </div>
-                </div>
-
-                <!-- ABC and FSN Matrices -->
-                <div class="space-y-6">
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
-                        <h3 class="font-bold mb-1">ABC Inventory Analysis</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">A (Top 70% Value), B (Next 20%), C (Bottom 10%)</p>
-                        <table id="table-abc" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Cum. %</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold">FSN x HMV Matrix</h3>
-                            <select id="ana-class-filter" class="text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 rounded px-3 py-1.5"><option value="All">All Classes</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cash Cows</option><option value="🔥 Dead Weight">🔥 Dead Weight</option><option value="🚀 Drivers">🚀 Drivers</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleepers</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Basics</option><option value="🗑️ Dead Stock">🗑️ Dead Stock</option></select>
-                        </div>
-                        <table id="table-matrix" class="min-w-full text-sm text-left divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700/50"><tr><th class="py-3 px-4">Item</th><th class="py-3 px-4">Stock</th><th class="py-3 px-4">Value</th><th class="py-3 px-4">Rev</th><th class="py-3 px-4">FSN</th><th class="py-3 px-4">HMV</th><th class="py-3 px-4">Class</th></tr></thead><tbody class="divide-y divide-gray-100 dark:divide-gray-700"></tbody></table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SALES TAB -->
-            <div id="tab-sales" class="tab max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">Record New Sales</h1>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Standard Sale -->
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-success border border-gray-100 dark:border-gray-700 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 bg-success text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-boxes-stacked mr-1"></i> Inventory Tracked</div>
-                        <h3 class="text-xl font-bold mb-1">Standard Sale</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Build a cart, auto-deducts stock.</p>
-                        
-                        <form id="form-sale" class="space-y-4 relative">
-                            <!-- PREDICTIVE SEARCH CONTAINER -->
-                            <div class="relative">
-                                <label class="block text-sm font-semibold mb-1">Select Item</label>
-                                <input type="text" id="sale-item" autocomplete="off" placeholder="Type item name..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none transition-all">
-                                
-                                <!-- Dropdown UI -->
-                                <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-semibold mb-1">Cost (₹)</label><input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg opacity-70 cursor-not-allowed"></div>
-                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none"></div>
-                            </div>
-                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="sale-rate" placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-success placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success outline-none text-xl font-bold"></div>
-                            
-                            <button type="button" id="btn-add-to-cart" class="w-full bg-warning hover:bg-yellow-500 text-white font-bold py-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-plus"></i> Add to Cart</button>
-                            
-                            <!-- Cart -->
-                            <div id="cart-container" class="hidden mt-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-inner">
-                                <h4 class="text-sm font-bold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Current Cart</h4>
-                                <ul id="cart-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2"></ul>
-                                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-between items-end">
-                                    <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Grand Total</span>
-                                    <span class="text-2xl font-bold text-gray-800 dark:text-white">₹<span id="cart-total">0.00</span></span>
-                                </div>
-                            </div>
-                            
-                            <button type="submit" id="btn-save-sale" class="w-full bg-success hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-md transition-all text-lg flex items-center justify-center gap-2 active:scale-95 mt-4"><i class="fa-solid fa-check-double"></i> Complete Checkout</button>
-                        </form>
-                    </div>
-
-                    <!-- Cosmetic Sale -->
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-t-4 border-t-cosmetic border border-gray-100 dark:border-gray-700 relative overflow-hidden h-fit">
-                        <div class="absolute top-0 right-0 bg-cosmetic text-white px-3 py-1 rounded-bl-lg text-xs font-bold shadow"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> No Stock Deduct</div>
-                        <h3 class="text-xl font-bold mb-1">Cosmetic Sale</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Quick add custom items to revenue.</p>
-                        
-                        <form id="form-cosmetic" class="space-y-4">
-                            <div><label class="block text-sm font-semibold mb-1">Item Name</label><input type="text" id="cosmetic-item" required placeholder="Description..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-semibold mb-1">Qty</label><input type="number" id="cosmetic-qty" required placeholder="0" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
-                                <div><label class="block text-sm font-semibold mb-1">Your Cost (₹)</label><input type="number" id="cosmetic-cost" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none"></div>
-                            </div>
-                            <div><label class="block text-sm font-semibold mb-1">Selling Rate (₹)</label><input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-cosmetic placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cosmetic outline-none text-xl font-bold"></div>
-                            <button type="submit" class="w-full bg-cosmetic hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl shadow transition-all active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-bolt"></i> Instant Save</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PURCHASES TAB -->
-            <div id="tab-purchases" class="tab max-w-3xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">Record Purchases</h1>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center text-danger"><i class="fa-solid fa-truck-ramp-box"></i></div>
-                        <div><h3 class="text-lg font-bold">New Inventory Arrival</h3><p class="text-xs text-gray-500 dark:text-gray-400">Money out, stock goes up instantly.</p></div>
-                    </div>
-                    <form id="form-purchase" class="space-y-4">
-                        
-                        <!-- PREDICTIVE SEARCH CONTAINER -->
-                        <div class="relative">
-                            <label class="block text-sm font-semibold mb-1">Item Name</label>
-                            <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search or create new..." class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none transition-all">
-                            
-                            <!-- Dropdown UI -->
-                            <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-semibold mb-1">Quantity Added</label><input type="number" id="purchase-qty" required placeholder="0" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none"></div>
-                            <div><label class="block text-sm font-semibold mb-1">Total Paid (₹)</label><input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 text-danger placeholder-gray-400 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-danger outline-none font-bold text-lg"></div>
-                        </div>
-                        <button type="submit" class="w-full bg-danger hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-md transition-all active:scale-95 mt-4 text-lg">Save Purchase Data</button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- INVENTORY TAB -->
-            <div id="tab-inventory" class="tab max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">Inventory Management</h1>
-                
-                <!-- 1. Stats Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider uppercase mb-1">Total Items</div>
-                        <div id="stat-inv-total" class="text-2xl font-semibold text-gray-900 dark:text-white">0</div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider uppercase mb-1">Stock Value</div>
-                        <div id="stat-inv-value" class="text-2xl font-semibold text-gray-900 dark:text-white">₹0</div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider uppercase mb-1">Out of Stock</div>
-                        <div id="stat-inv-out" class="text-2xl font-semibold text-danger">0</div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wider uppercase mb-1">Low Stock</div>
-                        <div id="stat-inv-low" class="text-2xl font-semibold text-warning">0</div>
-                    </div>
-                </div>
-
-                <!-- 2. Inline Add/Edit Form -->
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-                    <h3 id="inv-form-title" class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Add new item</h3>
-                    <form id="form-inventory" class="flex flex-col md:flex-row gap-3 items-center">
-                        <input type="text" id="inv-name" required placeholder="Item name..." class="flex-1 w-full px-4 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all">
-                        <input type="number" id="inv-qty" required placeholder="Qty" min="0" class="w-full md:w-28 px-4 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all">
-                        <input type="number" id="inv-price" required step="0.01" placeholder="Cost (₹)" min="0" class="w-full md:w-32 px-4 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all">
-                        <div class="flex gap-2 w-full md:w-auto">
-                            <button type="submit" id="btn-inv-submit" class="bg-primary hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-all text-sm whitespace-nowrap">Save</button>
-                            <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-2 px-4 rounded-lg shadow-sm transition-all text-sm">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 3. Stock Register Table -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                     
-                    <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                            <h3 class="font-medium text-gray-900 dark:text-white whitespace-nowrap">Stock register</h3>
-                            <!-- Filter Tabs -->
-                            <div class="flex gap-2 bg-gray-50 dark:bg-gray-700/50 p-1 rounded-full border border-gray-100 dark:border-gray-700">
-                                <button class="inv-tab active bg-white dark:bg-gray-600 text-primary shadow-sm border border-gray-200 dark:border-gray-500 px-3 py-1 rounded-full text-xs font-medium transition-all" data-filter="all">All</button>
-                                <button class="inv-tab text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-1 rounded-full text-xs font-medium transition-all border border-transparent" data-filter="out">Out of stock</button>
-                                <button class="inv-tab text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-1 rounded-full text-xs font-medium transition-all border border-transparent" data-filter="low">Low stock</button>
-                            </div>
+                    <!-- Theme Toggle button exact ID for JS -->
+                    <button id="btn-theme-toggle" class="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors">
+                        Toggle Theme
+                    </button>
+                </div>
+            </header>
+
+            <!-- SCROLLABLE CONTENT -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 bg-slate-50 dark:bg-[#0f172a]">
+                
+                <!-- DASHBOARD TAB -->
+                <div id="tab-dashboard" class="tab active max-w-screen-2xl mx-auto space-y-6">
+                    <div class="flex flex-col gap-1 mb-2">
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                            Real-time Operations <span id="dash-year-label" class="text-xs font-normal bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full">(All Years)</span>
+                        </h1>
+                        <p class="text-sm text-slate-500">Live operational data and critical business health metrics.</p>
+                    </div>
+
+                    <!-- Today's Snapshot -->
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="card p-5">
+                            <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Sales Today</p>
+                            <p id="dash-today-sales" class="text-2xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">₹0.00</p>
                         </div>
-                        
-                        <!-- Search Box -->
-                        <div class="relative w-full md:w-56">
-                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-                            <input type="text" id="search-inventory" placeholder="Search items..." class="w-full pl-9 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all">
+                        <div class="card p-5">
+                            <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Profit Today</p>
+                            <p id="dash-today-profit" class="text-2xl font-bold text-success mt-2 tracking-tight">₹0.00</p>
+                        </div>
+                        <div class="card p-5">
+                            <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Margin</p>
+                            <p id="dash-today-margin" class="text-2xl font-bold text-warning mt-2 tracking-tight">0.0%</p>
+                        </div>
+                        <div class="card p-5">
+                            <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Items Sold</p>
+                            <p id="dash-today-items" class="text-2xl font-bold text-primary mt-2 tracking-tight">0</p>
+                        </div>
+                        <div class="card p-5 bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900/50">
+                            <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Trending SKU</p>
+                            <p id="dash-today-trending" class="text-lg font-bold text-slate-800 dark:text-slate-200 mt-2 truncate tracking-tight">N/A</p>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table id="table-inventory" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                    <!-- Overall Metrics & Top Items Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Lifetime -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Lifetime Financials</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <div class="card p-4"><p class="text-xs text-slate-500 mb-1">Gross Revenue</p><p id="dash-overall-revenue" class="text-lg font-bold text-slate-900 dark:text-white">₹0.00</p></div>
+                                <div class="card p-4"><p class="text-xs text-slate-500 mb-1">Net Profit</p><p id="dash-overall-profit" class="text-lg font-bold text-slate-900 dark:text-white">₹0.00</p></div>
+                                <div class="card p-4"><p class="text-xs text-slate-500 mb-1">Stock Capital</p><p id="dash-inv-value" class="text-lg font-bold text-slate-900 dark:text-white">₹0.00</p></div>
+                                <div class="card p-4 border-l-2 border-l-danger"><p class="text-xs text-slate-500 mb-1">Low Stock Alerts</p><p id="dash-low-stock" class="text-lg font-bold text-danger">0</p></div>
+                                <div class="card p-4"><p class="text-xs text-slate-500 mb-1">Total Unit Volume</p><p id="dash-inventory" class="text-lg font-bold text-slate-900 dark:text-white">0</p></div>
+                            </div>
+                        </div>
+
+                        <!-- Top Selling items -->
+                        <div class="card flex flex-col h-[340px]">
+                            <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700/50 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
+                                <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200">Volume Leaders</h3>
+                                <div class="flex gap-1">
+                                    <select id="dash-top-month" class="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-1 text-slate-700 dark:text-slate-200 outline-none w-16 truncate"></select>
+                                    <select id="dash-top-type" class="text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-1 text-slate-700 dark:text-slate-200 outline-none w-16 truncate">
+                                        <option value="All">All</option><option value="Sale">Inv.</option><option value="Cosmetic Sale">Cosm.</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <ul id="dash-top-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar text-sm"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-trends" class="tab max-w-screen-2xl mx-auto">
+                    <div id="trend-tab-container"></div>
+                </div>
+
+                <!-- TRANSACTIONS TAB -->
+                <div id="tab-transactions" class="tab max-w-screen-2xl mx-auto space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">General Ledger</h1>
+                            <p class="text-sm text-slate-500">Immutable record of all financial & inventory movements.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-full md:w-auto">
+                            <input type="date" id="filter-trans-start" class="bg-transparent border-none text-xs text-slate-700 dark:text-slate-300 w-32 focus:ring-0 cursor-pointer">
+                            <span class="text-slate-300 dark:text-slate-600 px-1">-</span>
+                            <input type="date" id="filter-trans-end" class="bg-transparent border-none text-xs text-slate-700 dark:text-slate-300 w-32 focus:ring-0 cursor-pointer">
+                            <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                            <button id="btn-trans-filter" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded font-medium transition-colors">Apply</button>
+                            <button id="btn-trans-clear" class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 px-2 py-1.5 font-medium transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="card overflow-x-auto">
+                        <table id="table-transactions" class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50">
                                 <tr>
-                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Item</th>
-                                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Stock qty</th>
-                                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Unit cost</th>
-                                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Stock value</th>
-                                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Status</th>
-                                    <th class="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Actions</th>
+                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Date</th>
+                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Type</th>
+                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Asset / SKU</th>
+                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Volume</th>
+                                    <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Capital</th>
+                                    <th class="px-5 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Action</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 text-sm"></tbody>
+                            <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700/50 text-sm whitespace-nowrap"></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
 
-            
-            <!-- SETTINGS TAB -->
-            <div id="tab-settings" class="tab max-w-3xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">Settings & Configuration</h1>
-                
-                <div class="space-y-6">
-                    
-                    <!-- NEW GLOBAL YEAR FILTER -->
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row items-start md:items-center justify-between">
-                        <div class="mb-4 md:mb-0">
-                            <h3 class="font-bold text-lg"><i class="fa-solid fa-calendar-days text-warning mr-2"></i> Global Year Filter</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Filter all dashboards, analytics, and ledgers by year.</p>
+                <!-- ANALYTICS TAB -->
+                <div id="tab-analytics" class="tab max-w-screen-2xl mx-auto space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Advanced Analytics</h1>
+                            <p class="text-sm text-slate-500">Multidimensional cuts of your operational data.</p>
                         </div>
-                        <select id="global-year-filter" class="w-full md:w-48 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-warning outline-none cursor-pointer shadow-sm">
-                            <option value="All">All Years</option>
-                        </select>
+                        <div class="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-full md:w-auto">
+                            <input type="date" id="ana-start" class="bg-transparent border-none text-xs text-slate-700 dark:text-slate-300 w-32 focus:ring-0">
+                            <span class="text-slate-300 dark:text-slate-600 px-1">-</span>
+                            <input type="date" id="ana-end" class="bg-transparent border-none text-xs text-slate-700 dark:text-slate-300 w-32 focus:ring-0">
+                            <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                            <button id="btn-ana-filter" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-3 py-1.5 rounded font-medium">Run</button>
+                            <button id="btn-ana-today" class="text-xs text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded font-medium">Today</button>
+                            <button id="btn-ana-clear" class="text-xs text-slate-500 px-2 py-1.5 hover:text-slate-800"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                        <div><h3 class="font-bold text-lg"><i class="fa-solid fa-moon text-indigo-500 mr-2"></i> Appearance</h3><p class="text-sm text-gray-500 dark:text-gray-400">Toggle dark/light mode for comfort.</p></div>
-                        <button id="btn-theme-toggle" class="bg-gray-800 dark:bg-white text-white dark:text-gray-900 font-semibold py-2 px-6 rounded-xl shadow transition-all active:scale-95 text-sm">Switch Theme</button>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="card p-4"><p class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Filter Rev.</p><p id="ana-revenue" class="text-xl font-bold text-slate-900 dark:text-white mt-1">₹0.00</p></div>
+                        <div class="card p-4"><p class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Filter Profit</p><p id="ana-profit" class="text-xl font-bold text-success mt-1">₹0.00</p></div>
+                        <div class="card p-4"><p class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Margin Yield</p><p id="ana-margin" class="text-xl font-bold text-warning mt-1">0.0%</p></div>
+                        <div class="card p-4"><p class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Active Units</p><p id="ana-stock" class="text-xl font-bold text-primary mt-1">0</p></div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <h3 class="font-bold text-lg mb-1"><i class="fa-solid fa-database text-primary mr-2"></i> Data Management</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Import external data, sync to cloud, or cleanup database.</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div class="lg:col-span-2 card p-5 flex flex-col justify-center"><canvas id="chart-monthly"></canvas></div>
+                        <div class="card p-5 flex flex-col justify-center"><canvas id="chart-abc"></canvas></div>
+                        <div class="card p-5 flex flex-col justify-center"><canvas id="chart-fsn"></canvas></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="card p-0 overflow-hidden">
+                            <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold">SKU Velocity Leaders</h3>
+                                <select id="filter-top-selling" class="text-xs bg-transparent border border-slate-200 dark:border-slate-600 rounded px-2 py-1 outline-none"><option value="All">All Items</option><option value="Top10">Top 10</option></select>
+                            </div>
+                            <div class="overflow-y-auto max-h-64"><table class="w-full text-sm text-left"><tbody id="tbody-top-selling" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody></table></div>
+                        </div>
+                        <div class="card p-0 overflow-hidden">
+                            <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold">Deficit Exposure</h3>
+                                <select id="filter-inv-status" class="text-xs bg-transparent border border-slate-200 dark:border-slate-600 rounded px-2 py-1 outline-none"><option value="All">All Levels</option><option value="Low">Critical (<= 3)</option></select>
+                            </div>
+                            <div class="overflow-y-auto max-h-64"><table class="w-full text-sm text-left"><tbody id="tbody-inv-status" class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody></table></div>
+                        </div>
+                    </div>
+
+                    <!-- ABC/FSN Matrices -->
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div class="card overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20">
+                                <h3 class="text-sm font-semibold">Value Stratification (ABC)</h3>
+                                <p class="text-[10px] text-slate-500 uppercase mt-1 tracking-wider">A (Top 70%), B (Next 20%), C (Bottom 10%)</p>
+                            </div>
+                            <div class="overflow-x-auto overflow-y-auto max-h-80"><table id="table-abc" class="w-full text-sm text-left whitespace-nowrap"><thead class="bg-slate-50 dark:bg-slate-800 sticky top-0"><tr><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">SKU</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Cap. Value</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Dist. %</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Tier</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody></table></div>
+                        </div>
+                        
+                        <div class="card overflow-hidden">
+                            <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold">Strategic Matrix (FSN x HMV)</h3>
+                                <select id="ana-class-filter" class="text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1.5 outline-none"><option value="All">All Quadrants</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cash Cows</option><option value="🔥 Dead Weight">🔥 Dead Weight</option><option value="🚀 Drivers">🚀 Drivers</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleepers</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Basics</option><option value="🗑️ Dead Stock">🗑️ Dead Stock</option></select>
+                            </div>
+                            <div class="overflow-x-auto overflow-y-auto max-h-80"><table id="table-matrix" class="w-full text-sm text-left whitespace-nowrap"><thead class="bg-slate-50 dark:bg-slate-800 sticky top-0"><tr><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">SKU</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Vol</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Cap</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Yield</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">FSN</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">HMV</th><th class="py-2 px-4 font-semibold text-slate-500 text-xs uppercase tracking-wider border-b dark:border-slate-700">Strategy Focus</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SALES TAB -->
+                <div id="tab-sales" class="tab max-w-screen-xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Revenue Execution</h1>
+                        <p class="text-sm text-slate-500">Process outbound transactions & draft fulfillment carts.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Standard Sale -->
+                        <div class="card relative overflow-visible flex flex-col">
+                            <div class="absolute top-0 right-0 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-b border-l border-slate-200 dark:border-slate-700 px-3 py-1 rounded-bl-lg rounded-tr-lg text-[10px] font-bold uppercase tracking-wider"><i class="fa-solid fa-boxes-stacked mr-1 text-primary"></i> Inventory Linked</div>
+                            <div class="p-6 border-b border-slate-100 dark:border-slate-800">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Standard Outbound</h3>
+                                <p class="text-xs text-slate-500">Draft ledger entry. Modifies stock quantities.</p>
+                            </div>
+                            
+                            <form id="form-sale" class="p-6 flex-1 flex flex-col space-y-5">
+                                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/50 space-y-4">
+                                    <div class="relative">
+                                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Asset Search</label>
+                                        <input type="text" id="sale-item" autocomplete="off" placeholder="Search SKU..." class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1">
+                                        <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700"></div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Unit Cost</label><input type="number" id="sale-cost" readonly class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/50 text-sm border border-slate-200 dark:border-slate-700 rounded-md opacity-70"></div>
+                                        <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Quantity</label><input type="number" id="sale-qty" placeholder="0" class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                    </div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Execution Rate (₹)</label><input type="number" id="sale-rate" step="0.01" class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm font-semibold text-primary border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                </div>
+                                
+                                <button type="button" id="btn-add-to-cart" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-medium py-2 rounded-md transition-colors text-sm"><i class="fa-solid fa-plus text-xs mr-1"></i> Stage in Draft</button>
+                                
+                                <div id="cart-container" class="hidden mt-4 flex-1 flex flex-col">
+                                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-slate-700 pb-2 mb-2">Draft Payload</h4>
+                                    <ul id="cart-list" class="space-y-1 text-sm max-h-40 overflow-y-auto flex-1"></ul>
+                                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-end">
+                                        <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Gross Execution</span>
+                                        <span class="text-xl font-bold text-slate-900 dark:text-white">₹<span id="cart-total">0.00</span></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="pt-2 mt-auto">
+                                    <button type="submit" id="btn-save-sale" class="w-full bg-primary hover:bg-indigo-700 text-white font-medium py-2.5 rounded-md transition-colors text-sm shadow-sm">Commit Transaction</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Cosmetic Sale -->
+                        <div class="card relative overflow-hidden h-fit">
+                            <div class="absolute top-0 right-0 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-b border-l border-slate-200 dark:border-slate-700 px-3 py-1 rounded-bl-lg rounded-tr-lg text-[10px] font-bold uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles mr-1 text-cosmetic"></i> Non-Inventory</div>
+                            <div class="p-6 border-b border-slate-100 dark:border-slate-800">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Service / Cosmetic Entry</h3>
+                                <p class="text-xs text-slate-500">Inject revenue without drawing from physical stock.</p>
+                            </div>
+                            
+                            <form id="form-cosmetic" class="p-6 space-y-5">
+                                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700/50 space-y-4">
+                                    <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Description</label><input type="text" id="cosmetic-item" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Multiplier</label><input type="number" id="cosmetic-qty" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                        <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Base Cost</label><input type="number" id="cosmetic-cost" step="0.01" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                    </div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Yield (₹)</label><input type="number" id="cosmetic-rate" step="0.01" required class="w-full px-3 py-2 bg-white dark:bg-slate-900 text-sm font-semibold text-cosmetic border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                </div>
+                                <button type="submit" class="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-medium py-2.5 rounded-md transition-colors text-sm shadow-sm">Commit Service Entry</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PURCHASES TAB -->
+                <div id="tab-purchases" class="tab max-w-2xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Procurement Flow</h1>
+                        <p class="text-sm text-slate-500">Record inbound capital expenditure and inventory expansion.</p>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <form id="form-purchase" class="space-y-6">
+                            <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 space-y-5">
+                                <div class="relative">
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Asset Identity</label>
+                                    <input type="text" id="purchase-item" autocomplete="off" required placeholder="Select existing or type new..." class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1">
+                                    <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700"></div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Units Acquired</label><input type="number" id="purchase-qty" required class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 text-sm border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                    <div><label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Total Capital Laid (₹)</label><input type="number" id="purchase-amount" required class="w-full px-3 py-2.5 bg-white dark:bg-slate-900 text-sm font-semibold text-danger border border-slate-300 dark:border-slate-600 rounded-md"></div>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-medium py-3 rounded-md transition-colors text-sm shadow-sm">Execute Procurement</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- INVENTORY TAB -->
+                <div id="tab-inventory" class="tab max-w-screen-2xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Stock Control</h1>
+                        <p class="text-sm text-slate-500">Live view of asset liquidity and current standings.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="card p-4 flex flex-col justify-center">
+                            <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Total SKUs</span>
+                            <span id="stat-inv-total" class="text-xl font-bold text-slate-900 dark:text-white mt-1">0</span>
+                        </div>
+                        <div class="card p-4 flex flex-col justify-center">
+                            <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Asset Capital</span>
+                            <span id="stat-inv-value" class="text-xl font-bold text-slate-900 dark:text-white mt-1">₹0</span>
+                        </div>
+                        <div class="card p-4 flex flex-col justify-center border-b-2 border-b-danger">
+                            <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Complete Depletion</span>
+                            <span id="stat-inv-out" class="text-xl font-bold text-danger mt-1">0</span>
+                        </div>
+                        <div class="card p-4 flex flex-col justify-center border-b-2 border-b-warning">
+                            <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Risk Levels (Low)</span>
+                            <span id="stat-inv-low" class="text-xl font-bold text-warning mt-1">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Inline Entry Toolbar -->
+                    <div class="card p-2 px-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/30">
+                        <h3 id="inv-form-title" class="text-xs font-semibold text-slate-500 uppercase tracking-widest hidden md:block w-32">Direct Injection</h3>
+                        <form id="form-inventory" class="flex-1 flex flex-col sm:flex-row gap-2 items-center w-full">
+                            <input type="text" id="inv-name" required placeholder="SKU Description" class="w-full sm:flex-1 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:ring-1 outline-none">
+                            <input type="number" id="inv-qty" required placeholder="Qty" min="0" class="w-full sm:w-24 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:ring-1 outline-none">
+                            <input type="number" id="inv-price" required step="0.01" placeholder="Cost" min="0" class="w-full sm:w-28 px-3 py-1.5 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:ring-1 outline-none">
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <button type="submit" id="btn-inv-submit" class="bg-primary hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded transition-colors text-xs w-full sm:w-auto">Push</button>
+                                <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-1.5 px-3 rounded transition-colors text-xs">Drop</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card overflow-hidden">
+                        <div class="p-3 border-b border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-3 bg-slate-50/80 dark:bg-slate-800/50">
+                            <!-- JS driven Tabs -->
+                            <div class="flex gap-1 bg-slate-200/50 dark:bg-slate-800 p-1 rounded-md border border-slate-200/50 dark:border-slate-700">
+                                <button class="inv-tab active bg-white dark:bg-slate-600 shadow-sm border border-slate-200 dark:border-slate-500 text-slate-800 dark:text-white px-3 py-1 rounded text-[11px] font-semibold transition-colors" data-filter="all">Consolidated</button>
+                                <button class="inv-tab text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-1 rounded text-[11px] font-semibold transition-colors border border-transparent" data-filter="out">Depleted</button>
+                                <button class="inv-tab text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-3 py-1 rounded text-[11px] font-semibold transition-colors border border-transparent" data-filter="low">At Risk</button>
+                            </div>
+                            
+                            <div class="relative w-full md:w-64">
+                                <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" id="search-inventory" placeholder="Filter index..." class="w-full pl-7 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:border-primary">
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table id="table-inventory" class="w-full text-left whitespace-nowrap">
+                                <thead class="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th class="px-5 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Description</th>
+                                        <th class="px-5 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Holdings</th>
+                                        <th class="px-5 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Base Cost</th>
+                                        <th class="px-5 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Cap. Locked</th>
+                                        <th class="px-5 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Health</th>
+                                        <th class="px-5 py-2 text-right text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Manage</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETTINGS TAB -->
+                <div id="tab-settings" class="tab max-w-3xl mx-auto space-y-6">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">System Configuration</h1>
+                        <p class="text-sm text-slate-500">Data administration and system-wide overrides.</p>
+                    </div>
+                    
+                    <div class="card p-6 border-t-4 border-t-primary">
+                        <h3 class="text-sm font-semibold mb-1 uppercase tracking-wider text-slate-500">Database Administration</h3>
+                        <p class="text-xs text-slate-400 mb-6">Bulk import structures, synchronize remote buckets, or optimize existing tables.</p>
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
-                            <button id="btn-trigger-excel" class="bg-success/10 text-success hover:bg-success hover:text-white border border-success/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
-                                <i class="fa-solid fa-file-excel text-2xl"></i> <span class="text-sm">Import Excel</span>
+                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="hidden">
+                            
+                            <button id="btn-trigger-excel" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-4 px-4 rounded-lg transition-colors flex flex-col items-center justify-center gap-3 h-28 shadow-sm">
+                                <i class="fa-solid fa-file-excel text-2xl text-success"></i>
+                                <span class="text-xs uppercase tracking-wider font-semibold">Ingest CSV/XLS</span>
                             </button>
-                            <button id="btn-sync-drive" class="bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
-                                <i class="fa-brands fa-google-drive text-2xl"></i> <span class="text-sm">Sync to Drive</span>
+                            
+                            <button id="btn-sync-drive" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-4 px-4 rounded-lg transition-colors flex flex-col items-center justify-center gap-3 h-28 shadow-sm">
+                                <i class="fa-brands fa-google-drive text-2xl text-primary"></i>
+                                <span class="text-xs uppercase tracking-wider font-semibold">Remote Sync</span>
                             </button>
-                            <button id="btn-merge-dup" class="bg-warning/10 text-warning hover:bg-warning hover:text-white border border-warning/20 font-semibold py-3 px-4 rounded-xl transition-all flex flex-col items-center justify-center gap-2 h-24">
-                                <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i> <span class="text-sm">Merge Duplicates</span>
+                            
+                            <button id="btn-merge-dup" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium py-4 px-4 rounded-lg transition-colors flex flex-col items-center justify-center gap-3 h-28 shadow-sm">
+                                <i class="fa-solid fa-wand-magic-sparkles text-2xl text-warning"></i>
+                                <span class="text-xs uppercase tracking-wider font-semibold">Deduplicate</span>
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-        </main>
+            </main>
+        </div>
         
-        <!-- MOBILE BOTTOM NAVIGATION -->
-        <nav class="md:hidden glass-nav border-t border-gray-200 w-full fixed bottom-0 left-0 z-50 px-1 py-1 flex justify-start sm:justify-center items-center safe-area-pb overflow-x-auto no-scrollbar gap-1">
-            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[10px] font-medium">Home</span></button>
-            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-cart-shopping text-lg mb-1"></i><span class="text-[10px] font-medium">Sales</span></button>
-            <button onclick="document.getElementById('btn-purchases').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-boxes-packing text-lg mb-1"></i><span class="text-[10px] font-medium">Buy</span></button>
-            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-cubes-stacked text-lg mb-1"></i><span class="text-[10px] font-medium">Stock</span></button>
-            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-list-ul text-lg mb-1"></i><span class="text-[10px] font-medium">Ledger</span></button>
-            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[10px] font-medium">Analytics</span></button>
-            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-gear text-lg mb-1"></i><span class="text-[10px] font-medium">Config</span></button>
-            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex flex-col items-center p-2 min-w-[65px] transition-colors"><i class="fa-solid fa-fire text-lg mb-1"></i><span class="text-[10px] font-medium">Trends</span></button>
+        <!-- MOBILE BOTTOM NAVIGATION (Minimalist Linear style) -->
+        <nav class="md:hidden glass-nav w-full fixed bottom-0 left-0 z-50 px-1 py-1.5 flex justify-start sm:justify-center items-center safe-area-pb overflow-x-auto no-scrollbar gap-1 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Ops</span></button>
+            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-cart-arrow-down text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Sell</span></button>
+            <button onclick="document.getElementById('btn-purchases').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-truck-fast text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Buy</span></button>
+            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-boxes-stacked text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Stock</span></button>
+            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-book text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Ledger</span></button>
+            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Data</span></button>
+            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-bolt text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Trends</span></button>
+            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center p-2 min-w-[60px]"><i class="fa-solid fa-sliders text-lg mb-1"></i><span class="text-[9px] font-semibold uppercase">Config</span></button>
         </nav>
         
     </div>
 
-    <!-- Small Script to sync Mobile Bottom Navigation Colors instantly -->
+    <!-- Mobile Nav Script -->
     <script>
         function updateMobileNav(activeBtn) {
             document.querySelectorAll('.mob-nav-btn').forEach(btn => {
                 btn.classList.remove('text-primary');
-                btn.classList.add('text-gray-400');
+                btn.classList.add('text-slate-400');
             });
-            activeBtn.classList.remove('text-gray-400');
+            activeBtn.classList.remove('text-slate-400');
             activeBtn.classList.add('text-primary');
-            // Scroll to top on mobile tab switch
             document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
     
-    <!-- Link to your App logic -->
+    <!-- Link to your App Logic -->
     <script type="module" src="app.js"></script>
     <script src="trend-engine.js"></script>
 </body>
