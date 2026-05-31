@@ -3,259 +3,340 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enterprise Operations | PrimeNG Liquid Glass</title>
+    <title>Enterprise OS | Liquid Glass</title>
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- PRIME NG CSS ECOSYSTEM (Cached CDNs) -->
-    <link id="theme-css" rel="stylesheet" href="https://unpkg.com/primeng@17.11.0/resources/themes/aura-light-indigo/theme.css">
-    <link rel="stylesheet" href="https://unpkg.com/primeflex@3.3.1/primeflex.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css">
-    
-    <!-- Tailwind CSS (Kept strictly for app.js dynamic class injections) -->
+    <!-- Tailwind CSS (Required by app.js & trend-engine.js) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: ['class', '.dark-mode'],
-            theme: { extend: { colors: { primary: '#4f46e5', success: '#059669', warning: '#d97706', danger: '#dc2626', cosmetic: '#db2777' } } }
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: '#4f46e5',   /* Indigo 600 */
+                        success: '#10b981',   /* Emerald 500 */
+                        warning: '#f59e0b',   /* Amber 500 */
+                        danger: '#ef4444',    /* Red 500 */
+                        cosmetic: '#ec4899',  /* Pink 500 */
+                    }
+                }
+            }
         }
     </script>
 
-    <!-- HIGH-PERFORMANCE LIQUID GLASS & PRIMENG OVERRIDES -->
+    <!-- HIGH-PERFORMANCE LIQUID GLASS CSS -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         :root { color-scheme: light; }
         .dark-mode { color-scheme: dark; }
 
         body { 
-            font-family: 'Inter', var(--font-family);
-            margin: 0; overflow: hidden; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            overflow: hidden; /* Prevent body scroll, let app-container handle it */
             background-color: #f8fafc;
-            color: var(--text-color);
+            color: #0f172a;
         }
+        .dark-mode body { color: #f8fafc; }
 
-        /* 1. LIQUID ANIMATED BACKGROUND (GPU Accelerated) */
+        /* =========================================
+           1. ANIMATED LIQUID BACKGROUND (GPU Accelerated)
+           ========================================= */
         #liquid-bg {
             position: fixed; inset: 0; z-index: -2;
-            background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             background-size: 200% 200%;
             animation: liquidFlow 15s ease infinite;
             transition: background 0.5s ease;
         }
-        .dark-mode #liquid-bg { background: linear-gradient(120deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
+        .dark-mode #liquid-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        }
         
-        .orb { position: fixed; border-radius: 50%; filter: blur(60px); z-index: -1; animation: floatOrb 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); will-change: transform; }
-        .orb-1 { width: 40vw; height: 40vw; background: rgba(142, 197, 252, 0.6); top: -10%; left: -10%; }
-        .orb-2 { width: 30vw; height: 30vw; background: rgba(224, 195, 252, 0.6); bottom: -10%; right: -10%; animation-delay: -10s; }
-        .dark-mode .orb-1 { background: rgba(79, 70, 229, 0.3); }
-        .dark-mode .orb-2 { background: rgba(192, 38, 211, 0.2); }
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(70px); z-index: -1;
+            animation: floatOrb 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform; transform: translateZ(0); /* Hardware accelerate */
+        }
+        .orb-1 { width: 45vw; height: 45vw; background: rgba(142, 197, 252, 0.7); top: -10%; left: -10%; }
+        .orb-2 { width: 35vw; height: 35vw; background: rgba(224, 195, 252, 0.7); bottom: -10%; right: -10%; animation-delay: -10s; }
+        .dark-mode .orb-1 { background: rgba(79, 70, 229, 0.35); }
+        .dark-mode .orb-2 { background: rgba(236, 72, 153, 0.25); }
 
         @keyframes liquidFlow { 0% {background-position: 0% 50%} 50% {background-position: 100% 50%} 100% {background-position: 0% 50%} }
-        @keyframes floatOrb { 0% {transform: translate(0, 0) scale(1);} 100% {transform: translate(20%, 20%) scale(1.2);} }
+        @keyframes floatOrb { 0% {transform: translate(0, 0) scale(1);} 100% {transform: translate(15%, 15%) scale(1.1);} }
 
-        /* 2. PRIMENG LIQUID GLASS OVERRIDES */
+        /* =========================================
+           2. GLASSMORPHISM UTILITIES
+           ========================================= */
+        /* Heavy blur for structural elements (Sidebar, Topbar) */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.55) !important;
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            transform: translateZ(0); will-change: transform, backdrop-filter;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transform: translateZ(0); /* Fix mobile lag */
         }
         
-        /* PrimeNG Card Glass Override */
-        .p-card.glass-card {
-            background: rgba(255, 255, 255, 0.65) !important;
-            border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.8) !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
+        /* Light opacity for scrolling cards (NO BLUR to maintain 60fps on mobile) */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            border-radius: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
         }
-        .p-card.glass-card .p-card-body { padding: 1.25rem; }
 
-        /* PrimeNG Input Glass Override */
-        .p-inputtext.glass-input {
-            background: rgba(255, 255, 255, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.7) !important;
-            transition: all 0.2s; border-radius: 0.5rem;
+        .glass-input {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            color: #0f172a;
+            transition: all 0.2s ease;
+            outline: none;
         }
-        .p-inputtext.glass-input:focus { background: rgba(255, 255, 255, 0.95) !important; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3) !important; }
+        .glass-input:focus { 
+            background: rgba(255, 255, 255, 0.95); 
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3); 
+        }
 
-        /* DARK MODE GLASS */
-        .dark-mode .glass-panel { background: rgba(15, 23, 42, 0.65) !important; border: 1px solid rgba(255, 255, 255, 0.08); }
-        .dark-mode .p-card.glass-card { background: rgba(30, 41, 59, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important; color: #f8fafc; }
-        .dark-mode .p-inputtext.glass-input { background: rgba(0, 0, 0, 0.25) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #f1f5f9; }
-        .dark-mode .p-inputtext.glass-input:focus { background: rgba(0, 0, 0, 0.5) !important; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5) !important; }
+        /* Dark Mode Equivalents */
+        .dark-mode .glass-panel {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .dark-mode .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .dark-mode .glass-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+        .dark-mode .glass-input:focus {
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.6);
+        }
 
-        /* PrimeNG Table Tweaks for Glass */
-        .p-datatable-wrapper { border-radius: 0.5rem; overflow: hidden; }
-        .p-datatable .p-datatable-thead > tr > th { background: rgba(255, 255, 255, 0.4) !important; color: var(--text-color-secondary); font-size: 0.75rem; text-transform: uppercase; padding: 0.75rem 1rem; }
-        .dark-mode .p-datatable .p-datatable-thead > tr > th { background: rgba(0, 0, 0, 0.2) !important; border-color: rgba(255,255,255,0.05); }
-        .dark-mode .p-datatable .p-datatable-tbody > tr > td { background: transparent !important; color: #e2e8f0; border-color: rgba(255,255,255,0.05); }
-
-        /* 3. APP LOGIC UTILS */
+        /* =========================================
+           3. APP FUNCTIONAL STYLES
+           ========================================= */
         .tab { display: none; }
         .tab.active { display: block; animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes slideUpFade { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* PrimeNG Button Nav styling */
-        .nav-btn { justify-content: flex-start !important; border-radius: 0.5rem !important; margin-bottom: 0.25rem; border-left: 3px solid transparent !important; color: var(--text-color-secondary) !important; transition: all 0.2s !important;}
-        .nav-btn.active { background: rgba(255, 255, 255, 0.6) !important; color: var(--primary-color) !important; border-left-color: var(--primary-color) !important; font-weight: 600; }
-        .dark-mode .nav-btn.active { background: rgba(0, 0, 0, 0.3) !important; color: #818cf8 !important; border-left-color: #818cf8 !important; }
+        /* Sidebar Nav Buttons */
+        .nav-btn { position: relative; transition: all 0.2s; overflow: hidden; }
+        .nav-btn::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: #4f46e5; transform: scaleY(0); transition: transform 0.2s; transform-origin: center;
+        }
+        .nav-btn.active { 
+            background: rgba(255, 255, 255, 0.6); color: #4f46e5; font-weight: 700; 
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); 
+        }
+        .dark-mode .nav-btn.active { 
+            background: rgba(0, 0, 0, 0.3); color: #818cf8; 
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); 
+        }
+        .nav-btn.active::before { transform: scaleY(0.6); border-radius: 0 4px 4px 0; }
 
+        /* Scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--surface-d); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 10px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .p-button { padding: 0.75rem 1.25rem; font-weight: 600; border-radius: 0.5rem; }
+
+        /* Auto-fill fix */
+        input:-webkit-autofill { -webkit-box-shadow: 0 0 0 30px transparent inset !important; transition: background-color 5000s ease-in-out 0s; }
+        .dark-mode input:-webkit-autofill { -webkit-text-fill-color: #f8fafc !important; }
     </style>
 </head>
 <body class="selection:bg-primary selection:text-white">
 
+    <!-- LIQUID BACKGROUND -->
     <div id="liquid-bg"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
 
     <!-- GLOBAL SUCCESS OVERLAY -->
-    <div id="success-overlay" class="fixed inset-0 z-5 flex align-items-center justify-content-center bg-black-alpha-40 backdrop-blur-md opacity-0 transition-opacity duration-300 pointer-events-none" style="z-index: 9999; display: none;">
-        <div id="success-card" class="p-card glass-card p-5 border-round-3xl flex flex-column align-items-center transform scale-50 transition-transform duration-300 ease-out">
-            <div id="success-icon-container" class="w-5rem h-5rem bg-green-500 text-white border-circle flex align-items-center justify-content-center text-4xl mb-3 shadow-4">
-                <i class="pi pi-check text-4xl"></i>
+    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/30 dark:bg-black/50 backdrop-blur-md opacity-0 transition-opacity duration-300 pointer-events-none">
+        <div id="success-card" class="glass-panel p-8 rounded-3xl flex flex-col items-center justify-center transform scale-50 transition-transform duration-300 ease-out shadow-2xl">
+            <div id="success-icon-container" class="w-20 h-20 bg-success text-white rounded-full flex items-center justify-center text-4xl mb-4 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <i class="fa-solid fa-check"></i>
             </div>
-            <h2 id="success-msg" class="text-xl font-bold m-0">Success!</h2>
+            <h2 id="success-msg" class="text-2xl font-black tracking-tight text-slate-800 dark:text-white">Success!</h2>
         </div>
     </div>
 
-    <!-- 1. LOGIN SCREEN (PrimeFlex Layout) -->
-    <div id="login-container" class="min-h-screen flex align-items-center justify-content-center p-3 relative z-5">
-        <div class="p-card glass-card p-5 border-round-3xl w-full max-w-26rem text-center overflow-hidden relative shadow-6">
-            <div class="absolute w-10rem h-10rem bg-primary-200 border-circle blur-4xl -top-50 -right-50" style="opacity:0.3"></div>
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-container" class="min-h-screen flex items-center justify-center p-4 relative z-50">
+        <div class="glass-panel p-8 md:p-10 rounded-[2rem] w-full max-w-md text-center transform transition-all shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[50px] rounded-full pointer-events-none"></div>
             
-            <div class="w-4rem h-4rem bg-primary border-round-2xl flex align-items-center justify-content-center mx-auto mb-4 text-white shadow-3">
-                <i class="pi pi-box text-3xl"></i>
+            <div class="w-16 h-16 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white text-2xl shadow-lg ring-4 ring-white/40 dark:ring-white/10">
+                <i class="fa-solid fa-layer-group"></i>
             </div>
-            <h2 class="text-3xl font-bold m-0 mb-1">System Access</h2>
-            <p class="text-color-secondary text-sm m-0 mb-5 font-medium">Enterprise Resource Planning OS</p>
+            <h2 class="text-3xl font-black mb-1 tracking-tight text-slate-900 dark:text-white">System Access</h2>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mb-8 font-semibold uppercase tracking-widest">Enterprise OS</p>
             
-            <form id="form-login" class="flex flex-column gap-3 text-left">
-                <div class="flex flex-column gap-1">
-                    <label class="text-xs font-bold text-color-secondary uppercase tracking-widest pl-1">Identifier</label>
-                    <input type="email" id="login-email" class="p-inputtext p-component glass-input w-full" placeholder="admin@enterprise.com" required>
+            <form id="form-login" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Identifier</label>
+                    <input type="email" id="login-email" placeholder="admin@enterprise.com" required class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium">
                 </div>
-                <div class="flex flex-column gap-1">
-                    <label class="text-xs font-bold text-color-secondary uppercase tracking-widest pl-1">Passcode</label>
-                    <input type="password" id="login-password" class="p-inputtext p-component glass-input w-full" placeholder="••••••••" required>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Passcode</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium">
                 </div>
-                <button type="submit" class="p-button p-component mt-3 w-full justify-content-center shadow-4">
-                    <span class="p-button-label text-sm uppercase tracking-wider">Authenticate Session</span>
+                <button type="submit" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3.5 rounded-xl shadow-lg transition-transform active:scale-95 text-sm mt-4 uppercase tracking-widest hover:shadow-xl">
+                    Authenticate Session
                 </button>
-                <p id="login-error" class="hidden mt-2 text-sm font-semibold text-red-500 bg-red-100 p-2 border-round-lg text-center m-0"></p>
+                <p id="login-error" class="text-danger hidden mt-3 text-xs font-bold bg-red-100/60 dark:bg-red-900/40 p-3 rounded-xl backdrop-blur-md text-center border border-red-200 dark:border-red-800/50"></p>
             </form>
         </div>
     </div>
 
     <!-- 2. MAIN APP CONTAINER -->
-    <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden relative z-1">
+    <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden relative z-10">
         
-        <!-- SIDEBAR (PrimeFlex) -->
-        <aside class="hidden md:flex flex-column w-18rem glass-panel border-none z-3 flex-shrink-0 shadow-2">
-            <div class="h-5rem flex align-items-center px-4 border-bottom-1 border-white-alpha-20">
-                <div class="w-2rem h-2rem border-round bg-primary flex align-items-center justify-content-center text-white mr-2 shadow-2"><i class="pi pi-box"></i></div>
-                <h2 class="text-lg font-bold m-0">ShopManager</h2>
+        <!-- SIDEBAR -->
+        <aside class="hidden md:flex flex-col w-[260px] glass-panel border-y-0 border-l-0 z-30 flex-shrink-0 rounded-none">
+            <div class="h-20 flex items-center px-6 border-b border-white/30 dark:border-white/10">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-white mr-3 shadow-md"><i class="fa-solid fa-layer-group text-sm"></i></div>
+                <h2 class="text-lg font-black tracking-tight text-slate-900 dark:text-white">ShopManager</h2>
             </div>
             
-            <nav class="flex-1 overflow-y-auto py-4 flex flex-column gap-1 px-3 custom-scrollbar">
-                <div class="text-xs font-bold text-color-secondary uppercase tracking-widest px-2 mb-2 mt-2">Operations</div>
-                <button id="btn-dashboard" class="p-button p-button-text nav-btn active w-full"><i class="pi pi-chart-line mr-3"></i><span class="p-button-label">Dashboard</span></button>
-                <button id="btn-transactions" class="p-button p-button-text nav-btn w-full"><i class="pi pi-book mr-3"></i><span class="p-button-label">General Ledger</span></button>
+            <nav class="flex-1 overflow-y-auto py-6 flex flex-col gap-1 px-4 custom-scrollbar">
+                <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-2 mb-2 mt-2">Operations</div>
+                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-chart-line w-5 text-center"></i> Dashboard
+                </button>
+                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-book w-5 text-center"></i> Ledger
+                </button>
                 
-                <div class="text-xs font-bold text-color-secondary uppercase tracking-widest px-2 mb-2 mt-4">Execution</div>
-                <button id="btn-sales" class="p-button p-button-text nav-btn w-full"><i class="pi pi-shopping-cart mr-3"></i><span class="p-button-label">Sales Terminal</span></button>
-                <button id="btn-purchases" class="p-button p-button-text nav-btn w-full"><i class="pi pi-truck mr-3"></i><span class="p-button-label">Procurement</span></button>
-                <button id="btn-inventory" class="p-button p-button-text nav-btn w-full"><i class="pi pi-box mr-3"></i><span class="p-button-label">Stock Control</span></button>
+                <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-2 mb-2 mt-6">Execution</div>
+                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-cart-arrow-down w-5 text-center"></i> Sales Terminal
+                </button>
+                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-truck-fast w-5 text-center"></i> Procurement
+                </button>
+                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Stock Control
+                </button>
 
-                <div class="text-xs font-bold text-color-secondary uppercase tracking-widest px-2 mb-2 mt-4">Intelligence</div>
-                <button id="btn-analytics" class="p-button p-button-text nav-btn w-full"><i class="pi pi-chart-pie mr-3"></i><span class="p-button-label">Analytics Data</span></button>
-                <button id="btn-trends" class="p-button p-button-text nav-btn w-full"><i class="pi pi-bolt mr-3"></i><span class="p-button-label">Trend Engine</span></button>
+                <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-2 mb-2 mt-6">Intelligence</div>
+                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Analytics Data
+                </button>
+                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-3 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-bolt w-5 text-center"></i> Trend Engine
+                </button>
             </nav>
 
-            <div class="p-3 border-top-1 border-white-alpha-20 flex flex-column gap-2">
-                <button id="btn-settings" class="p-button p-button-text nav-btn w-full"><i class="pi pi-cog mr-3"></i><span class="p-button-label">Configuration</span></button>
-                <button id="btn-logout" class="p-button p-button-text p-button-danger nav-btn w-full"><i class="pi pi-power-off mr-3"></i><span class="p-button-label">End Session</span></button>
+            <div class="p-5 border-t border-white/30 dark:border-white/10 space-y-2">
+                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-white/5">
+                    <i class="fa-solid fa-sliders"></i> Configuration
+                </button>
+                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-sm font-bold text-danger hover:bg-red-500/10">
+                    <i class="fa-solid fa-power-off"></i> End Session
+                </button>
             </div>
         </aside>
 
         <!-- MAIN WORKSPACE -->
-        <div class="flex-1 flex flex-column h-full overflow-hidden relative">
+        <div class="flex-1 flex flex-col h-full overflow-hidden relative">
             
-            <!-- TOP BAR (PrimeFlex Header) -->
-            <header class="h-4rem glass-panel border-none px-4 flex align-items-center justify-content-between flex-shrink-0 z-2 shadow-1">
-                <div class="flex align-items-center">
-                    <h2 class="text-base font-bold md:hidden m-0">ShopManager OS</h2>
+            <!-- TOP BAR -->
+            <header class="h-16 glass-panel border-t-0 border-x-0 px-4 md:px-8 flex items-center justify-between flex-shrink-0 z-20 rounded-none">
+                <div class="flex items-center">
+                    <h2 class="text-sm font-black tracking-widest uppercase text-slate-800 dark:text-white md:hidden">ShopManager</h2>
                 </div>
                 
-                <div class="flex align-items-center gap-3">
-                    <div class="p-inputgroup glass-input border-round overflow-hidden" style="height: 2.5rem;">
-                        <span class="p-inputgroup-addon bg-transparent border-none text-primary"><i class="pi pi-calendar"></i></span>
-                        <select id="global-year-filter" class="p-inputtext p-component bg-transparent border-none text-xs font-bold cursor-pointer outline-none shadow-none pl-0">
+                <div class="flex items-center gap-3 md:gap-5">
+                    <div class="flex items-center gap-2 glass-input rounded-xl px-3 py-1.5 shadow-sm">
+                        <i class="fa-regular fa-calendar-days text-primary text-xs"></i>
+                        <select id="global-year-filter" class="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 border-none focus:ring-0 cursor-pointer outline-none">
                             <option value="All">All Years</option>
                         </select>
                     </div>
                     
-                    <button id="btn-theme-toggle" class="p-button p-button-rounded p-button-text p-button-secondary bg-white-alpha-30 shadow-1" style="width: 2.5rem; height: 2.5rem;">
-                        <i class="pi pi-moon"></i>
+                    <button id="btn-theme-toggle" class="w-9 h-9 rounded-full glass-input flex items-center justify-center shadow-sm text-slate-600 dark:text-slate-300 transition-transform active:scale-95">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
                     </button>
                 </div>
             </header>
 
-            <!-- SCROLLABLE TAB CONTENT -->
-            <main class="flex-1 overflow-y-auto p-3 md:p-5 pb-8 relative z-1 w-full h-full custom-scrollbar">
+            <!-- SCROLLABLE CONTENT -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8 relative z-10 w-full h-full custom-scrollbar">
                 
                 <!-- DASHBOARD TAB -->
-                <div id="tab-dashboard" class="tab active max-w-screen-2xl mx-auto">
-                    <div class="flex align-items-center gap-2 mb-4">
-                        <h1 class="text-3xl font-bold m-0">Live Console</h1>
-                        <span id="dash-year-label" class="p-tag p-tag-rounded p-tag-info text-xs font-bold uppercase">(All Years)</span>
+                <div id="tab-dashboard" class="tab active max-w-screen-2xl mx-auto space-y-6">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Live Console</h1>
+                        <span id="dash-year-label" class="text-[9px] font-black glass-card px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">(All Years)</span>
                     </div>
 
-                    <!-- Today's Snapshot Grid (PrimeFlex Grid) -->
-                    <div class="grid mb-4">
-                        <div class="col-6 lg:col-3 xl:col-2"><div class="p-card glass-card p-3 h-full"><span class="text-xs font-bold text-color-secondary uppercase block mb-2">Sales Today</span><span id="dash-today-sales" class="text-2xl font-bold block">₹0.00</span></div></div>
-                        <div class="col-6 lg:col-3 xl:col-2"><div class="p-card glass-card p-3 h-full"><span class="text-xs font-bold text-color-secondary uppercase block mb-2">Profit Today</span><span id="dash-today-profit" class="text-2xl font-bold text-green-500 block">₹0.00</span></div></div>
-                        <div class="col-6 lg:col-3 xl:col-2"><div class="p-card glass-card p-3 h-full"><span class="text-xs font-bold text-color-secondary uppercase block mb-2">Margin Yield</span><span id="dash-today-margin" class="text-2xl font-bold text-orange-500 block">0.0%</span></div></div>
-                        <div class="col-6 lg:col-3 xl:col-2"><div class="p-card glass-card p-3 h-full"><span class="text-xs font-bold text-color-secondary uppercase block mb-2">Volume (Units)</span><span id="dash-today-items" class="text-2xl font-bold text-primary block">0</span></div></div>
-                        <div class="col-12 xl:col-4"><div class="p-card glass-card p-3 h-full" style="background: var(--primary-50) !important;"><span class="text-xs font-bold text-color-secondary uppercase block mb-2">Trending Asset</span><span id="dash-today-trending" class="text-xl font-bold block white-space-nowrap overflow-hidden text-overflow-ellipsis">N/A</span></div></div>
+                    <!-- Today's Snapshot -->
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5">
+                        <div class="glass-card p-5 relative overflow-hidden">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Gross Sales (Today)</p>
+                            <p id="dash-today-sales" class="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tighter">₹0.00</p>
+                        </div>
+                        <div class="glass-card p-5">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Net Profit (Today)</p>
+                            <p id="dash-today-profit" class="text-2xl md:text-3xl font-black text-success mt-1 tracking-tighter">₹0.00</p>
+                        </div>
+                        <div class="glass-card p-5">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Margin Yield</p>
+                            <p id="dash-today-margin" class="text-2xl md:text-3xl font-black text-warning mt-1 tracking-tighter">0.0%</p>
+                        </div>
+                        <div class="glass-card p-5">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Volume (Units)</p>
+                            <p id="dash-today-items" class="text-2xl md:text-3xl font-black text-primary mt-1 tracking-tighter">0</p>
+                        </div>
+                        <div class="glass-card p-5 col-span-2 lg:col-span-1 bg-gradient-to-br from-primary/10 to-transparent">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Trending Asset</p>
+                            <p id="dash-today-trending" class="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 mt-2 truncate tracking-tight">N/A</p>
+                        </div>
                     </div>
 
-                    <div class="grid">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Lifetime Metrics -->
-                        <div class="col-12 lg:col-8">
-                            <h3 class="text-sm font-bold text-color-secondary uppercase tracking-widest mt-0 mb-3">Lifetime Aggregates</h3>
-                            <div class="grid">
-                                <div class="col-6 md:col-4"><div class="p-card glass-card p-3 h-full"><span class="text-xs text-color-secondary font-bold uppercase block mb-1">Global Revenue</span><span id="dash-overall-revenue" class="text-lg font-bold block">₹0.00</span></div></div>
-                                <div class="col-6 md:col-4"><div class="p-card glass-card p-3 h-full"><span class="text-xs text-color-secondary font-bold uppercase block mb-1">Global Profit</span><span id="dash-overall-profit" class="text-lg font-bold block">₹0.00</span></div></div>
-                                <div class="col-6 md:col-4"><div class="p-card glass-card p-3 h-full"><span class="text-xs text-color-secondary font-bold uppercase block mb-1">Trapped Capital</span><span id="dash-inv-value" class="text-lg font-bold block">₹0.00</span></div></div>
-                                <div class="col-6 md:col-4"><div class="p-card glass-card p-3 h-full border-left-3 border-red-500"><span class="text-xs text-color-secondary font-bold uppercase block mb-1">Risk Exposure</span><span id="dash-low-stock" class="text-lg font-bold text-red-500 block">0</span></div></div>
-                                <div class="col-12 md:col-4"><div class="p-card glass-card p-3 h-full"><span class="text-xs text-color-secondary font-bold uppercase block mb-1">Active Units</span><span id="dash-inventory" class="text-lg font-bold block">0</span></div></div>
+                        <div class="lg:col-span-2 space-y-4">
+                            <h3 class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest ml-1">Lifetime Aggregates</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
+                                <div class="glass-card p-4 md:p-5 flex flex-col justify-center"><p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Global Revenue</p><p id="dash-overall-revenue" class="text-lg md:text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">₹0.00</p></div>
+                                <div class="glass-card p-4 md:p-5 flex flex-col justify-center"><p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Global Profit</p><p id="dash-overall-profit" class="text-lg md:text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">₹0.00</p></div>
+                                <div class="glass-card p-4 md:p-5 flex flex-col justify-center"><p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Trapped Capital</p><p id="dash-inv-value" class="text-lg md:text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">₹0.00</p></div>
+                                <div class="glass-card p-4 md:p-5 flex flex-col justify-center border-l-4 border-l-danger"><p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Risk Exposure</p><p id="dash-low-stock" class="text-lg md:text-xl font-black text-danger mt-1 tracking-tight">0</p></div>
+                                <div class="glass-card p-4 md:p-5 flex flex-col justify-center col-span-2 md:col-span-1"><p class="text-[9px] text-slate-500 font-black uppercase tracking-widest">Active Units</p><p id="dash-inventory" class="text-lg md:text-xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">0</p></div>
                             </div>
                         </div>
 
                         <!-- Top Selling -->
-                        <div class="col-12 lg:col-4">
-                            <div class="p-card glass-card flex flex-column h-full" style="min-height: 350px;">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20 flex justify-content-between align-items-center bg-white-alpha-20">
-                                    <h3 class="text-xs font-bold uppercase tracking-widest m-0">Velocity Leaders</h3>
-                                    <div class="flex gap-2">
-                                        <select id="dash-top-month" class="p-inputtext p-component glass-input text-xs p-1"></select>
-                                        <select id="dash-top-type" class="p-inputtext p-component glass-input text-xs p-1">
-                                            <option value="All">All</option><option value="Sale">Inv.</option><option value="Cosmetic Sale">Cosm.</option>
-                                        </select>
-                                    </div>
+                        <div class="glass-card flex flex-col h-[380px] overflow-hidden">
+                            <div class="px-5 py-4 border-b border-white/30 dark:border-white/10 flex justify-between items-center bg-white/20 dark:bg-slate-800/30">
+                                <h3 class="text-[10px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">Velocity Leaders</h3>
+                                <div class="flex gap-1.5">
+                                    <select id="dash-top-month" class="glass-input text-[9px] font-bold rounded px-1.5 py-1 outline-none w-16 truncate"></select>
+                                    <select id="dash-top-type" class="glass-input text-[9px] font-bold rounded px-1.5 py-1 outline-none w-16 truncate">
+                                        <option value="All">All</option><option value="Sale">Inv.</option><option value="Cosmetic Sale">Cosm.</option>
+                                    </select>
                                 </div>
-                                <ul id="dash-top-list" class="list-none m-0 p-3 overflow-y-auto flex-1 custom-scrollbar line-height-3 text-sm"></ul>
                             </div>
+                            <ul id="dash-top-list" class="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar text-sm font-medium"></ul>
                         </div>
                     </div>
                 </div>
@@ -263,327 +344,332 @@
                 <div id="tab-trends" class="tab max-w-screen-2xl mx-auto"><div id="trend-tab-container"></div></div>
 
                 <!-- TRANSACTIONS TAB -->
-                <div id="tab-transactions" class="tab max-w-screen-2xl mx-auto">
-                    <div class="flex flex-column md:flex-row justify-content-between md:align-items-end mb-4 gap-3">
-                        <h1 class="text-3xl font-bold m-0">General Ledger</h1>
+                <div id="tab-transactions" class="tab max-w-screen-2xl mx-auto space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">General Ledger</h1>
                         
-                        <div class="p-card glass-card p-2 flex flex-wrap align-items-center gap-2">
-                            <input type="date" id="filter-trans-start" class="p-inputtext p-component glass-input p-2 text-xs">
-                            <input type="date" id="filter-trans-end" class="p-inputtext p-component glass-input p-2 text-xs">
-                            <button id="btn-trans-filter" class="p-button p-component p-2"><span class="p-button-label text-xs">Query</span></button>
-                            <button id="btn-trans-clear" class="p-button p-component p-button-secondary p-button-text p-2"><i class="pi pi-refresh"></i></button>
+                        <div class="flex flex-wrap items-center gap-2 glass-card p-1.5 w-full md:w-auto">
+                            <input type="date" id="filter-trans-start" class="glass-input text-xs font-bold w-[130px] rounded-lg px-3 py-2.5">
+                            <input type="date" id="filter-trans-end" class="glass-input text-xs font-bold w-[130px] rounded-lg px-3 py-2.5">
+                            <button id="btn-trans-filter" class="bg-primary hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-md transition-transform active:scale-95 uppercase tracking-wider">Query</button>
+                            <button id="btn-trans-clear" class="glass-input text-slate-600 text-xs px-3 py-2.5 rounded-lg hover:bg-white/80 transition-colors"><i class="fa-solid fa-rotate-left"></i></button>
                         </div>
                     </div>
 
-                    <div class="p-card glass-card overflow-hidden p-0">
-                        <div class="p-datatable p-component p-datatable-responsive-scroll">
-                            <div class="p-datatable-wrapper custom-scrollbar" style="max-height: 65vh;">
-                                <table id="table-transactions" class="p-datatable-table">
-                                    <thead class="p-datatable-thead">
-                                        <tr>
-                                            <th>Timestamp</th><th>Operation</th><th>Asset Target</th><th>Volume</th><th>Capital Move</th><th class="text-center">Resolution</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="p-datatable-tbody text-sm"></tbody>
-                                </table>
-                            </div>
+                    <div class="glass-card overflow-hidden">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table id="table-transactions" class="w-full text-left whitespace-nowrap">
+                                <thead class="border-b border-white/30 dark:border-white/10 bg-white/40 dark:bg-slate-800/40">
+                                    <tr>
+                                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Timestamp</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Operation</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Asset Target</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Volume</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Capital Move</th>
+                                        <th class="px-6 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">Resolution</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/30 dark:divide-white/10 text-sm font-medium"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
                 <!-- ANALYTICS TAB -->
-                <div id="tab-analytics" class="tab max-w-screen-2xl mx-auto">
-                    <div class="flex flex-column md:flex-row justify-content-between md:align-items-end mb-4 gap-3">
-                        <h1 class="text-3xl font-bold m-0">Business Intelligence</h1>
+                <div id="tab-analytics" class="tab max-w-screen-2xl mx-auto space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Business Intelligence</h1>
                         
-                        <div class="p-card glass-card p-2 flex flex-wrap align-items-center gap-2">
-                            <input type="date" id="ana-start" class="p-inputtext p-component glass-input p-2 text-xs">
-                            <input type="date" id="ana-end" class="p-inputtext p-component glass-input p-2 text-xs">
-                            <button id="btn-ana-filter" class="p-button p-component p-2"><span class="p-button-label text-xs">Process</span></button>
-                            <button id="btn-ana-today" class="p-button p-component p-button-outlined p-2"><span class="p-button-label text-xs">Live</span></button>
-                            <button id="btn-ana-clear" class="p-button p-component p-button-secondary p-button-text p-2"><i class="pi pi-refresh"></i></button>
+                        <div class="flex flex-wrap items-center gap-2 glass-card p-1.5 w-full md:w-auto">
+                            <input type="date" id="ana-start" class="glass-input text-xs font-bold w-[120px] rounded-lg px-3 py-2.5">
+                            <input type="date" id="ana-end" class="glass-input text-xs font-bold w-[120px] rounded-lg px-3 py-2.5">
+                            <button id="btn-ana-filter" class="bg-primary hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-md uppercase tracking-wider">Process</button>
+                            <button id="btn-ana-today" class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold px-4 py-2.5 rounded-lg shadow-md uppercase tracking-wider">Live</button>
+                            <button id="btn-ana-clear" class="glass-input text-slate-600 text-xs px-3 py-2.5 rounded-lg"><i class="fa-solid fa-rotate-left"></i></button>
                         </div>
                     </div>
 
-                    <div class="grid mb-4">
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Query Rev.</span><span id="ana-revenue" class="text-xl font-bold block">₹0.00</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Query Profit</span><span id="ana-profit" class="text-xl font-bold text-green-500 block">₹0.00</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Margin Rate</span><span id="ana-margin" class="text-xl font-bold text-orange-500 block">0.0%</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Units Affected</span><span id="ana-stock" class="text-xl font-bold text-primary block">0</span></div></div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+                        <div class="glass-card p-5"><p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Query Rev.</p><p id="ana-revenue" class="text-xl md:text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">₹0.00</p></div>
+                        <div class="glass-card p-5"><p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Query Profit</p><p id="ana-profit" class="text-xl md:text-2xl font-black text-success mt-1 tracking-tight">₹0.00</p></div>
+                        <div class="glass-card p-5"><p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Margin Rate</p><p id="ana-margin" class="text-xl md:text-2xl font-black text-warning mt-1 tracking-tight">0.0%</p></div>
+                        <div class="glass-card p-5"><p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Units Affected</p><p id="ana-stock" class="text-xl md:text-2xl font-black text-primary mt-1 tracking-tight">0</p></div>
                     </div>
 
-                    <div class="grid mb-4">
-                        <div class="col-12 lg:col-6"><div class="p-card glass-card p-4 flex justify-content-center h-full"><canvas id="chart-monthly"></canvas></div></div>
-                        <div class="col-12 lg:col-3"><div class="p-card glass-card p-4 flex justify-content-center h-full"><canvas id="chart-abc"></canvas></div></div>
-                        <div class="col-12 lg:col-3"><div class="p-card glass-card p-4 flex justify-content-center h-full"><canvas id="chart-fsn"></canvas></div></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-5">
+                        <div class="lg:col-span-2 glass-card p-6 flex flex-col justify-center min-h-[300px]"><canvas id="chart-monthly"></canvas></div>
+                        <div class="glass-card p-6 flex flex-col justify-center min-h-[300px]"><canvas id="chart-abc"></canvas></div>
+                        <div class="glass-card p-6 flex flex-col justify-center min-h-[300px]"><canvas id="chart-fsn"></canvas></div>
                     </div>
 
-                    <div class="grid mb-4">
-                        <div class="col-12 md:col-6">
-                            <div class="p-card glass-card p-0 flex flex-column h-20rem">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20 bg-white-alpha-20 flex justify-content-between align-items-center">
-                                    <h3 class="text-xs font-bold uppercase m-0">Performance Curve</h3>
-                                    <select id="filter-top-selling" class="p-inputtext p-component glass-input p-1 text-xs"><option value="All">All Entities</option><option value="Top10">Top Decile</option></select>
-                                </div>
-                                <div class="p-datatable p-component overflow-y-auto flex-1 custom-scrollbar"><table class="p-datatable-table"><tbody id="tbody-top-selling" class="p-datatable-tbody text-sm"></tbody></table></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="glass-card flex flex-col h-[350px] overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/30 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-slate-800/40">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest">Performance Curve</h3>
+                                <select id="filter-top-selling" class="glass-input text-[10px] font-bold rounded px-2 py-1 outline-none"><option value="All">All Entities</option><option value="Top10">Top Decile</option></select>
                             </div>
+                            <div class="overflow-y-auto flex-1 p-2 custom-scrollbar"><table class="w-full text-sm text-left"><tbody id="tbody-top-selling" class="divide-y divide-white/30 dark:divide-white/10 font-medium"></tbody></table></div>
                         </div>
-                        <div class="col-12 md:col-6">
-                            <div class="p-card glass-card p-0 flex flex-column h-20rem">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20 bg-white-alpha-20 flex justify-content-between align-items-center">
-                                    <h3 class="text-xs font-bold uppercase m-0">Deficit Exposure</h3>
-                                    <select id="filter-inv-status" class="p-inputtext p-component glass-input p-1 text-xs"><option value="All">All States</option><option value="Low">Critical Scope</option></select>
-                                </div>
-                                <div class="p-datatable p-component overflow-y-auto flex-1 custom-scrollbar"><table class="p-datatable-table"><tbody id="tbody-inv-status" class="p-datatable-tbody text-sm"></tbody></table></div>
+                        <div class="glass-card flex flex-col h-[350px] overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/30 dark:border-white/10 flex justify-between items-center bg-white/30 dark:bg-slate-800/40">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest">Deficit Exposure</h3>
+                                <select id="filter-inv-status" class="glass-input text-[10px] font-bold rounded px-2 py-1 outline-none"><option value="All">All States</option><option value="Low">Critical Scope</option></select>
                             </div>
+                            <div class="overflow-y-auto flex-1 p-2 custom-scrollbar"><table class="w-full text-sm text-left"><tbody id="tbody-inv-status" class="divide-y divide-white/30 dark:divide-white/10 font-medium"></tbody></table></div>
                         </div>
                     </div>
 
-                    <!-- Strategic Matrices -->
-                    <div class="grid">
-                        <div class="col-12 xl:col-6">
-                            <div class="p-card glass-card p-0 overflow-hidden">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20 bg-white-alpha-20"><h3 class="text-xs font-bold uppercase m-0">Capital Stratification (ABC)</h3></div>
-                                <div class="p-datatable p-component overflow-y-auto custom-scrollbar" style="max-height: 400px;">
-                                    <table id="table-abc" class="p-datatable-table">
-                                        <thead class="p-datatable-thead"><tr><th>Asset</th><th>Mass</th><th>Dist %</th><th>Tier</th></tr></thead>
-                                        <tbody class="p-datatable-tbody text-sm"></tbody>
-                                    </table>
-                                </div>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                        <div class="glass-card overflow-hidden">
+                            <div class="px-6 py-5 border-b border-white/30 dark:border-white/10 bg-white/30 dark:bg-slate-800/40">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest">Capital Stratification (ABC)</h3>
+                            </div>
+                            <div class="overflow-x-auto overflow-y-auto max-h-[400px] custom-scrollbar">
+                                <table id="table-abc" class="w-full text-sm text-left whitespace-nowrap">
+                                    <thead class="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10 shadow-sm">
+                                        <tr><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Asset</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Mass</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Dist %</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Tier</th></tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-white/30 dark:divide-white/10 font-medium"></tbody>
+                                </table>
                             </div>
                         </div>
                         
-                        <div class="col-12 xl:col-6">
-                            <div class="p-card glass-card p-0 overflow-hidden">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20 bg-white-alpha-20 flex justify-content-between align-items-center">
-                                    <h3 class="text-xs font-bold uppercase m-0">Operational Matrix (FSN x HMV)</h3>
-                                    <select id="ana-class-filter" class="p-inputtext p-component glass-input p-1 text-xs"><option value="All">Global Map</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cows</option><option value="🔥 Dead Weight">🔥 Dead</option><option value="🚀 Drivers">🚀 Drive</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleep</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Base</option><option value="🗑️ Dead Stock">🗑️ Junk</option></select>
-                                </div>
-                                <div class="p-datatable p-component overflow-y-auto custom-scrollbar" style="max-height: 400px;">
-                                    <table id="table-matrix" class="p-datatable-table">
-                                        <thead class="p-datatable-thead"><tr><th>Asset</th><th>Vol</th><th>Cap</th><th>Yield</th><th>F</th><th>H</th><th>Strategy</th></tr></thead>
-                                        <tbody class="p-datatable-tbody text-sm"></tbody>
-                                    </table>
-                                </div>
+                        <div class="glass-card overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/30 dark:border-white/10 bg-white/30 dark:bg-slate-800/40 flex justify-between items-center">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest">Operational Matrix (FSN x HMV)</h3>
+                                <select id="ana-class-filter" class="glass-input text-[10px] font-bold rounded-lg px-2 py-1.5 outline-none"><option value="All">Global Map</option><option value="⭐ Stars">⭐ Stars</option><option value="💰 Cash Cows">💰 Cows</option><option value="🔥 Dead Weight">🔥 Dead</option><option value="🚀 Drivers">🚀 Drive</option><option value="🐢 Slugs">🐢 Slugs</option><option value="💤 Sleepers">💤 Sleep</option><option value="🏃 Runners">🏃 Runners</option><option value="📦 Basics">📦 Base</option><option value="🗑️ Dead Stock">🗑️ Junk</option></select>
+                            </div>
+                            <div class="overflow-x-auto overflow-y-auto max-h-[400px] custom-scrollbar">
+                                <table id="table-matrix" class="w-full text-sm text-left whitespace-nowrap">
+                                    <thead class="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md z-10 shadow-sm">
+                                        <tr><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Asset</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Vol</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Cap</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Yield</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">F</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">H</th><th class="py-3 px-6 font-black text-slate-500 text-[10px] uppercase tracking-widest border-b border-white/30 dark:border-white/10">Strategy</th></tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-white/30 dark:divide-white/10 font-medium"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- SALES TAB -->
-                <div id="tab-sales" class="tab max-w-screen-xl mx-auto">
-                    <h1 class="text-3xl font-bold mb-4">Revenue Execution</h1>
+                <div id="tab-sales" class="tab max-w-screen-xl mx-auto space-y-6">
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Revenue Execution</h1>
                     
-                    <div class="grid">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Standard Sale -->
-                        <div class="col-12 lg:col-6">
-                            <div class="p-card glass-card h-full relative border-top-3 border-primary">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20">
-                                    <h3 class="text-xl font-bold m-0">Standard Contract</h3>
-                                    <p class="text-xs text-color-secondary m-0 mt-1">Modifies physical holding arrays.</p>
+                        <div class="glass-card flex flex-col relative overflow-visible">
+                            <div class="absolute top-0 right-0 bg-primary text-white px-4 py-1.5 rounded-bl-xl rounded-tr-[1.25rem] text-[9px] font-black uppercase tracking-widest shadow-lg">Linked Mode</div>
+                            <div class="p-6 md:p-8 border-b border-white/30 dark:border-white/10 bg-white/20 dark:bg-slate-800/30 rounded-t-[1.25rem]">
+                                <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">Standard Contract</h3>
+                                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 font-semibold">Modifies physical holding arrays.</p>
+                            </div>
+                            
+                            <form id="form-sale" class="p-6 md:p-8 flex-1 flex flex-col space-y-6">
+                                <div class="space-y-5">
+                                    <div class="relative">
+                                        <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Asset Node</label>
+                                        <input type="text" id="sale-item" autocomplete="off" placeholder="Search..." class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium">
+                                        <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-2 glass-panel rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar divide-y divide-white/30 dark:divide-white/10"></div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Base Line</label><input type="number" id="sale-cost" readonly class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium opacity-60"></div>
+                                        <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Multiplier</label><input type="number" id="sale-qty" placeholder="1" class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium"></div>
+                                    </div>
+                                    <div><label class="block text-[9px] font-black text-primary uppercase tracking-widest mb-2 pl-1">Execution Value (₹)</label><input type="number" id="sale-rate" step="0.01" class="glass-input w-full px-4 py-4 rounded-xl text-lg font-black text-primary shadow-inner"></div>
                                 </div>
                                 
-                                <form id="form-sale" class="p-4 flex flex-column gap-4 h-full">
-                                    <div class="relative">
-                                        <label class="text-xs font-bold text-color-secondary uppercase block mb-1">Asset Node</label>
-                                        <input type="text" id="sale-item" autocomplete="off" placeholder="Search..." class="p-inputtext p-component glass-input w-full p-3">
-                                        <div id="sale-item-dropdown" class="hidden absolute z-5 w-full mt-1 glass-panel border-round shadow-4 max-h-15rem overflow-y-auto custom-scrollbar border-1 border-white-alpha-20"></div>
+                                <button type="button" id="btn-add-to-cart" class="w-full bg-slate-900/10 dark:bg-white/10 hover:bg-slate-900/20 dark:hover:bg-white/20 text-slate-900 dark:text-white font-bold py-3.5 rounded-xl transition-all text-sm uppercase tracking-widest"><i class="fa-solid fa-plus mr-2"></i> Stage Payload</button>
+                                
+                                <div id="cart-container" class="hidden mt-4 flex-1 flex flex-col bg-white/30 dark:bg-slate-900/40 p-5 rounded-2xl shadow-inner border border-white/30 dark:border-white/10">
+                                    <h4 class="text-[9px] font-black text-slate-500 uppercase tracking-widest border-b border-white/30 dark:border-white/10 pb-2 mb-3">Staged Array</h4>
+                                    <ul id="cart-list" class="space-y-2 text-sm font-medium max-h-40 overflow-y-auto flex-1 custom-scrollbar pr-2"></ul>
+                                    <div class="mt-4 pt-4 border-t border-white/30 dark:border-white/10 flex justify-between items-end">
+                                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Gross Yield</span>
+                                        <span class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">₹<span id="cart-total">0.00</span></span>
                                     </div>
-                                    
-                                    <div class="grid">
-                                        <div class="col-6"><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Base Line</label><input type="number" id="sale-cost" readonly class="p-inputtext p-component glass-input w-full p-3 opacity-60"></div>
-                                        <div class="col-6"><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Multiplier</label><input type="number" id="sale-qty" placeholder="1" class="p-inputtext p-component glass-input w-full p-3"></div>
-                                    </div>
-                                    <div><label class="text-xs font-bold text-primary uppercase block mb-1">Execution Value (₹)</label><input type="number" id="sale-rate" step="0.01" class="p-inputtext p-component glass-input w-full p-3 text-lg font-bold text-primary"></div>
-                                    
-                                    <button type="button" id="btn-add-to-cart" class="p-button p-component p-button-outlined w-full justify-content-center mt-2"><i class="pi pi-plus mr-2"></i> Stage Payload</button>
-                                    
-                                    <div id="cart-container" class="hidden mt-3 flex-1 flex flex-column bg-white-alpha-20 p-3 border-round border-1 border-white-alpha-20">
-                                        <h4 class="text-xs font-bold text-color-secondary uppercase border-bottom-1 border-white-alpha-20 pb-2 m-0 mb-2">Staged Array</h4>
-                                        <ul id="cart-list" class="list-none p-0 m-0 overflow-y-auto flex-1 custom-scrollbar text-sm line-height-3 max-h-10rem"></ul>
-                                        <div class="mt-3 pt-3 border-top-1 border-white-alpha-20 flex justify-content-between align-items-end">
-                                            <span class="text-xs font-bold text-color-secondary uppercase">Gross Yield</span>
-                                            <span class="text-2xl font-bold">₹<span id="cart-total">0.00</span></span>
-                                        </div>
-                                    </div>
-                                    
-                                    <button type="submit" id="btn-save-sale" class="p-button p-component w-full justify-content-center mt-auto"><span class="p-button-label text-sm uppercase tracking-widest">Commit Transaction</span></button>
-                                </form>
-                            </div>
+                                </div>
+                                
+                                <div class="pt-2 mt-auto">
+                                    <button type="submit" id="btn-save-sale" class="w-full bg-primary hover:bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-sm uppercase tracking-widest">Commit Transaction</button>
+                                </div>
+                            </form>
                         </div>
 
                         <!-- Cosmetic Sale -->
-                        <div class="col-12 lg:col-6">
-                            <div class="p-card glass-card h-full relative border-top-3 border-pink-500">
-                                <div class="p-3 border-bottom-1 border-white-alpha-20">
-                                    <h3 class="text-xl font-bold m-0">Service Injection</h3>
-                                    <p class="text-xs text-color-secondary m-0 mt-1">Bypasses physical array deduction.</p>
-                                </div>
-                                
-                                <form id="form-cosmetic" class="p-4 flex flex-column gap-4 h-full">
-                                    <div><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Descriptor Tag</label><input type="text" id="cosmetic-item" required class="p-inputtext p-component glass-input w-full p-3"></div>
-                                    <div class="grid">
-                                        <div class="col-6"><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Multiplier</label><input type="number" id="cosmetic-qty" required class="p-inputtext p-component glass-input w-full p-3"></div>
-                                        <div class="col-6"><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Ghost Cost</label><input type="number" id="cosmetic-cost" step="0.01" required class="p-inputtext p-component glass-input w-full p-3"></div>
-                                    </div>
-                                    <div><label class="text-xs font-bold text-pink-500 uppercase block mb-1">Inject Value (₹)</label><input type="number" id="cosmetic-rate" step="0.01" required class="p-inputtext p-component glass-input w-full p-3 text-lg font-bold text-pink-500"></div>
-                                    <button type="submit" class="p-button p-component w-full justify-content-center mt-auto" style="background: var(--pink-500); border-color: var(--pink-500);"><span class="p-button-label text-sm uppercase tracking-widest">Commit Injection</span></button>
-                                </form>
+                        <div class="glass-card flex flex-col relative overflow-hidden h-fit">
+                            <div class="absolute top-0 right-0 bg-cosmetic text-white px-4 py-1.5 rounded-bl-xl rounded-tr-[1.25rem] text-[9px] font-black uppercase tracking-widest shadow-lg">Floating Mode</div>
+                            <div class="p-6 md:p-8 border-b border-white/30 dark:border-white/10 bg-white/20 dark:bg-slate-800/30 rounded-t-[1.25rem]">
+                                <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">Service Injection</h3>
+                                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 font-semibold">Bypasses physical array deduction.</p>
                             </div>
+                            
+                            <form id="form-cosmetic" class="p-6 md:p-8 space-y-6">
+                                <div class="space-y-5">
+                                    <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Descriptor Tag</label><input type="text" id="cosmetic-item" required class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium"></div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Multiplier</label><input type="number" id="cosmetic-qty" required class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium"></div>
+                                        <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Ghost Cost</label><input type="number" id="cosmetic-cost" step="0.01" required class="glass-input w-full px-4 py-3.5 rounded-xl text-sm font-medium"></div>
+                                    </div>
+                                    <div><label class="block text-[9px] font-black text-cosmetic uppercase tracking-widest mb-2 pl-1">Inject Value (₹)</label><input type="number" id="cosmetic-rate" step="0.01" required class="glass-input w-full px-4 py-4 rounded-xl text-lg font-black text-cosmetic shadow-inner"></div>
+                                </div>
+                                <button type="submit" class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black py-4 rounded-xl shadow-xl transition-transform active:scale-95 text-sm uppercase tracking-widest mt-4">Commit Injection</button>
+                            </form>
                         </div>
                     </div>
                 </div>
 
                 <!-- PURCHASES TAB -->
-                <div id="tab-purchases" class="tab max-w-3xl mx-auto">
-                    <h1 class="text-3xl font-bold mb-4">Procurement Flow</h1>
+                <div id="tab-purchases" class="tab max-w-3xl mx-auto space-y-6">
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Procurement Flow</h1>
                     
-                    <div class="p-card glass-card p-5 relative border-top-3 border-red-500">
-                        <form id="form-purchase" class="flex flex-column gap-4 relative z-1">
-                            <div class="relative">
-                                <label class="text-xs font-bold text-color-secondary uppercase block mb-1">Target Asset Definition</label>
-                                <input type="text" id="purchase-item" autocomplete="off" required placeholder="Type identifier..." class="p-inputtext p-component glass-input w-full p-3">
-                                <div id="purchase-item-dropdown" class="hidden absolute z-5 w-full mt-1 glass-panel border-round shadow-4 max-h-15rem overflow-y-auto custom-scrollbar border-1 border-white-alpha-20"></div>
+                    <div class="glass-card p-6 md:p-10 relative overflow-hidden">
+                        <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-danger/20 blur-[50px] rounded-full pointer-events-none"></div>
+
+                        <form id="form-purchase" class="space-y-6 relative z-10">
+                            <div class="space-y-5">
+                                <div class="relative">
+                                    <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Target Asset Definition</label>
+                                    <input type="text" id="purchase-item" autocomplete="off" required placeholder="Type identifier..." class="glass-input w-full px-4 py-4 rounded-xl text-sm font-medium shadow-inner">
+                                    <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-2 glass-panel rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar divide-y divide-white/30 dark:divide-white/10"></div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div><label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Volume Inbound</label><input type="number" id="purchase-qty" required class="glass-input w-full px-4 py-4 rounded-xl text-sm font-medium shadow-inner"></div>
+                                    <div><label class="block text-[9px] font-black text-danger uppercase tracking-widest mb-2 pl-1">Capital Expenditure (₹)</label><input type="number" id="purchase-amount" required class="glass-input w-full px-4 py-4 rounded-xl text-lg font-black text-danger shadow-inner"></div>
+                                </div>
                             </div>
-                            
-                            <div class="grid">
-                                <div class="col-12 sm:col-6"><label class="text-xs font-bold text-color-secondary uppercase block mb-1">Volume Inbound</label><input type="number" id="purchase-qty" required class="p-inputtext p-component glass-input w-full p-3"></div>
-                                <div class="col-12 sm:col-6"><label class="text-xs font-bold text-red-500 uppercase block mb-1">Capital Expenditure (₹)</label><input type="number" id="purchase-amount" required class="p-inputtext p-component glass-input w-full p-3 text-lg font-bold text-red-500"></div>
-                            </div>
-                            <button type="submit" class="p-button p-component p-button-danger w-full justify-content-center mt-3"><span class="p-button-label text-sm uppercase tracking-widest">Execute Inbound</span></button>
+                            <button type="submit" class="w-full bg-danger hover:bg-red-600 text-white font-black py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-sm uppercase tracking-widest mt-4">Execute Inbound</button>
                         </form>
                     </div>
                 </div>
 
                 <!-- INVENTORY TAB -->
-                <div id="tab-inventory" class="tab max-w-screen-2xl mx-auto">
-                    <h1 class="text-3xl font-bold mb-4">Array Control</h1>
+                <div id="tab-inventory" class="tab max-w-screen-2xl mx-auto space-y-6">
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Array Control</h1>
                     
-                    <div class="grid mb-4">
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Active Keys</span><span id="stat-inv-total" class="text-xl font-bold block">0</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Gross Cap</span><span id="stat-inv-value" class="text-xl font-bold block">₹0</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3 border-bottom-3 border-red-500"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Null States</span><span id="stat-inv-out" class="text-xl font-bold text-red-500 block">0</span></div></div>
-                        <div class="col-6 md:col-3"><div class="p-card glass-card p-3 border-bottom-3 border-orange-500"><span class="text-xs font-bold text-color-secondary uppercase block mb-1">Crit Scope</span><span id="stat-inv-low" class="text-xl font-bold text-orange-500 block">0</span></div></div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
+                        <div class="glass-card p-5"><span class="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Keys</span><span id="stat-inv-total" class="block text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">0</span></div>
+                        <div class="glass-card p-5"><span class="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Gross Cap</span><span id="stat-inv-value" class="block text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">₹0</span></div>
+                        <div class="glass-card p-5 border-b-4 border-b-danger"><span class="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Null States</span><span id="stat-inv-out" class="block text-2xl font-black text-danger mt-1 tracking-tight">0</span></div>
+                        <div class="glass-card p-5 border-b-4 border-b-warning"><span class="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Crit Scope</span><span id="stat-inv-low" class="block text-2xl font-black text-warning mt-1 tracking-tight">0</span></div>
                     </div>
 
                     <!-- Inline Tool -->
-                    <div class="p-card glass-card p-3 flex flex-column md:flex-row align-items-center gap-3 mb-4 bg-white-alpha-20">
-                        <h3 id="inv-form-title" class="text-xs font-bold text-color-secondary uppercase m-0 md:w-8rem">Root Force</h3>
-                        <form id="form-inventory" class="flex-1 flex flex-column sm:flex-row gap-2 w-full">
-                            <input type="text" id="inv-name" required placeholder="Identity" class="p-inputtext p-component glass-input w-full sm:flex-1">
+                    <div class="glass-card p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/30 dark:bg-slate-800/40">
+                        <h3 id="inv-form-title" class="text-[9px] font-black text-slate-500 uppercase tracking-widest md:w-28 pl-2">Root Force</h3>
+                        <form id="form-inventory" class="flex-1 flex flex-col sm:flex-row gap-2 items-center w-full">
+                            <input type="text" id="inv-name" required placeholder="Identity" class="glass-input w-full sm:flex-1 px-4 py-3 text-sm rounded-xl font-medium">
                             <div class="flex gap-2 w-full sm:w-auto">
-                                <input type="number" id="inv-qty" required placeholder="Vol" min="0" class="p-inputtext p-component glass-input w-6 sm:w-6rem text-center">
-                                <input type="number" id="inv-price" required step="0.01" placeholder="Cost" min="0" class="p-inputtext p-component glass-input w-6 sm:w-7rem text-center">
+                                <input type="number" id="inv-qty" required placeholder="Vol" min="0" class="glass-input w-1/2 sm:w-24 px-4 py-3 text-sm rounded-xl font-medium text-center">
+                                <input type="number" id="inv-price" required step="0.01" placeholder="Cost" min="0" class="glass-input w-1/2 sm:w-28 px-4 py-3 text-sm rounded-xl font-medium text-center">
                             </div>
                             <div class="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                                <button type="submit" id="btn-inv-submit" class="p-button p-component flex-1 sm:flex-none justify-content-center text-xs uppercase"><span class="p-button-label">Push</span></button>
-                                <button type="button" id="btn-inv-cancel" style="display:none;" class="p-button p-component p-button-outlined p-button-secondary text-xs uppercase"><span class="p-button-label">Drop</span></button>
+                                <button type="submit" id="btn-inv-submit" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all text-xs flex-1 sm:flex-none uppercase tracking-widest">Push</button>
+                                <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-white/50 dark:bg-slate-800/50 text-slate-800 dark:text-white font-bold py-3 px-4 rounded-xl text-xs border border-white/60 dark:border-white/10 uppercase tracking-widest">Drop</button>
                             </div>
                         </form>
                     </div>
 
-                    <div class="p-card glass-card p-0 overflow-hidden">
-                        <div class="p-3 border-bottom-1 border-white-alpha-20 bg-white-alpha-20 flex flex-column md:flex-row justify-content-between align-items-center gap-3">
-                            <div class="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 no-scrollbar">
-                                <button class="p-button p-component inv-tab active text-xs uppercase tracking-widest px-3 py-2 white-space-nowrap" data-filter="all"><span class="p-button-label">Global Array</span></button>
-                                <button class="p-button p-component p-button-outlined p-button-secondary inv-tab text-xs uppercase tracking-widest px-3 py-2 white-space-nowrap" data-filter="out"><span class="p-button-label">Null Pointers</span></button>
-                                <button class="p-button p-component p-button-outlined p-button-secondary inv-tab text-xs uppercase tracking-widest px-3 py-2 white-space-nowrap" data-filter="low"><span class="p-button-label">Risk Flags</span></button>
+                    <div class="glass-card overflow-hidden">
+                        <div class="p-4 border-b border-white/30 dark:border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 dark:bg-slate-800/40">
+                            <div class="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pb-1 md:pb-0">
+                                <button class="inv-tab active bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap" data-filter="all">Global Array</button>
+                                <button class="inv-tab text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border border-transparent" data-filter="out">Null Pointers</button>
+                                <button class="inv-tab text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border border-transparent" data-filter="low">Risk Flags</button>
                             </div>
                             
-                            <div class="p-input-icon-left w-full md:w-15rem">
-                                <i class="pi pi-search"></i>
-                                <input type="text" id="search-inventory" placeholder="Filter..." class="p-inputtext p-component glass-input w-full">
+                            <div class="relative w-full md:w-64">
+                                <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 text-sm"></i>
+                                <input type="text" id="search-inventory" placeholder="Filter..." class="glass-input w-full pl-9 pr-4 py-2.5 text-sm rounded-xl font-medium">
                             </div>
                         </div>
 
-                        <div class="p-datatable p-component p-datatable-responsive-scroll">
-                            <div class="p-datatable-wrapper custom-scrollbar" style="max-height: 50vh;">
-                                <table id="table-inventory" class="p-datatable-table">
-                                    <thead class="p-datatable-thead">
-                                        <tr>
-                                            <th>Key Address</th><th class="text-right">Mass</th><th class="text-right">Cost/Unit</th><th class="text-right">Capital</th><th class="text-right">State</th><th class="text-right">Access</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="p-datatable-tbody text-sm"></tbody>
-                                </table>
-                            </div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table id="table-inventory" class="w-full text-left whitespace-nowrap">
+                                <thead class="bg-white/50 dark:bg-slate-800/50 border-b border-white/30 dark:border-white/10">
+                                    <tr>
+                                        <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Key Address</th>
+                                        <th class="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">Mass</th>
+                                        <th class="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">Cost/Unit</th>
+                                        <th class="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">Capital</th>
+                                        <th class="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">State</th>
+                                        <th class="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">Access</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/30 dark:divide-white/10 text-sm font-medium"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
                 <!-- SETTINGS TAB -->
-                <div id="tab-settings" class="tab max-w-4xl mx-auto">
-                    <h1 class="text-3xl font-bold mb-4">Admin Overrides</h1>
+                <div id="tab-settings" class="tab max-w-4xl mx-auto space-y-6">
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Admin Overrides</h1>
                     
-                    <div class="p-card glass-card p-5 border-top-3 border-primary">
-                        <h3 class="text-sm font-bold m-0 mb-1 uppercase tracking-widest text-primary">System Integrity</h3>
-                        <p class="text-xs text-color-secondary m-0 mb-4">Core database modifications and external pipeline connections.</p>
+                    <div class="glass-card p-6 md:p-8 border-t-4 border-t-primary">
+                        <h3 class="text-sm font-black mb-1 uppercase tracking-widest text-primary">System Integrity</h3>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 mb-8 font-semibold">Core database modifications and external pipeline connections.</p>
                         
-                        <div class="grid">
-                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="hidden">
                             
-                            <div class="col-12 md:col-4">
-                                <button id="btn-trigger-excel" class="p-button p-component p-button-outlined p-button-secondary w-full h-8rem flex flex-column justify-content-center align-items-center gap-3 bg-white-alpha-20 border-round-xl">
-                                    <i class="pi pi-file-excel text-3xl text-green-500"></i>
-                                    <span class="text-xs uppercase tracking-widest font-bold text-color">Force Push CSV</span>
-                                </button>
-                            </div>
+                            <button id="btn-trigger-excel" class="glass-input flex flex-col items-center justify-center gap-4 h-32 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all shadow-sm">
+                                <i class="fa-solid fa-file-excel text-3xl text-success drop-shadow-md"></i>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Force Push CSV</span>
+                            </button>
                             
-                            <div class="col-12 md:col-4">
-                                <button id="btn-sync-drive" class="p-button p-component p-button-outlined p-button-secondary w-full h-8rem flex flex-column justify-content-center align-items-center gap-3 bg-white-alpha-20 border-round-xl">
-                                    <i class="pi pi-cloud text-3xl text-primary"></i>
-                                    <span class="text-xs uppercase tracking-widest font-bold text-color">Cloud Sync</span>
-                                </button>
-                            </div>
+                            <button id="btn-sync-drive" class="glass-input flex flex-col items-center justify-center gap-4 h-32 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all shadow-sm">
+                                <i class="fa-brands fa-google-drive text-3xl text-primary drop-shadow-md"></i>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Cloud Sync</span>
+                            </button>
                             
-                            <div class="col-12 md:col-4">
-                                <button id="btn-merge-dup" class="p-button p-component p-button-outlined p-button-secondary w-full h-8rem flex flex-column justify-content-center align-items-center gap-3 bg-white-alpha-20 border-round-xl">
-                                    <i class="pi pi-sparkles text-3xl text-orange-500"></i>
-                                    <span class="text-xs uppercase tracking-widest font-bold text-color">Garbage Collect</span>
-                                </button>
-                            </div>
+                            <button id="btn-merge-dup" class="glass-input flex flex-col items-center justify-center gap-4 h-32 rounded-2xl hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all shadow-sm">
+                                <i class="fa-solid fa-wand-magic-sparkles text-3xl text-warning drop-shadow-md"></i>
+                                <span class="text-[10px] font-black uppercase tracking-widest">Garbage Collect</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </main>
         </div>
         
-        <!-- MOBILE BOTTOM NAVIGATION (Liquid Glass PrimeFlex) -->
-        <nav class="md:hidden glass-panel w-full fixed bottom-0 left-0 z-5 px-2 py-2 flex justify-content-start sm:justify-content-center align-items-center pb-3 overflow-x-auto no-scrollbar gap-2 shadow-4 border-none border-round-top-3xl" style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
-            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-primary bg-primary-reverse flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-chart-line text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Ops</span></button>
-            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-shopping-cart text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Sell</span></button>
-            <button onclick="document.getElementById('btn-purchases').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-truck text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Buy</span></button>
-            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-box text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Array</span></button>
-            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-book text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Ledger</span></button>
-            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-chart-pie text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Data</span></button>
-            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-bolt text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">AI</span></button>
-            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn p-button p-component p-button-text text-color-secondary flex flex-column align-items-center justify-content-center p-2 border-round-2xl min-w-4rem transition-all"><i class="pi pi-cog text-lg mb-1"></i><span class="text-xs font-bold uppercase" style="font-size: 0.6rem;">Conf</span></button>
+        <!-- MOBILE BOTTOM NAVIGATION (Liquid Glass Premium) -->
+        <nav class="md:hidden glass-panel w-full fixed bottom-0 left-0 z-50 px-2 py-2 flex justify-start sm:justify-center items-center pb-[calc(0.5rem+env(safe-area-inset-bottom))] overflow-x-auto no-scrollbar gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] border-x-0 border-b-0 rounded-t-3xl">
+            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary bg-primary/10 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-chart-line text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Ops</span></button>
+            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-cart-arrow-down text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Sell</span></button>
+            <button onclick="document.getElementById('btn-purchases').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-truck-fast text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Buy</span></button>
+            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-boxes-stacked text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Array</span></button>
+            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-book text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Ledger</span></button>
+            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-chart-pie text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Data</span></button>
+            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-bolt text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">AI</span></button>
+            <button onclick="document.getElementById('btn-settings').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center py-2 px-3 rounded-2xl min-w-[64px] transition-all"><i class="fa-solid fa-sliders text-lg mb-1"></i><span class="text-[9px] font-black uppercase tracking-widest mt-1">Conf</span></button>
         </nav>
         
     </div>
 
-    <!-- Mobile Nav Script -->
+    <!-- Mobile Nav Script (iOS App feel) -->
     <script>
         function updateMobileNav(activeBtn) {
             document.querySelectorAll('.mob-nav-btn').forEach(btn => {
-                btn.classList.remove('text-primary', 'bg-primary-reverse');
-                btn.classList.add('text-color-secondary');
+                btn.classList.remove('text-primary', 'bg-primary/10');
+                btn.classList.add('text-slate-500', 'dark:text-slate-400');
             });
-            activeBtn.classList.remove('text-color-secondary');
-            activeBtn.classList.add('text-primary', 'bg-primary-reverse');
+            activeBtn.classList.remove('text-slate-500', 'dark:text-slate-400');
+            activeBtn.classList.add('text-primary', 'bg-primary/10');
             document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
         }
-        
-        // PrimeNG specific tab handler logic to ensure PrimeNG classes update properly
+
+        // Tab logic fix for Inventory Tabs explicitly
         document.querySelectorAll('.inv-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 document.querySelectorAll('.inv-tab').forEach(t => {
-                    t.classList.remove('active', 'p-button-outlined', 'p-button-secondary');
-                    t.classList.add('p-button-outlined', 'p-button-secondary');
+                    t.classList.remove('active', 'bg-slate-900', 'text-white', 'dark:bg-white', 'dark:text-slate-900', 'shadow-md');
+                    t.classList.add('text-slate-600', 'dark:text-slate-400', 'border-transparent');
                 });
                 const btn = e.currentTarget;
-                btn.classList.remove('p-button-outlined', 'p-button-secondary');
-                btn.classList.add('active');
+                btn.classList.remove('text-slate-600', 'dark:text-slate-400', 'border-transparent');
+                btn.classList.add('active', 'bg-slate-900', 'text-white', 'dark:bg-white', 'dark:text-slate-900', 'shadow-md');
             });
         });
     </script>
