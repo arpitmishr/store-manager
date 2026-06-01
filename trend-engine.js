@@ -2,7 +2,14 @@ const TrendEngine = (() => {
     const STATE = {
         mom: { curSales: 0, curProfit: 0, curMargin: 0, prevSales: 0, prevProfit: 0, prevMargin: 0 },
         abcXyz: { matrixCounts: {}, skus: [] },
-        cssInjected: false
+        cssInjected: false,
+        chartInstance: null,
+        chartParams: {
+            startMonth: new Date().getMonth(),
+            endMonth: new Date().getMonth(),
+            year1: new Date().getFullYear(),
+            year2: new Date().getFullYear() - 1
+        }
     };
 
     const MathUtils = {
@@ -181,9 +188,112 @@ const TrendEngine = (() => {
                 .stat-trend.up { color: #10b981; }
                 .stat-trend.down { color: #ef4444; }
                 .badge-erp { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
+                .erp-input { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; color: #334155; outline: none; transition: border-color 0.2s;}
+                .dark-mode .erp-input { background: #1e293b; border-color: #334155; color: #f8fafc;}
+                .erp-input:focus { border-color: #3b82f6; }
             `;
             document.head.appendChild(style);
             STATE.cssInjected = true;
+        },
+
+        drawChart() {
+            if (!window.Chart) return;
+
+            const p = STATE.chartParams;
+            const isDaily = parseInt(p.startMonth) === parseInt(p.endMonth);
+
+            let labels = [];
+            let data1 = [];
+            let data2 = [];
+
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+            if (isDaily) {
+                const daysInMonth = new Date(p.year1, parseInt(p.startMonth) + 1, 0).getDate();
+                for (let i = 1; i <= daysInMonth; i++) {
+                    labels.push(`${i} ${monthNames[p.startMonth]}`);
+                    data1.push(0);
+                    data2.push(0);
+                }
+            } else {
+                for (let i = parseInt(p.startMonth); i <= parseInt(p.endMonth); i++) {
+                    labels.push(monthNames[i]);
+                    data1.push(0);
+                    data2.push(0);
+                }
+            }
+
+            window.allTransactions.forEach(t => {
+                if (!t.date || !t.type.includes('Sale')) return;
+                let d = new Date(t.date);
+                let m = d.getMonth();
+                let y = d.getFullYear();
+                let day = d.getDate();
+                
+                let isReturn = t.type.includes('Return');
+                let amt = Number(t.amount) || 0;
+                if (isReturn) amt = -amt;
+
+                if (m >= parseInt(p.startMonth) && m <= parseInt(p.endMonth)) {
+                    if (isDaily) {
+                        if (y === parseInt(p.year1)) data1[day - 1] += amt;
+                        if (y === parseInt(p.year2)) data2[day - 1] += amt;
+                    } else {
+                        let idx = m - parseInt(p.startMonth);
+                        if (y === parseInt(p.year1)) data1[idx] += amt;
+                        if (y === parseInt(p.year2)) data2[idx] += amt;
+                    }
+                }
+            });
+
+            const ctx = document.getElementById('trendComparativeChart');
+            if (!ctx) return;
+            
+            if (STATE.chartInstance) STATE.chartInstance.destroy();
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const textColor = isDark ? '#cbd5e1' : '#475569';
+            const gridColor = isDark ? '#334155' : '#f1f5f9';
+
+            STATE.chartInstance = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `${p.year1} Revenue (₹)`,
+                            data: data1,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3
+                        },
+                        {
+                            label: `${p.year2} Revenue (₹)`,
+                            data: data2,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: textColor, font: { family: 'Inter' } } } },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { color: gridColor, drawBorder: false } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor, drawBorder: false }, beginAtZero: true }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
         },
 
         render(containerId) {
@@ -260,6 +370,14 @@ const TrendEngine = (() => {
                 </tr>
             `}).join('');
 
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthOptions = (selected) => monthNames.map((m, i) => `<option value="${i}" ${i === parseInt(selected) ? 'selected' : ''}>${m}</option>`).join('');
+
+            let years = new Set([STATE.chartParams.year1, STATE.chartParams.year2]);
+            window.allTransactions.forEach(t => { if(t.date) years.add(new Date(t.date).getFullYear()); });
+            let yearArr = Array.from(years).sort((a,b) => b-a);
+            const yearOptions = (selected) => yearArr.map(y => `<option value="${y}" ${y === parseInt(selected) ? 'selected' : ''}>${y}</option>`).join('');
+
             el.innerHTML = `
                 <div class="erp-container">
                     <div class="mb-6">
@@ -291,6 +409,26 @@ const TrendEngine = (() => {
                                 ${formatTrend(marginDiff)}
                             </div>
                             <div class="text-xs text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">Prev: ${STATE.mom.prevMargin.toFixed(1)}%</div>
+                        </div>
+                    </div>
+
+                    <div class="erp-card mb-6">
+                        <div class="erp-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h3 class="erp-title"><i class="fa-solid fa-chart-line text-blue-500"></i> Comparative Trajectory</h3>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select id="tc-start" class="erp-input" onchange="TrendEngine.updateChartParams()">${monthOptions(STATE.chartParams.startMonth)}</select>
+                                <span class="text-xs text-gray-500 font-bold uppercase">to</span>
+                                <select id="tc-end" class="erp-input" onchange="TrendEngine.updateChartParams()">${monthOptions(STATE.chartParams.endMonth)}</select>
+                                <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                                <select id="tc-y1" class="erp-input" onchange="TrendEngine.updateChartParams()">${yearOptions(STATE.chartParams.year1)}</select>
+                                <span class="text-xs text-gray-500 font-bold uppercase">vs</span>
+                                <select id="tc-y2" class="erp-input" onchange="TrendEngine.updateChartParams()">${yearOptions(STATE.chartParams.year2)}</select>
+                            </div>
+                        </div>
+                        <div class="p-5 relative h-80 w-full">
+                            <canvas id="trendComparativeChart"></canvas>
                         </div>
                     </div>
 
@@ -417,6 +555,8 @@ const TrendEngine = (() => {
                     </div>
                 </div>
             `;
+
+            this.drawChart();
         }
     };
 
@@ -424,8 +564,21 @@ const TrendEngine = (() => {
         init(db) { 
             if (!db) return; 
         }, 
+        updateChartParams() {
+            let start = parseInt(document.getElementById('tc-start').value);
+            let end = parseInt(document.getElementById('tc-end').value);
+            if (start > end) {
+                document.getElementById('tc-end').value = start;
+                end = start;
+            }
+            STATE.chartParams.startMonth = start;
+            STATE.chartParams.endMonth = end;
+            STATE.chartParams.year1 = parseInt(document.getElementById('tc-y1').value);
+            STATE.chartParams.year2 = parseInt(document.getElementById('tc-y2').value);
+            UI.drawChart();
+        },
         renderTab(containerId) { UI.render(containerId); },
-        refresh() { UI.render('trend-tab-container'); },
+        refresh() { UI.render('trend-tab-container'); }
     };
 })();
 
