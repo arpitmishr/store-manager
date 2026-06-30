@@ -596,9 +596,9 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         let returnQtyStr = prompt(`How many '${t.item}' do you want to return?\n(Original Quantity: ${t.qty})`, t.qty);
         if (returnQtyStr === null) return; 
         
-        let returnQty = parseInt(returnQtyStr);
+        let returnQty = parseFloat(returnQtyStr); // Support decimal returns
         if (isNaN(returnQty) || returnQty <= 0 || returnQty > t.qty) {
-            alert(`Invalid quantity! Must be between 1 and ${t.qty}`);
+            alert(`Invalid quantity! Must be between 0.01 and ${t.qty}`);
             return;
         }
 
@@ -874,7 +874,7 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
         return;
     }
 
-    let qty = parseInt(qtyStr);
+    let qty = parseFloat(qtyStr); // Support decimal values
     let rate = parseFloat(rateStr);
     if (qty <= 0 || rate < 0) {
         alert("Please enter a valid quantity and rate.");
@@ -988,7 +988,7 @@ cosmeticForm.addEventListener('submit', async (e) => {
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
     const item = document.getElementById('cosmetic-item').value.trim() + " (Cosmetic)";
-    let qty = parseInt(document.getElementById('cosmetic-qty').value);
+    let qty = parseFloat(document.getElementById('cosmetic-qty').value); // Support decimal values
     let cost = parseFloat(document.getElementById('cosmetic-cost').value);
     let rate = parseFloat(document.getElementById('cosmetic-rate').value);
     let amount = qty * rate; 
@@ -1028,7 +1028,7 @@ purchaseForm.addEventListener('submit', async (e) => {
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
     const item = document.getElementById('purchase-item').value.trim();
-    let qty = parseInt(document.getElementById('purchase-qty').value);
+    let qty = parseFloat(document.getElementById('purchase-qty').value); // Support decimal values
     let amount = parseFloat(document.getElementById('purchase-amount').value);
     const date = new Date().toISOString();
 
@@ -1182,7 +1182,7 @@ const inventoryForm = document.getElementById('form-inventory');
 inventoryForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('inv-name').value.trim();
-    let qty = parseInt(document.getElementById('inv-qty').value); 
+    let qty = parseFloat(document.getElementById('inv-qty').value); // Support decimal stock quantities
     let price = parseFloat(document.getElementById('inv-price').value);
     
     if (isNaN(qty)) qty = 0; 
