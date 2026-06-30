@@ -52,6 +52,18 @@ const TrendEngine = (() => {
             let curSales = 0, curCogs = 0, prevSales = 0, prevCogs = 0;
             let itemStats = {};
 
+            // 1. Pre-populate every item in the current inventory to prevent items missing from analysis
+            window.allInventory.forEach(inv => {
+                itemStats[inv.name] = { 
+                    totalProfit: 0, 
+                    totalSales: 0, 
+                    curQty: 0, 
+                    prevQty: 0, 
+                    weeklyQty: [0, 0, 0, 0] 
+                };
+            });
+
+            // 2. Parse transactions ledger
             window.allTransactions.forEach(t => {
                 if (!t.date || !t.type.includes('Sale')) return;
 
@@ -60,6 +72,16 @@ const TrendEngine = (() => {
                 let qty = Number(t.qty) || 0;
                 const item = t.item;
                 const isCosmetic = t.type.includes('Cosmetic');
+
+                if (!itemStats[item]) {
+                    itemStats[item] = { 
+                        totalProfit: 0, 
+                        totalSales: 0, 
+                        curQty: 0, 
+                        prevQty: 0, 
+                        weeklyQty: [0, 0, 0, 0] 
+                    };
+                }
 
                 let cost = isCosmetic ? ((Number(t.cost) || 0) * qty) : ((invMap[item]?.cost || 0) * qty);
                 
@@ -75,14 +97,6 @@ const TrendEngine = (() => {
                     curSales += finalAmt; curCogs += finalCost;
                 } else if (isPrevMonth) {
                     prevSales += finalAmt; prevCogs += finalCost;
-                }
-
-                if (!itemStats[item]) {
-                    itemStats[item] = { 
-                        totalProfit: 0, totalSales: 0, 
-                        curQty: 0, prevQty: 0, 
-                        weeklyQty: [0, 0, 0, 0] 
-                    };
                 }
 
                 itemStats[item].totalProfit += (finalAmt - finalCost);
@@ -105,6 +119,7 @@ const TrendEngine = (() => {
                 prevSales, prevProfit, prevMargin: prevSales > 0 ? (prevProfit/prevSales)*100 : 0
             };
 
+            // Rank entire product list by profitability contribution
             let sortedByProfit = Object.keys(itemStats)
                 .map(k => ({ 
                     name: k, 
@@ -114,26 +129,32 @@ const TrendEngine = (() => {
                     curQty: itemStats[k].curQty,
                     prevQty: itemStats[k].prevQty
                 }))
-                .filter(i => i.profit > 0)
                 .sort((a, b) => b.profit - a.profit);
 
-            let totalProfitPool = sortedByProfit.reduce((sum, item) => sum + item.profit, 0);
+            // Sum up positive profits to find threshold percentages
+            let totalProfitPool = sortedByProfit.reduce((sum, item) => sum + Math.max(0, item.profit), 0);
             let cumulativeProfit = 0;
 
             sortedByProfit.forEach(item => {
-                cumulativeProfit += item.profit;
-                let pct = cumulativeProfit / totalProfitPool;
-                item.cumPct = pct * 100;
-                
-                if (pct <= 0.80) item.abc = 'A';
-                else if (pct <= 0.95) item.abc = 'B';
-                else item.abc = 'C';
+                if (item.profit > 0 && totalProfitPool > 0) {
+                    cumulativeProfit += item.profit;
+                    let pct = cumulativeProfit / totalProfitPool;
+                    item.cumPct = pct * 100;
+                    
+                    if (pct <= 0.70) item.abc = 'A';
+                    else if (pct <= 0.90) item.abc = 'B';
+                    else item.abc = 'C';
+                } else {
+                    item.cumPct = 100;
+                    item.abc = 'C';
+                }
 
                 let cv = MathUtils.cv(item.weekly);
                 item.cvValue = cv;
 
-                if (cv <= 0.1) item.xyz = 'X';
-                else if (cv <= 0.5) item.xyz = 'Y';
+                // Rational retail thresholds for standard deviation values
+                if (cv <= 0.3) item.xyz = 'X';
+                else if (cv <= 0.8) item.xyz = 'Y';
                 else item.xyz = 'Z';
 
                 item.matrixClass = item.abc + item.xyz;
@@ -166,8 +187,11 @@ const TrendEngine = (() => {
                 .dark-mode .erp-title { color: #a1a1aa; }
                 .matrix-grid { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 4px; padding: 16px; background: #f1f5f9; }
                 .dark-mode .matrix-grid { background: #121214; }
-                .matrix-cell { padding: 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-align: center; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70px;}
-                .matrix-header { font-weight: 700; color: #64748b; background: transparent; border: none; font-size: 0.75rem; text-transform: uppercase;}
+                .matrix-cell { padding: 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-align: center; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+                .matrix-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); filter: brightness(0.96); z-index: 10; }
+                .dark-mode .matrix-cell:hover { filter: brightness(1.1); }
+                .matrix-header { font-weight: 700; color: #64748b; background: transparent; border: none; font-size: 0.75rem; text-transform: uppercase; cursor: default; }
+                .matrix-header:hover { transform: none; box-shadow: none; filter: none; }
                 .dark-mode .matrix-header { color: #94a3b8; }
                 .cell-AX { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
                 .dark-mode .cell-AX { background: #14532d; color: #86efac; border-color: #166534; }
@@ -194,6 +218,146 @@ const TrendEngine = (() => {
             `;
             document.head.appendChild(style);
             STATE.cssInjected = true;
+        },
+
+        calculateComparativeMetrics() {
+            const p = STATE.chartParams;
+            const invMap = {};
+            window.allInventory.forEach(inv => invMap[inv.name] = { cost: Number(inv.price) || 0, stock: Number(inv.qty) || 0 });
+
+            let y1 = { revenue: 0, cogs: 0, profit: 0, margin: 0, qty: 0, count: 0, aov: 0 };
+            let y2 = { revenue: 0, cogs: 0, profit: 0, margin: 0, qty: 0, count: 0, aov: 0 };
+
+            window.allTransactions.forEach(t => {
+                if (!t.date || !t.type.includes('Sale')) return;
+                const d = new Date(t.date);
+                const m = d.getMonth();
+                const y = d.getFullYear();
+
+                if (m >= parseInt(p.startMonth) && m <= parseInt(p.endMonth)) {
+                    const isReturn = t.type.includes('Return');
+                    const amt = Number(t.amount) || 0;
+                    let qty = Number(t.qty) || 0;
+                    const item = t.item;
+                    const isCosmetic = t.type.includes('Cosmetic');
+                    const cost = isCosmetic ? ((Number(t.cost) || 0) * qty) : ((invMap[item]?.cost || 0) * qty);
+
+                    const finalAmt = isReturn ? -amt : amt;
+                    const finalCost = isReturn ? -cost : cost;
+                    const finalQty = isReturn ? -qty : qty;
+
+                    if (y === parseInt(p.year1)) {
+                        y1.revenue += finalAmt;
+                        y1.cogs += finalCost;
+                        y1.qty += finalQty;
+                        y1.count++;
+                    } else if (y === parseInt(p.year2)) {
+                        y2.revenue += finalAmt;
+                        y2.cogs += finalCost;
+                        y2.qty += finalQty;
+                        y2.count++;
+                    }
+                }
+            });
+
+            y1.profit = y1.revenue - y1.cogs;
+            y1.margin = y1.revenue > 0 ? (y1.profit / y1.revenue) * 100 : 0;
+            y1.aov = y1.count > 0 ? y1.revenue / y1.count : 0;
+
+            y2.profit = y2.revenue - y2.cogs;
+            y2.margin = y2.revenue > 0 ? (y2.profit / y2.revenue) * 100 : 0;
+            y2.aov = y2.count > 0 ? y2.revenue / y2.count : 0;
+
+            return { y1, y2 };
+        },
+
+        buildComparativeTableRows() {
+            const { y1, y2 } = this.calculateComparativeMetrics();
+            
+            const rows = [
+                {
+                    name: "Gross Revenue",
+                    v1: `₹${y1.revenue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    v2: `₹${y2.revenue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    diff: y1.revenue - y2.revenue,
+                    pct: MathUtils.percentDiff(y1.revenue, y2.revenue),
+                    isCurrency: true
+                },
+                {
+                    name: "Cost of Goods (COGS)",
+                    v1: `₹${y1.cogs.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    v2: `₹${y2.cogs.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    diff: y1.cogs - y2.cogs,
+                    pct: MathUtils.percentDiff(y1.cogs, y2.cogs),
+                    isCurrency: true,
+                    lowerIsBetter: true
+                },
+                {
+                    name: "Net Profit",
+                    v1: `₹${y1.profit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    v2: `₹${y2.profit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    diff: y1.profit - y2.profit,
+                    pct: MathUtils.percentDiff(y1.profit, y2.profit),
+                    isCurrency: true
+                },
+                {
+                    name: "Gross Margin",
+                    v1: `${y1.margin.toFixed(2)}%`,
+                    v2: `${y2.margin.toFixed(2)}%`,
+                    diff: y1.margin - y2.margin,
+                    pct: y1.margin - y2.margin, 
+                    isMargin: true
+                },
+                {
+                    name: "Quantity Sold",
+                    v1: y1.qty.toLocaleString('en-IN'),
+                    v2: y2.qty.toLocaleString('en-IN'),
+                    diff: y1.qty - y2.qty,
+                    pct: MathUtils.percentDiff(y1.qty, y2.qty)
+                },
+                {
+                    name: "Transactions Count",
+                    v1: y1.count.toLocaleString('en-IN'),
+                    v2: y2.count.toLocaleString('en-IN'),
+                    diff: y1.count - y2.count,
+                    pct: MathUtils.percentDiff(y1.count, y2.count)
+                },
+                {
+                    name: "Average Order Value (AOV)",
+                    v1: `₹${y1.aov.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    v2: `₹${y2.aov.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+                    diff: y1.aov - y2.aov,
+                    pct: MathUtils.percentDiff(y1.aov, y2.aov),
+                    isCurrency: true
+                }
+            ];
+
+            return rows.map(r => {
+                let diffClass = "text-gray-500 font-medium";
+                let pctSign = r.diff > 0 ? "+" : "";
+                let deltaText = "";
+
+                if (r.diff !== 0) {
+                    const isPositiveBetter = r.lowerIsBetter ? r.diff < 0 : r.diff > 0;
+                    diffClass = isPositiveBetter ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600 dark:text-red-400 font-bold";
+                }
+
+                if (r.isMargin) {
+                    deltaText = `<span class="${diffClass}">${pctSign}${r.diff.toFixed(2)} pp</span>`;
+                } else {
+                    const valText = r.isCurrency ? `₹${Math.abs(r.diff).toLocaleString('en-IN', {maximumFractionDigits:2})}` : Math.abs(r.diff).toLocaleString('en-IN');
+                    const pctText = isFinite(r.pct) ? ` (${pctSign}${r.pct.toFixed(1)}%)` : "";
+                    deltaText = `<span class="${diffClass}">${r.diff < 0 ? '-' : (r.diff > 0 ? '+' : '')}${valText}${pctText}</span>`;
+                }
+
+                return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-5 py-3.5 font-semibold text-gray-700 dark:text-gray-300">${r.name}</td>
+                    <td class="px-5 py-3.5 text-right font-medium">${r.v1}</td>
+                    <td class="px-5 py-3.5 text-right font-medium">${r.v2}</td>
+                    <td class="px-5 py-3.5 text-right">${deltaText}</td>
+                </tr>`;
+            }).join('');
         },
 
         drawChart() {
@@ -412,6 +576,7 @@ const TrendEngine = (() => {
                         </div>
                     </div>
 
+                    <!-- COMPARATIVE TRAJECTORY WITH CHART & COMPARISON TABLE -->
                     <div class="erp-card mb-6">
                         <div class="erp-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
@@ -430,13 +595,33 @@ const TrendEngine = (() => {
                         <div class="p-5 relative h-80 w-full">
                             <canvas id="trendComparativeChart"></canvas>
                         </div>
+                        
+                        <!-- DYNAMIC COMPARISON TABLE -->
+                        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/50 dark:bg-zinc-900/30">
+                            <h4 class="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4"><i class="fa-solid fa-table-columns mr-1"></i> Side-by-Side Trajectory Overview</h4>
+                            <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-zinc-900">
+                                <table class="erp-table">
+                                    <thead class="bg-gray-50 dark:bg-zinc-800/80">
+                                        <tr>
+                                            <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Trajectory Metric</th>
+                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest" id="traj-header-y1">${STATE.chartParams.year1}</th>
+                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest" id="traj-header-y2">${STATE.chartParams.year2}</th>
+                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">Variance Shift</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trajectory-comparison-tbody" class="divide-y divide-gray-100 dark:divide-zinc-800/60">
+                                        ${this.buildComparativeTableRows()}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                         <div class="erp-card h-full">
                             <div class="erp-header">
                                 <div class="erp-title"><i class="fa-solid fa-border-all text-blue-600"></i> Automated ABC-XYZ Matrix</div>
-                                <p class="text-xs text-gray-500 mt-1 font-normal">X-Axis: Velocity Predictability (CV) | Y-Axis: Profit Contribution</p>
+                                <p class="text-xs text-gray-500 mt-1 font-normal">X-Axis: Velocity Predictability (CV) | Y-Axis: Profit Contribution (Click cells to inspect)</p>
                             </div>
                             <div class="matrix-grid rounded-b-xl flex-1">
                                 <div class="matrix-cell matrix-header border-none"></div>
@@ -444,44 +629,44 @@ const TrendEngine = (() => {
                                 <div class="matrix-cell matrix-header border-none">Y <span class="matrix-sub lowercase font-normal">(Fluctuating)</span></div>
                                 <div class="matrix-cell matrix-header border-none">Z <span class="matrix-sub lowercase font-normal">(Erratic/Slow)</span></div>
                                 
-                                <div class="matrix-cell matrix-header">A <span class="matrix-sub lowercase font-normal">(Top 80%)</span></div>
-                                <div class="matrix-cell cell-AX">
+                                <div class="matrix-cell matrix-header">A <span class="matrix-sub lowercase font-normal">(Top 70%)</span></div>
+                                <div class="matrix-cell cell-AX" onclick="TrendEngine.showMatrixDetails('AX')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AX}</div>
                                     <div class="matrix-sub uppercase font-bold">Core Engines</div>
                                 </div>
-                                <div class="matrix-cell cell-AY">
+                                <div class="matrix-cell cell-AY" onclick="TrendEngine.showMatrixDetails('AY')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AY}</div>
                                     <div class="matrix-sub uppercase font-bold">High Seasonal</div>
                                 </div>
-                                <div class="matrix-cell cell-AZ">
+                                <div class="matrix-cell cell-AZ" onclick="TrendEngine.showMatrixDetails('AZ')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AZ}</div>
                                     <div class="matrix-sub uppercase font-bold">Capital Risks</div>
                                 </div>
 
-                                <div class="matrix-cell matrix-header">B <span class="matrix-sub lowercase font-normal">(Next 15%)</span></div>
-                                <div class="matrix-cell cell-BX">
+                                <div class="matrix-cell matrix-header">B <span class="matrix-sub lowercase font-normal">(Next 20%)</span></div>
+                                <div class="matrix-cell cell-BX" onclick="TrendEngine.showMatrixDetails('BX')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BX}</div>
                                     <div class="matrix-sub uppercase font-bold">Steady Sellers</div>
                                 </div>
-                                <div class="matrix-cell cell-BY">
+                                <div class="matrix-cell cell-BY" onclick="TrendEngine.showMatrixDetails('BY')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BY}</div>
                                     <div class="matrix-sub uppercase font-bold">Med Fluctuating</div>
                                 </div>
-                                <div class="matrix-cell cell-BZ">
+                                <div class="matrix-cell cell-BZ" onclick="TrendEngine.showMatrixDetails('BZ')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BZ}</div>
                                     <div class="matrix-sub uppercase font-bold">Slow Burners</div>
                                 </div>
 
-                                <div class="matrix-cell matrix-header">C <span class="matrix-sub lowercase font-normal">(Bottom 5%)</span></div>
-                                <div class="matrix-cell cell-CX">
+                                <div class="matrix-cell matrix-header">C <span class="matrix-sub lowercase font-normal">(Bottom 10%)</span></div>
+                                <div class="matrix-cell cell-CX" onclick="TrendEngine.showMatrixDetails('CX')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CX}</div>
                                     <div class="matrix-sub uppercase font-bold">Cheap / Fast</div>
                                 </div>
-                                <div class="matrix-cell cell-CY">
+                                <div class="matrix-cell cell-CY" onclick="TrendEngine.showMatrixDetails('CY')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CY}</div>
                                     <div class="matrix-sub uppercase font-bold">Low Seasonal</div>
                                 </div>
-                                <div class="matrix-cell cell-CZ">
+                                <div class="matrix-cell cell-CZ" onclick="TrendEngine.showMatrixDetails('CZ')">
                                     <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CZ}</div>
                                     <div class="matrix-sub uppercase font-bold">Dead Stock</div>
                                 </div>
@@ -491,7 +676,7 @@ const TrendEngine = (() => {
                         <div class="flex flex-col gap-6">
                             <div class="erp-card">
                                 <div class="erp-header flex justify-between items-center">
-                                    <div class="erp-title"><i class="fa-solid fa-engine text-success"></i> AX: Core Engines</div>
+                                    <div class="erp-title"><i class="fa-solid fa-gears text-success"></i> AX: Core Engines</div>
                                     <span class="text-xs text-gray-500 font-medium">Predictable & Highly Profitable</span>
                                 </div>
                                 <div class="overflow-x-auto">
@@ -530,6 +715,14 @@ const TrendEngine = (() => {
                         </div>
                     </div>
 
+                    <!-- DYNAMIC CATEGORIZED SKU DETAILS CONTAINER -->
+                    <div id="matrix-details-panel" class="mb-6">
+                        <div class="p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-850 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                            <i class="fa-solid fa-hand-pointer text-2xl text-gray-400 mb-2 block"></i>
+                            <span class="text-sm font-medium">Click on any matrix metrics classification cell above to expand the SKU list and analyze stock trends.</span>
+                        </div>
+                    </div>
+
                     <div class="erp-card mb-12">
                         <div class="erp-header">
                             <div class="erp-title"><i class="fa-solid fa-magnifying-glass-chart text-purple-600"></i> Master SKU Deep Dive</div>
@@ -537,7 +730,7 @@ const TrendEngine = (() => {
                         </div>
                         <div class="overflow-x-auto max-h-[500px]">
                             <table class="erp-table relative">
-                                <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800 shadow-sm">
+                                <head class="sticky top-0 bg-gray-50 dark:bg-gray-800 shadow-sm z-10">
                                     <tr>
                                         <th>SKU</th>
                                         <th class="text-center">Matrix</th>
@@ -548,7 +741,7 @@ const TrendEngine = (() => {
                                         <th class="text-right">Cum. %</th>
                                         <th class="text-right">CV Ratio</th>
                                     </tr>
-                                </thead>
+                                </head>
                                 <tbody>${deepHtml}</tbody>
                             </table>
                         </div>
@@ -575,7 +768,95 @@ const TrendEngine = (() => {
             STATE.chartParams.endMonth = end;
             STATE.chartParams.year1 = parseInt(document.getElementById('tc-y1').value);
             STATE.chartParams.year2 = parseInt(document.getElementById('tc-y2').value);
+            
+            // Redraw chart
             UI.drawChart();
+            
+            // Re-render comparative metrics comparison table rows
+            const tbody = document.getElementById('trajectory-comparison-tbody');
+            if (tbody) {
+                tbody.innerHTML = UI.buildComparativeTableRows();
+            }
+            
+            // Update table header text
+            const h1 = document.getElementById('traj-header-y1');
+            const h2 = document.getElementById('traj-header-y2');
+            if (h1) h1.innerText = STATE.chartParams.year1;
+            if (h2) h2.innerText = STATE.chartParams.year2;
+        },
+        showMatrixDetails(matrixClass) {
+            const container = document.getElementById('matrix-details-panel');
+            if (!container) return;
+
+            // Manage border rings & scaling classes around matrix grid
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.classList.remove('ring-4', 'ring-primary', 'scale-105', 'z-10');
+            });
+            const clickedCell = document.querySelector(`.cell-${matrixClass}`);
+            if (clickedCell) {
+                clickedCell.classList.add('ring-4', 'ring-primary', 'scale-105', 'z-10');
+            }
+
+            const items = STATE.abcXyz.skus.filter(i => i.matrixClass === matrixClass);
+            
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="erp-card border border-primary/25 bg-primary/5 dark:bg-primary/5 p-6 text-center text-gray-500 dark:text-gray-400">
+                        No product items are currently classified in the matrix as <strong class="text-primary font-bold">${matrixClass}</strong>.
+                    </div>`;
+                return;
+            }
+
+            let rows = items.map(i => {
+                let volTrend = i.momQtyDiff;
+                const isUp = volTrend > 0;
+                let volTrendHtml = isFinite(volTrend) 
+                    ? `<span class="${isUp ? 'text-green-600' : 'text-red-600'}">${isUp ? '▲' : '▼'} ${Math.abs(volTrend).toFixed(1)}%</span>`
+                    : '<span class="text-gray-400">-</span>';
+
+                return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-5 py-3 font-semibold text-gray-900 dark:text-white">${i.name}</td>
+                    <td class="px-5 py-3 text-right font-medium">${i.stock}</td>
+                    <td class="px-5 py-3 text-right text-success font-semibold">₹${i.profit.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+                    <td class="px-5 py-3 text-right">${i.curQty}</td>
+                    <td class="px-5 py-3 text-right">${volTrendHtml}</td>
+                    <td class="px-5 py-3 text-right text-xs text-gray-500">${i.cvValue === Infinity ? 'INF' : i.cvValue.toFixed(2)}</td>
+                </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="erp-card border border-primary/20 bg-blue-50/10 dark:bg-zinc-900/40 p-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <span class="badge-erp cell-${matrixClass} px-3 py-1 text-xs rounded">${matrixClass}</span> 
+                            Categorized Products list (${items.length} SKUs)
+                        </h4>
+                        <button onclick="document.getElementById('matrix-details-panel').innerHTML=\`<div class='p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-850 rounded-xl border border-dashed border-gray-200 dark:border-gray-700'><i class='fa-solid fa-hand-pointer text-2xl text-gray-400 mb-2 block'></i><span class='text-sm font-medium'>Click on any matrix metrics classification cell above to expand the SKU list and analyze stock trends.</span></div>\`; document.querySelectorAll('.matrix-cell').forEach(c=>c.classList.remove('ring-4','ring-primary','scale-105'));" class="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <i class="fa-solid fa-xmark mr-1"></i> Close Panel
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table class="erp-table">
+                            <thead class="bg-gray-100/80 dark:bg-zinc-800/80">
+                                <tr>
+                                    <th class="px-5 py-2.5 text-left">SKU Product Name</th>
+                                    <th class="px-5 py-2.5 text-right">Current Stock</th>
+                                    <th class="px-5 py-2.5 text-right">Lifetime Profit Contribution</th>
+                                    <th class="px-5 py-2.5 text-right">Current Month Volume</th>
+                                    <th class="px-5 py-2.5 text-right">MoM Trend</th>
+                                    <th class="px-5 py-2.5 text-right">CV Ratio</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-zinc-900">
+                                ${rows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            
+            // Scroll dynamically to active container smoothly
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         },
         renderTab(containerId) { UI.render(containerId); },
         refresh() { UI.render('trend-tab-container'); }
