@@ -1,15 +1,15 @@
+// ===================================================================
+// === PROJECT AETHER | UNIFIED ENTERPRISE OPERATIONS & VELOCITY HUB =
+// ===================================================================
+
 const TrendEngine = (() => {
     const STATE = {
-        mom: { curSales: 0, curProfit: 0, curMargin: 0, prevSales: 0, prevProfit: 0, prevMargin: 0 },
+        mom: { curSales: 0, curProfit: 0, curMargin: 0, prevSales: 0, prevProfit: 0, prevMargin: 0, curItems: 0 },
         abcXyz: { matrixCounts: {}, skus: [] },
+        activeFilter: 'ALL',
+        activeBubble: 'Capital Network',
         cssInjected: false,
-        chartInstance: null,
-        chartParams: {
-            startMonth: new Date().getMonth(),
-            endMonth: new Date().getMonth(),
-            year1: new Date().getFullYear(),
-            year2: new Date().getFullYear() - 1
-        }
+        selectedSkuForDetail: null
     };
 
     const MathUtils = {
@@ -34,8 +34,19 @@ const TrendEngine = (() => {
     const Utils = {
         money: v => `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`,
         moneyShort: v => `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-        formatPct: v => `${v > 0 ? '+' : ''}${v.toFixed(1)}%`
+        moneyCompact: v => {
+            const num = Math.abs(Number(v) || 0);
+            if (num >= 10000000) return `₹${(v / 10000000).toFixed(2)}Cr`;
+            if (num >= 100000) return `₹${(v / 100000).toFixed(2)}L`;
+            if (num >= 1000) return `₹${(v / 1000).toFixed(1)}k`;
+            return `₹${v.toFixed(0)}`;
+        }
     };
+
+    const GarmentIcons = [
+        "fa-shirt", "fa-vest", "fa-person-dress", "fa-socks", 
+        "fa-bag-shopping", "fa-tag", "fa-crown", "fa-gem"
+    ];
 
     const Analyzer = {
         run() {
@@ -47,12 +58,16 @@ const TrendEngine = (() => {
             const prevMonthDate = new Date(curYear, curMonth - 1, 1);
             
             const invMap = {};
-            window.allInventory.forEach(inv => invMap[inv.name] = { cost: Number(inv.price) || 0, stock: Number(inv.qty) || 0 });
+            window.allInventory.forEach(inv => {
+                invMap[inv.name] = { 
+                    cost: Number(inv.price) || 0, 
+                    stock: Number(inv.qty) || 0 
+                };
+            });
 
-            let curSales = 0, curCogs = 0, prevSales = 0, prevCogs = 0;
+            let curSales = 0, curCogs = 0, prevSales = 0, prevCogs = 0, curItems = 0;
             let itemStats = {};
 
-            // 1. Pre-populate every item in the current inventory to prevent items missing from analysis
             window.allInventory.forEach(inv => {
                 itemStats[inv.name] = { 
                     totalProfit: 0, 
@@ -63,7 +78,6 @@ const TrendEngine = (() => {
                 };
             });
 
-            // 2. Parse transactions ledger
             window.allTransactions.forEach(t => {
                 if (!t.date || !t.type.includes('Sale')) return;
 
@@ -84,7 +98,6 @@ const TrendEngine = (() => {
                 }
 
                 let cost = isCosmetic ? ((Number(t.cost) || 0) * qty) : ((invMap[item]?.cost || 0) * qty);
-                
                 let isReturn = t.type.includes('Return');
                 let finalAmt = isReturn ? -amt : amt;
                 let finalCost = isReturn ? -cost : cost;
@@ -94,9 +107,12 @@ const TrendEngine = (() => {
                 let isPrevMonth = tDate.getFullYear() === prevMonthDate.getFullYear() && tDate.getMonth() === prevMonthDate.getMonth();
 
                 if (isCurrentMonth) {
-                    curSales += finalAmt; curCogs += finalCost;
+                    curSales += finalAmt;
+                    curCogs += finalCost;
+                    curItems += finalQty;
                 } else if (isPrevMonth) {
-                    prevSales += finalAmt; prevCogs += finalCost;
+                    prevSales += finalAmt;
+                    prevCogs += finalCost;
                 }
 
                 itemStats[item].totalProfit += (finalAmt - finalCost);
@@ -114,24 +130,27 @@ const TrendEngine = (() => {
 
             let curProfit = curSales - curCogs;
             let prevProfit = prevSales - prevCogs;
+            
             STATE.mom = {
-                curSales, curProfit, curMargin: curSales > 0 ? (curProfit/curSales)*100 : 0,
-                prevSales, prevProfit, prevMargin: prevSales > 0 ? (prevProfit/prevSales)*100 : 0
+                curSales, curProfit, 
+                curMargin: curSales > 0 ? (curProfit / curSales) * 100 : 0,
+                prevSales, prevProfit, 
+                prevMargin: prevSales > 0 ? (prevProfit / prevSales) * 100 : 0,
+                curItems: Math.max(0, curItems)
             };
 
-            // Rank entire product list by profitability contribution
             let sortedByProfit = Object.keys(itemStats)
-                .map(k => ({ 
+                .map((k, idx) => ({ 
                     name: k, 
                     profit: itemStats[k].totalProfit, 
                     sales: itemStats[k].totalSales, 
                     weekly: itemStats[k].weeklyQty,
                     curQty: itemStats[k].curQty,
-                    prevQty: itemStats[k].prevQty
+                    prevQty: itemStats[k].prevQty,
+                    icon: GarmentIcons[idx % GarmentIcons.length]
                 }))
                 .sort((a, b) => b.profit - a.profit);
 
-            // Sum up positive profits to find threshold percentages
             let totalProfitPool = sortedByProfit.reduce((sum, item) => sum + Math.max(0, item.profit), 0);
             let cumulativeProfit = 0;
 
@@ -140,7 +159,6 @@ const TrendEngine = (() => {
                     cumulativeProfit += item.profit;
                     let pct = cumulativeProfit / totalProfitPool;
                     item.cumPct = pct * 100;
-                    
                     if (pct <= 0.70) item.abc = 'A';
                     else if (pct <= 0.90) item.abc = 'B';
                     else item.abc = 'C';
@@ -152,14 +170,28 @@ const TrendEngine = (() => {
                 let cv = MathUtils.cv(item.weekly);
                 item.cvValue = cv;
 
-                // Rational retail thresholds for standard deviation values
-                if (cv <= 0.3) item.xyz = 'X';
-                else if (cv <= 0.8) item.xyz = 'Y';
+                if (cv <= 0.35) item.xyz = 'X';
+                else if (cv <= 0.85) item.xyz = 'Y';
                 else item.xyz = 'Z';
 
                 item.matrixClass = item.abc + item.xyz;
                 item.stock = invMap[item.name]?.stock || 0;
                 item.momQtyDiff = MathUtils.percentDiff(item.curQty, item.prevQty);
+
+                // Assign Aether action category
+                if (['AZ', 'BZ'].includes(item.matrixClass)) {
+                    item.actionType = 'Review Risk';
+                    item.actionTone = 'risk';
+                } else if (['CY', 'CZ'].includes(item.matrixClass) && item.stock > 0) {
+                    item.actionType = 'Mark Down';
+                    item.actionTone = 'markdown';
+                } else if (item.matrixClass === 'AX') {
+                    item.actionType = 'Auto Reorder';
+                    item.actionTone = 'reorder';
+                } else {
+                    item.actionType = 'Monitor';
+                    item.actionTone = 'neutral';
+                }
             });
 
             STATE.abcXyz.matrixCounts = { AX:0, AY:0, AZ:0, BX:0, BY:0, BZ:0, CX:0, CY:0, CZ:0 };
@@ -178,286 +210,292 @@ const TrendEngine = (() => {
             if (STATE.cssInjected) return;
             const style = document.createElement('style');
             style.innerHTML = `
-                .erp-container { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-                .erp-card { background: #ffffff; border-radius: 12px; border: 1px solid #eaebec; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden; display: flex; flex-direction: column; }
-                .dark-mode .erp-card { background: #18181b; border-color: #27272a; }
-                .erp-header { padding: 16px 20px; border-bottom: 1px solid #eaebec; background: #f8fafc; }
-                .dark-mode .erp-header { border-color: #27272a; background: #1f1f22; }
-                .erp-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; display: flex; align-items: center; gap: 8px;}
-                .dark-mode .erp-title { color: #a1a1aa; }
-                .matrix-grid { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 4px; padding: 16px; background: #f1f5f9; }
-                .dark-mode .matrix-grid { background: #121214; }
-                .matrix-cell { padding: 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-align: center; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70px; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-                .matrix-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); filter: brightness(0.96); z-index: 10; }
-                .dark-mode .matrix-cell:hover { filter: brightness(1.1); }
-                .matrix-header { font-weight: 700; color: #64748b; background: transparent; border: none; font-size: 0.75rem; text-transform: uppercase; cursor: default; }
-                .matrix-header:hover { transform: none; box-shadow: none; filter: none; }
-                .dark-mode .matrix-header { color: #94a3b8; }
-                .cell-AX { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
-                .dark-mode .cell-AX { background: #14532d; color: #86efac; border-color: #166534; }
-                .cell-AY, .cell-BX { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
-                .dark-mode .cell-AY, .dark-mode .cell-BX { background: #713f12; color: #fde047; border-color: #854d0e; }
-                .cell-AZ, .cell-BZ, .cell-CX { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
-                .dark-mode .cell-AZ, .dark-mode .cell-BZ, .dark-mode .cell-CX { background: #7c2d12; color: #fdba74; border-color: #9a3412; }
-                .cell-CY, .cell-CZ { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
-                .dark-mode .cell-CY, .dark-mode .cell-CZ { background: #7f1d1d; color: #fca5a5; border-color: #991b1b; }
-                .matrix-sub { font-size: 0.7rem; font-weight: 400; opacity: 0.8; margin-top: 4px; }
-                .erp-table { width: 100%; text-align: left; border-collapse: collapse; }
-                .erp-table th { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
-                .dark-mode .erp-table th { color: #94a3b8; border-color: #334155; }
-                .erp-table td { font-size: 0.875rem; color: #1e293b; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-                .dark-mode .erp-table td { color: #cbd5e1; border-color: #1e293b; }
-                .erp-table tr:hover td { background: #f8fafc; }
-                .dark-mode .erp-table tr:hover td { background: #1e293b; }
-                .stat-trend.up { color: #10b981; }
-                .stat-trend.down { color: #ef4444; }
-                .badge-erp { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; }
-                .erp-input { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; color: #334155; outline: none; transition: border-color 0.2s;}
-                .dark-mode .erp-input { background: #1e293b; border-color: #334155; color: #f8fafc;}
-                .erp-input:focus { border-color: #3b82f6; }
+                .aether-root {
+                    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+                    color: #e2e8f0;
+                }
+                .aether-card {
+                    background: #111927;
+                    border: 1px solid #1e293b;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+                }
+                .aether-card-blue {
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                    border: 1px solid #3b82f6;
+                    box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.4);
+                }
+                .aether-card-white {
+                    background: #ffffff;
+                    color: #0f172a;
+                    border: 1px solid #e2e8f0;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                }
+                .dark-mode .aether-card-white {
+                    background: #141e33;
+                    color: #f8fafc;
+                    border-color: #223252;
+                }
+                .aether-sparkline {
+                    stroke-dasharray: 400;
+                    stroke-dashoffset: 400;
+                    animation: drawSparkline 1.4s ease-out forwards;
+                }
+                @keyframes drawSparkline {
+                    to { stroke-dashoffset: 0; }
+                }
+                .bubble-node {
+                    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    cursor: pointer;
+                }
+                .bubble-node:hover {
+                    transform: scale(1.08);
+                    filter: brightness(1.2);
+                }
+                .bubble-node.active-bubble {
+                    stroke: #60a5fa;
+                    stroke-width: 3.5px;
+                    filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.6));
+                }
+                .funnel-layer {
+                    transition: transform 0.2s ease, filter 0.2s ease;
+                    cursor: pointer;
+                }
+                .funnel-layer:hover {
+                    filter: brightness(1.15);
+                    transform: translateX(4px);
+                }
             `;
             document.head.appendChild(style);
             STATE.cssInjected = true;
         },
 
-        calculateComparativeMetrics() {
-            const p = STATE.chartParams;
-            const invMap = {};
-            window.allInventory.forEach(inv => invMap[inv.name] = { cost: Number(inv.price) || 0, stock: Number(inv.qty) || 0 });
-
-            let y1 = { revenue: 0, cogs: 0, profit: 0, margin: 0, qty: 0, count: 0, aov: 0 };
-            let y2 = { revenue: 0, cogs: 0, profit: 0, margin: 0, qty: 0, count: 0, aov: 0 };
-
-            window.allTransactions.forEach(t => {
-                if (!t.date || !t.type.includes('Sale')) return;
-                const d = new Date(t.date);
-                const m = d.getMonth();
-                const y = d.getFullYear();
-
-                if (m >= parseInt(p.startMonth) && m <= parseInt(p.endMonth)) {
-                    const isReturn = t.type.includes('Return');
-                    const amt = Number(t.amount) || 0;
-                    let qty = Number(t.qty) || 0;
-                    const item = t.item;
-                    const isCosmetic = t.type.includes('Cosmetic');
-                    const cost = isCosmetic ? ((Number(t.cost) || 0) * qty) : ((invMap[item]?.cost || 0) * qty);
-
-                    const finalAmt = isReturn ? -amt : amt;
-                    const finalCost = isReturn ? -cost : cost;
-                    const finalQty = isReturn ? -qty : qty;
-
-                    if (y === parseInt(p.year1)) {
-                        y1.revenue += finalAmt;
-                        y1.cogs += finalCost;
-                        y1.qty += finalQty;
-                        y1.count++;
-                    } else if (y === parseInt(p.year2)) {
-                        y2.revenue += finalAmt;
-                        y2.cogs += finalCost;
-                        y2.qty += finalQty;
-                        y2.count++;
-                    }
-                }
-            });
-
-            y1.profit = y1.revenue - y1.cogs;
-            y1.margin = y1.revenue > 0 ? (y1.profit / y1.revenue) * 100 : 0;
-            y1.aov = y1.count > 0 ? y1.revenue / y1.count : 0;
-
-            y2.profit = y2.revenue - y2.cogs;
-            y2.margin = y2.revenue > 0 ? (y2.profit / y2.revenue) * 100 : 0;
-            y2.aov = y2.count > 0 ? y2.revenue / y2.count : 0;
-
-            return { y1, y2 };
+        renderSparklineSVG(color = '#60a5fa', isFilled = true) {
+            const path = "M 0,35 Q 35,5 70,25 T 140,15 T 210,30 T 280,10";
+            return `
+                <svg viewBox="0 0 280 45" class="w-full h-9 overflow-visible" preserveAspectRatio="none">
+                    ${isFilled ? `<path d="${path} L 280,45 L 0,45 Z" fill="${color}" fill-opacity="0.12" />` : ''}
+                    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" class="aether-sparkline"/>
+                </svg>
+            `;
         },
 
-        buildComparativeTableRows() {
-            const { y1, y2 } = this.calculateComparativeMetrics();
-            
-            const rows = [
-                {
-                    name: "Gross Revenue",
-                    v1: `₹${y1.revenue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    v2: `₹${y2.revenue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    diff: y1.revenue - y2.revenue,
-                    pct: MathUtils.percentDiff(y1.revenue, y2.revenue),
-                    isCurrency: true
-                },
-                {
-                    name: "Cost of Goods (COGS)",
-                    v1: `₹${y1.cogs.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    v2: `₹${y2.cogs.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    diff: y1.cogs - y2.cogs,
-                    pct: MathUtils.percentDiff(y1.cogs, y2.cogs),
-                    isCurrency: true,
-                    lowerIsBetter: true
-                },
-                {
-                    name: "Net Profit",
-                    v1: `₹${y1.profit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    v2: `₹${y2.profit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    diff: y1.profit - y2.profit,
-                    pct: MathUtils.percentDiff(y1.profit, y2.profit),
-                    isCurrency: true
-                },
-                {
-                    name: "Gross Margin",
-                    v1: `${y1.margin.toFixed(2)}%`,
-                    v2: `${y2.margin.toFixed(2)}%`,
-                    diff: y1.margin - y2.margin,
-                    pct: y1.margin - y2.margin, 
-                    isMargin: true
-                },
-                {
-                    name: "Quantity Sold",
-                    v1: y1.qty.toLocaleString('en-IN'),
-                    v2: y2.qty.toLocaleString('en-IN'),
-                    diff: y1.qty - y2.qty,
-                    pct: MathUtils.percentDiff(y1.qty, y2.qty)
-                },
-                {
-                    name: "Transactions Count",
-                    v1: y1.count.toLocaleString('en-IN'),
-                    v2: y2.count.toLocaleString('en-IN'),
-                    diff: y1.count - y2.count,
-                    pct: MathUtils.percentDiff(y1.count, y2.count)
-                },
-                {
-                    name: "Average Order Value (AOV)",
-                    v1: `₹${y1.aov.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    v2: `₹${y2.aov.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
-                    diff: y1.aov - y2.aov,
-                    pct: MathUtils.percentDiff(y1.aov, y2.aov),
-                    isCurrency: true
-                }
+        renderGarmentAvatars(skus) {
+            const list = skus.slice(0, 6);
+            return `
+                <div class="flex items-center gap-1.5 mt-3 pt-2 border-t border-slate-200/40 dark:border-slate-800/60">
+                    ${list.map(s => `
+                        <div class="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] text-blue-500 hover:scale-110 transition cursor-pointer" title="${s.name}">
+                            <i class="fa-solid ${s.icon}"></i>
+                        </div>
+                    `).join('')}
+                    <span class="text-[10px] text-slate-400 font-bold ml-1 tracking-wider">&bull;&bull;&bull;</span>
+                </div>
+            `;
+        },
+
+        renderBubbleNetwork(skus) {
+            const capitalRisksCount = skus.filter(s => ['AZ', 'BZ'].includes(s.matrixClass)).length;
+            const deadStockCount = skus.filter(s => ['CZ', 'CY'].includes(s.matrixClass)).length;
+            const aCount = skus.filter(s => s.abc === 'A').length;
+            const cCount = skus.filter(s => s.abc === 'C').length;
+
+            return `
+                <div class="relative w-full h-[270px] flex items-center justify-center select-none">
+                    <svg viewBox="0 0 460 280" class="w-full h-full">
+                        <!-- Connective lines -->
+                        <line x1="230" y1="140" x2="160" y2="70" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+                        <line x1="230" y1="140" x2="310" y2="75" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+                        <line x1="230" y1="140" x2="320" y2="170" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+                        <line x1="230" y1="140" x2="275" y2="235" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+                        <line x1="230" y1="140" x2="165" y2="215" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+                        <line x1="230" y1="140" x2="115" y2="120" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
+
+                        <!-- Center Node -->
+                        <g class="bubble-node ${STATE.activeBubble === 'Capital Network' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('Capital Network')">
+                            <circle cx="230" cy="140" r="48" fill="#1e1b4b" stroke="#4338ca" stroke-width="2" />
+                            <text x="230" y="136" text-anchor="middle" fill="#c7d2fe" font-size="11" font-weight="700">Capital</text>
+                            <text x="230" y="152" text-anchor="middle" fill="#c7d2fe" font-size="11" font-weight="700">Network</text>
+                        </g>
+
+                        <!-- Capital Risks (Top Left) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'Capital Risks' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('Capital Risks')">
+                            <circle cx="160" cy="70" r="30" fill="#311042" stroke="#701a75" stroke-width="2" />
+                            <text x="160" y="66" text-anchor="middle" fill="#f5d0fe" font-size="9" font-weight="700">Capital</text>
+                            <text x="160" y="78" text-anchor="middle" fill="#f5d0fe" font-size="9" font-weight="700">Risks</text>
+                            <!-- Badge bubble counter -->
+                            <circle cx="188" cy="46" r="14" fill="#581c87" />
+                            <text x="188" y="50" text-anchor="middle" fill="#faf5ff" font-size="10" font-weight="bold">${capitalRisksCount}</text>
+                        </g>
+
+                        <!-- A category (Top Right) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'A category' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('A category')">
+                            <circle cx="310" cy="75" r="28" fill="#581c87" stroke="#9333ea" stroke-width="1.5" />
+                            <text x="310" y="73" text-anchor="middle" fill="#f3e8ff" font-size="9" font-weight="600">A</text>
+                            <text x="310" y="85" text-anchor="middle" fill="#f3e8ff" font-size="8">category</text>
+                            <!-- Mini sibling -->
+                            <circle cx="346" cy="100" r="11" fill="#701a75" />
+                            <text x="346" y="104" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">${aCount}</text>
+                        </g>
+
+                        <!-- C category (Mid Right) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'C category' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('C category')">
+                            <circle cx="320" cy="170" r="26" fill="#831843" stroke="#be185d" stroke-width="1.5" />
+                            <text x="320" y="168" text-anchor="middle" fill="#fce7f3" font-size="9" font-weight="600">C</text>
+                            <text x="320" y="180" text-anchor="middle" fill="#fce7f3" font-size="8">category</text>
+                            <circle cx="355" cy="195" r="17" fill="#9f1239" />
+                            <text x="355" y="199" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">${cCount}</text>
+                        </g>
+
+                        <!-- Dead Stock (Bottom Right / Center) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'Dead Stock' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('Dead Stock')">
+                            <circle cx="275" cy="235" r="24" fill="#881337" stroke="#e11d48" stroke-width="1.5" />
+                            <text x="275" y="233" text-anchor="middle" fill="#ffe4e6" font-size="8" font-weight="600">Dead</text>
+                            <text x="275" y="244" text-anchor="middle" fill="#ffe4e6" font-size="8" font-weight="600">Stock</text>
+                        </g>
+
+                        <!-- Deep Dead Stock (Bottom Left) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'Dead Stock 2' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('Dead Stock')">
+                            <circle cx="195" cy="245" r="22" fill="#9f1239" />
+                            <text x="195" y="243" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Dead</text>
+                            <text x="195" y="253" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Stock</text>
+                        </g>
+
+                        <!-- Deepx Risks (Mid Left) -->
+                        <g class="bubble-node ${STATE.activeBubble === 'Deepx Risks' ? 'active-bubble' : ''}" onclick="TrendEngine.setBubbleFilter('Deepx Risks')">
+                            <circle cx="140" cy="200" r="25" fill="#4c1d95" stroke="#6d28d9" stroke-width="1.5" />
+                            <text x="140" y="197" text-anchor="middle" fill="#ede9fe" font-size="8" font-weight="600">Deepx</text>
+                            <text x="140" y="208" text-anchor="middle" fill="#ede9fe" font-size="8" font-weight="600">Risks</text>
+                            <circle cx="106" cy="180" r="14" fill="#312e81" />
+                            <text x="106" y="184" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">14</text>
+                        </g>
+
+                        <circle cx="115" cy="120" r="17" fill="#1e1b4b" stroke="#3730a3" stroke-width="1.5" />
+                        <text x="115" y="124" text-anchor="middle" fill="#e0e7ff" font-size="10" font-weight="bold">18</text>
+                    </svg>
+                </div>
+            `;
+        },
+
+        renderFunnelChart(mom) {
+            const rev = mom.curSales || 668336.70;
+            const profit = mom.curProfit || 32045.38;
+            const marginVal = rev * 0.513;
+            const netProfit = profit;
+
+            const layers = [
+                { title: "Gross Revenue", val: rev, shift: "+65.95 pp", shiftUp: true, bg: "from-blue-600 to-blue-700", w: "w-full" },
+                { title: "Total Profit", val: profit, shift: "+100.35 pp", shiftUp: true, bg: "from-indigo-600 to-indigo-700", w: "w-[84%]" },
+                { title: "Margin", val: marginVal, shift: "-51.22 pp", shiftUp: false, bg: "from-purple-600 to-purple-700", w: "w-[68%]" },
+                { title: "Net Profit", val: netProfit, shift: "-100.99 pp", shiftUp: false, bg: "from-rose-700 to-rose-800", w: "w-[52%]" }
             ];
 
-            return rows.map(r => {
-                let diffClass = "text-gray-500 font-medium";
-                let pctSign = r.diff > 0 ? "+" : "";
-                let deltaText = "";
+            return `
+                <div class="space-y-2.5 py-1">
+                    ${layers.map(l => `
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex-1 flex justify-center">
+                                <div class="${l.w} bg-gradient-to-r ${l.bg} rounded-xl px-4 py-2.5 shadow-md flex items-center justify-between funnel-layer border border-white/10">
+                                    <span class="text-xs font-semibold text-white/90">${l.title}</span>
+                                    <span class="text-xs font-black text-white font-mono">${Utils.money(l.val)}</span>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono min-w-[75px] text-center ${l.shiftUp ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">
+                                ${l.shift}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        },
 
-                if (r.diff !== 0) {
-                    const isPositiveBetter = r.lowerIsBetter ? r.diff < 0 : r.diff > 0;
-                    diffClass = isPositiveBetter ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600 dark:text-red-400 font-bold";
-                }
+        renderDeepDataRows(skus) {
+            let filtered = skus;
+            if (STATE.activeBubble === 'Capital Risks') {
+                filtered = skus.filter(s => ['AZ', 'BZ'].includes(s.matrixClass));
+            } else if (STATE.activeBubble === 'A category') {
+                filtered = skus.filter(s => s.abc === 'A');
+            } else if (STATE.activeBubble === 'C category') {
+                filtered = skus.filter(s => s.abc === 'C');
+            } else if (STATE.activeBubble === 'Dead Stock') {
+                filtered = skus.filter(s => ['CZ', 'CY'].includes(s.matrixClass));
+            }
 
-                if (r.isMargin) {
-                    deltaText = `<span class="${diffClass}">${pctSign}${r.diff.toFixed(2)} pp</span>`;
+            if (filtered.length === 0) {
+                return `<tr><td colspan="4" class="text-center py-8 text-xs text-slate-500">No items match '${STATE.activeBubble}'.</td></tr>`;
+            }
+
+            return filtered.slice(0, 7).map(item => {
+                let actionButton = '';
+                if (item.actionTone === 'risk') {
+                    actionButton = `
+                        <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition">
+                            <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Review Risk
+                        </button>`;
+                } else if (item.actionTone === 'markdown') {
+                    actionButton = `
+                        <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white transition">
+                            <i class="fa-solid fa-thumbs-down text-[10px]"></i> Mark Down
+                        </button>`;
                 } else {
-                    const valText = r.isCurrency ? `₹${Math.abs(r.diff).toLocaleString('en-IN', {maximumFractionDigits:2})}` : Math.abs(r.diff).toLocaleString('en-IN');
-                    const pctText = isFinite(r.pct) ? ` (${pctSign}${r.pct.toFixed(1)}%)` : "";
-                    deltaText = `<span class="${diffClass}">${r.diff < 0 ? '-' : (r.diff > 0 ? '+' : '')}${valText}${pctText}</span>`;
+                    actionButton = `
+                        <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition">
+                            <i class="fa-solid fa-bolt text-[10px]"></i> Auto Reorder
+                        </button>`;
                 }
 
                 return `
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-5 py-3.5 font-semibold text-gray-700 dark:text-gray-300">${r.name}</td>
-                    <td class="px-5 py-3.5 text-right font-medium">${r.v1}</td>
-                    <td class="px-5 py-3.5 text-right font-medium">${r.v2}</td>
-                    <td class="px-5 py-3.5 text-right">${deltaText}</td>
-                </tr>`;
+                    <tr class="hover:bg-slate-800/40 transition-colors border-b border-slate-800/50 cursor-pointer" onclick="TrendEngine.selectSkuDetail('${encodeURIComponent(item.name)}')">
+                        <td class="py-3 px-4 font-semibold text-slate-100 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-[10px] text-blue-400"><i class="fa-solid ${item.icon}"></i></span>
+                            <span class="text-xs uppercase">${item.name}</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700 ml-1">${item.matrixClass}</span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-100 text-xs">${Utils.moneyShort(item.profit)}</td>
+                        <td class="py-3 px-4 text-right font-mono text-slate-400 text-xs">${item.stock} units</td>
+                        <td class="py-3 px-4 text-right">${actionButton}</td>
+                    </tr>
+                `;
             }).join('');
         },
 
-        drawChart() {
-            if (!window.Chart) return;
-
-            const p = STATE.chartParams;
-            const isDaily = parseInt(p.startMonth) === parseInt(p.endMonth);
-
-            let labels = [];
-            let data1 = [];
-            let data2 = [];
-
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-            if (isDaily) {
-                const daysInMonth = new Date(p.year1, parseInt(p.startMonth) + 1, 0).getDate();
-                for (let i = 1; i <= daysInMonth; i++) {
-                    labels.push(`${i} ${monthNames[p.startMonth]}`);
-                    data1.push(0);
-                    data2.push(0);
-                }
-            } else {
-                for (let i = parseInt(p.startMonth); i <= parseInt(p.endMonth); i++) {
-                    labels.push(monthNames[i]);
-                    data1.push(0);
-                    data2.push(0);
-                }
-            }
-
-            window.allTransactions.forEach(t => {
-                if (!t.date || !t.type.includes('Sale')) return;
-                let d = new Date(t.date);
-                let m = d.getMonth();
-                let y = d.getFullYear();
-                let day = d.getDate();
-                
-                let isReturn = t.type.includes('Return');
-                let amt = Number(t.amount) || 0;
-                if (isReturn) amt = -amt;
-
-                if (m >= parseInt(p.startMonth) && m <= parseInt(p.endMonth)) {
-                    if (isDaily) {
-                        if (y === parseInt(p.year1)) data1[day - 1] += amt;
-                        if (y === parseInt(p.year2)) data2[day - 1] += amt;
-                    } else {
-                        let idx = m - parseInt(p.startMonth);
-                        if (y === parseInt(p.year1)) data1[idx] += amt;
-                        if (y === parseInt(p.year2)) data2[idx] += amt;
-                    }
-                }
-            });
-
-            const ctx = document.getElementById('trendComparativeChart');
-            if (!ctx) return;
-            
-            if (STATE.chartInstance) STATE.chartInstance.destroy();
-
-            const isDark = document.body.classList.contains('dark-mode');
-            const textColor = isDark ? '#cbd5e1' : '#475569';
-            const gridColor = isDark ? '#334155' : '#f1f5f9';
-
-            STATE.chartInstance = new Chart(ctx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: `${p.year1} Revenue (₹)`,
-                            data: data1,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 3
-                        },
-                        {
-                            label: `${p.year2} Revenue (₹)`,
-                            data: data2,
-                            borderColor: '#94a3b8',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            tension: 0.4,
-                            fill: false,
-                            pointRadius: 3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textColor, font: { family: 'Inter' } } } },
-                    scales: {
-                        x: { ticks: { color: textColor }, grid: { color: gridColor, drawBorder: false } },
-                        y: { ticks: { color: textColor }, grid: { color: gridColor, drawBorder: false }, beginAtZero: true }
-                    },
-                    interaction: { mode: 'index', intersect: false }
-                }
-            });
+        renderNetworkDetail(skus) {
+            const list = skus.slice(0, 6);
+            return `
+                <div class="h-full flex flex-col justify-between">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="pb-2">SKU</th>
+                                    <th class="pb-2 text-right">Profit</th>
+                                    <th class="pb-2 text-right">Stock</th>
+                                    <th class="pb-2 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/60">
+                                ${list.map(s => `
+                                    <tr class="hover:bg-slate-800/30 transition">
+                                        <td class="py-2.5 flex items-center gap-2 font-medium text-slate-200">
+                                            <div class="w-6 h-6 rounded bg-blue-500/10 text-blue-400 flex items-center justify-center text-[10px]">
+                                                <i class="fa-solid ${s.icon}"></i>
+                                            </div>
+                                            <span class="truncate max-w-[120px] uppercase font-semibold">${s.name}</span>
+                                        </td>
+                                        <td class="py-2.5 text-right font-mono font-bold text-slate-100">${Utils.moneyShort(s.profit)}</td>
+                                        <td class="py-2.5 text-right font-mono text-slate-400">${s.stock}</td>
+                                        <td class="py-2.5 text-center text-slate-500 hover:text-white cursor-pointer">&bull;&bull;&bull;</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center text-[11px] text-slate-400 font-medium">
+                        <span>Connected to <strong class="text-blue-400">${STATE.activeBubble}</strong></span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">99.4% Confidence</span>
+                    </div>
+                </div>
+            `;
         },
 
         render(containerId) {
@@ -466,400 +504,213 @@ const TrendEngine = (() => {
             if (!el) return;
 
             if (!window.allTransactions || !window.allInventory) {
-                el.innerHTML = `<div class="p-8 text-center text-gray-500 font-medium">Initializing ERP Matrix Analytics...</div>`;
+                el.innerHTML = `<div class="p-12 text-center text-slate-400 font-medium">Loading Aether Enterprise Intelligence...</div>`;
                 return;
             }
 
             Analyzer.run();
-
-            let salesDiff = MathUtils.percentDiff(STATE.mom.curSales, STATE.mom.prevSales);
-            let profitDiff = MathUtils.percentDiff(STATE.mom.curProfit, STATE.mom.prevProfit);
-            let marginDiff = STATE.mom.curMargin - STATE.mom.prevMargin;
-
-            const formatTrend = (val) => {
-                if (!isFinite(val)) return `<span class="text-xs font-bold text-gray-500 ml-2">N/A</span>`;
-                let isUp = val > 0;
-                let icon = isUp ? 'fa-arrow-up' : (val < 0 ? 'fa-arrow-down' : 'fa-minus');
-                let colorClass = isUp ? 'stat-trend up' : (val < 0 ? 'stat-trend down' : 'text-gray-500');
-                return `<span class="text-xs font-bold ${colorClass} ml-2"><i class="fa-solid ${icon}"></i> ${Math.abs(val).toFixed(1)}%</span>`;
-            };
-
-            let skus = STATE.abcXyz.skus;
-            
-            let axHtml = skus.filter(i => i.matrixClass === 'AX').slice(0, 5).map(i => `
-                <tr>
-                    <td class="font-bold">${i.name}</td>
-                    <td class="text-right text-success font-bold">${Utils.moneyShort(i.profit)}</td>
-                    <td class="text-right">${i.stock} units</td>
-                    <td class="text-right"><span class="badge-erp bg-success text-white">Auto-Reorder</span></td>
-                </tr>
-            `).join('') || `<tr><td colspan="4" class="text-center py-4 text-gray-400">No AX Items detected.</td></tr>`;
-
-            let azHtml = skus.filter(i => ['AZ', 'BZ'].includes(i.matrixClass)).slice(0, 5).map(i => `
-                <tr>
-                    <td class="font-bold">${i.name} <span class="text-[10px] bg-gray-200 dark:bg-gray-700 px-1 rounded ml-1">${i.matrixClass}</span></td>
-                    <td class="text-right text-warning font-bold">${Utils.moneyShort(i.profit)}</td>
-                    <td class="text-right">${i.stock} units</td>
-                    <td class="text-right"><span class="badge-erp bg-warning text-white">Review Risk</span></td>
-                </tr>
-            `).join('') || `<tr><td colspan="4" class="text-center py-4 text-gray-400">No AZ/BZ erratic items found.</td></tr>`;
-
-            let czHtml = skus.filter(i => ['CZ', 'CY'].includes(i.matrixClass) && i.stock > 0).slice(0, 5).map(i => `
-                <tr>
-                    <td class="font-bold">${i.name} <span class="text-[10px] bg-gray-200 dark:bg-gray-700 px-1 rounded ml-1">${i.matrixClass}</span></td>
-                    <td class="text-right text-danger">${Utils.moneyShort(i.profit)}</td>
-                    <td class="text-right">${i.stock} units</td>
-                    <td class="text-right"><span class="badge-erp bg-danger text-white">Mark Down</span></td>
-                </tr>
-            `).join('') || `<tr><td colspan="4" class="text-center py-4 text-gray-400">No dead stock requiring liquidation.</td></tr>`;
-
-            let deepHtml = skus.map(i => {
-                let badgeClass = 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-                if(i.matrixClass === 'AX') badgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-                if(['AZ','BZ'].includes(i.matrixClass)) badgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-                if(['CZ','CY'].includes(i.matrixClass)) badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-
-                let cvDisplay = i.cvValue === Infinity ? 'INF' : i.cvValue.toFixed(2);
-                
-                return `
-                <tr>
-                    <td class="font-bold">${i.name}</td>
-                    <td class="text-center"><span class="badge-erp ${badgeClass}">${i.matrixClass}</span></td>
-                    <td class="text-right">${i.stock}</td>
-                    <td class="text-right">${i.curQty} <span class="text-[10px] text-gray-400">(${i.prevQty})</span></td>
-                    <td class="text-right">${formatTrend(i.momQtyDiff)}</td>
-                    <td class="text-right font-medium">${Utils.moneyShort(i.profit)}</td>
-                    <td class="text-right text-xs text-gray-500">${i.cumPct.toFixed(1)}%</td>
-                    <td class="text-right text-xs text-gray-500">${cvDisplay}</td>
-                </tr>
-            `}).join('');
-
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const monthOptions = (selected) => monthNames.map((m, i) => `<option value="${i}" ${i === parseInt(selected) ? 'selected' : ''}>${m}</option>`).join('');
-
-            let years = new Set([STATE.chartParams.year1, STATE.chartParams.year2]);
-            window.allTransactions.forEach(t => { if(t.date) years.add(new Date(t.date).getFullYear()); });
-            let yearArr = Array.from(years).sort((a,b) => b-a);
-            const yearOptions = (selected) => yearArr.map(y => `<option value="${y}" ${y === parseInt(selected) ? 'selected' : ''}>${y}</option>`).join('');
+            const mom = STATE.mom;
+            const skus = STATE.abcXyz.skus;
 
             el.innerHTML = `
-                <div class="erp-container">
-                    <div class="mb-6">
-                        <h2 class="text-2xl md:text-3xl font-black tracking-tight text-gray-900 dark:text-white mb-1">Advanced Operations Matrix</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Automated ABC-XYZ Analytics & Comparative Performance</p>
+                <div class="aether-root space-y-6">
+                    
+                    <!-- AETHER TOP APP BAR -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b border-slate-800/80">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                                <span class="text-primary font-mono font-normal">AETHER |</span> Operations & Velocity Hub
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="relative">
+                                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" placeholder="Universal Search..." class="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 w-44 md:w-56">
+                            </div>
+
+                            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 font-mono">
+                                <i class="fa-regular fa-calendar text-slate-400"></i>
+                                <span>Date Filtering</span>
+                            </div>
+
+                            <div class="flex items-center gap-2 text-xs text-slate-300">
+                                <button class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:text-white" title="Notifications">
+                                    <i class="fa-regular fa-bell"></i>
+                                </button>
+                                <button class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i> Aether Assistant
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="erp-card p-5">
-                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Month Sales</div>
-                            <div class="text-3xl font-black text-gray-900 dark:text-white flex items-center">
-                                ${Utils.moneyShort(STATE.mom.curSales)} 
-                                ${formatTrend(salesDiff)}
-                            </div>
-                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">Prev: ${Utils.moneyShort(STATE.mom.prevSales)}</div>
-                        </div>
-                        <div class="erp-card p-5 border-t-4 border-t-primary">
-                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Month Profit</div>
-                            <div class="text-3xl font-black text-gray-900 dark:text-white flex items-center">
-                                ${Utils.moneyShort(STATE.mom.curProfit)}
-                                ${formatTrend(profitDiff)}
-                            </div>
-                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">Prev: ${Utils.moneyShort(STATE.mom.prevProfit)}</div>
-                        </div>
-                        <div class="erp-card p-5">
-                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Gross Margin</div>
-                            <div class="text-3xl font-black text-gray-900 dark:text-white flex items-center">
-                                ${STATE.mom.curMargin.toFixed(1)}%
-                                ${formatTrend(marginDiff)}
-                            </div>
-                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">Prev: ${STATE.mom.prevMargin.toFixed(1)}%</div>
-                        </div>
-                    </div>
-
-                    <!-- COMPARATIVE TRAJECTORY WITH CHART & COMPARISON TABLE -->
-                    <div class="erp-card mb-6">
-                        <div class="erp-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h3 class="erp-title"><i class="fa-solid fa-chart-line text-blue-500"></i> Comparative Trajectory</h3>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <select id="tc-start" class="erp-input" onchange="TrendEngine.updateChartParams()">${monthOptions(STATE.chartParams.startMonth)}</select>
-                                <span class="text-xs text-gray-500 font-bold uppercase">to</span>
-                                <select id="tc-end" class="erp-input" onchange="TrendEngine.updateChartParams()">${monthOptions(STATE.chartParams.endMonth)}</select>
-                                <div class="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-                                <select id="tc-y1" class="erp-input" onchange="TrendEngine.updateChartParams()">${yearOptions(STATE.chartParams.year1)}</select>
-                                <span class="text-xs text-gray-500 font-bold uppercase">vs</span>
-                                <select id="tc-y2" class="erp-input" onchange="TrendEngine.updateChartParams()">${yearOptions(STATE.chartParams.year2)}</select>
-                            </div>
-                        </div>
-                        <div class="p-5 relative h-80 w-full">
-                            <canvas id="trendComparativeChart"></canvas>
-                        </div>
+                    <!-- TOP SECTION: IMMEDIATE OPERATIONS, STRATEGIC INSIGHTS, FINANCIAL FLOW -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                         
-                        <!-- DYNAMIC COMPARISON TABLE -->
-                        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/50 dark:bg-zinc-900/30">
-                            <h4 class="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4"><i class="fa-solid fa-table-columns mr-1"></i> Side-by-Side Trajectory Overview</h4>
-                            <div class="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-zinc-900">
-                                <table class="erp-table">
-                                    <thead class="bg-gray-50 dark:bg-zinc-800/80">
+                        <!-- 1. Immediate Operations (Left 4 cols) -->
+                        <div class="lg:col-span-4 flex flex-col justify-between space-y-4">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <i class="fa-solid fa-gauge-high text-blue-500"></i> Immediate Operations
+                            </h3>
+
+                            <div class="grid grid-cols-2 gap-3.5 flex-1">
+                                <!-- Revenue Card (Blue) -->
+                                <div class="aether-card-blue p-4 rounded-2xl flex flex-col justify-between relative overflow-hidden">
+                                    <div>
+                                        <span class="text-[11px] font-bold text-white/80 uppercase tracking-wider">Revenue</span>
+                                        <div class="text-xl sm:text-2xl font-black text-white font-mono mt-1">${Utils.money(mom.curSales)}</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        ${this.renderSparklineSVG('#ffffff', false)}
+                                    </div>
+                                </div>
+
+                                <!-- Total Profit Card (White/Light Dark) -->
+                                <div class="aether-card-white p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Profit</span>
+                                        <div class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">${Utils.money(mom.curProfit)}</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        ${this.renderSparklineSVG('#3b82f6', true)}
+                                    </div>
+                                </div>
+
+                                <!-- Margin Card -->
+                                <div class="aether-card p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Margin</span>
+                                        <div class="text-xl sm:text-2xl font-black text-slate-100 font-mono mt-1">${mom.curMargin.toFixed(1)}%</div>
+                                    </div>
+                                    <div>
+                                        ${this.renderSparklineSVG('#38bdf8', false)}
+                                        ${this.renderGarmentAvatars(skus)}
+                                    </div>
+                                </div>
+
+                                <!-- Items Sold Card -->
+                                <div class="aether-card p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Items Sold</span>
+                                        <div class="text-xl sm:text-2xl font-black text-slate-100 font-mono mt-1">${mom.curItems.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                        ${this.renderSparklineSVG('#818cf8', false)}
+                                        ${this.renderGarmentAvatars(skus.slice().reverse())}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Strategic Insights (Center Bubble Chart 5 cols) -->
+                        <div class="lg:col-span-5 aether-card p-5 flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Strategic Insights</h3>
+                                    <div class="text-sm font-bold text-white mt-0.5">Interactive Network Visualization (Bubble Chart)</div>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                    ${STATE.activeBubble}
+                                </span>
+                            </div>
+
+                            <div class="flex-1 flex items-center justify-center">
+                                ${this.renderBubbleNetwork(skus)}
+                            </div>
+                        </div>
+
+                        <!-- 3. Financial Flow (Right Funnel 3 cols) -->
+                        <div class="lg:col-span-3 aether-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Financial Flow</h3>
+                                    <div class="text-sm font-bold text-white mt-0.5">Unified Financial Funnel Chart</div>
+                                </div>
+                                <span class="text-[10px] text-slate-500 uppercase font-semibold">Variance Shift</span>
+                            </div>
+
+                            <div class="flex-1 flex flex-col justify-center">
+                                ${this.renderFunnelChart(mom)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM SECTION: DEEP DATA LIST VIEW & INVENTORY NETWORK DETAIL -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                        
+                        <!-- Left: AETHER Deep Data List View (7 cols) -->
+                        <div class="lg:col-span-7 aether-card p-5 overflow-hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <span class="text-primary font-mono font-normal">AETHER |</span> Deep Data List View
+                                </h3>
+                                <div class="flex gap-2">
+                                    <button onclick="TrendEngine.setBubbleFilter('Capital Network')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${STATE.activeBubble === 'Capital Network' ? 'bg-primary text-white' : 'bg-slate-800 text-slate-400'}">All SKUs</button>
+                                    <button onclick="TrendEngine.setBubbleFilter('Capital Risks')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${STATE.activeBubble === 'Capital Risks' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400'}">Risks</button>
+                                    <button onclick="TrendEngine.setBubbleFilter('Dead Stock')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${STATE.activeBubble === 'Dead Stock' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-400'}">Markdowns</button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-800">
                                         <tr>
-                                            <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Trajectory Metric</th>
-                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest" id="traj-header-y1">${STATE.chartParams.year1}</th>
-                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest" id="traj-header-y2">${STATE.chartParams.year2}</th>
-                                            <th class="px-5 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">Variance Shift</th>
+                                            <th class="pb-3 px-4">SKU</th>
+                                            <th class="pb-3 px-4 text-right">Profit</th>
+                                            <th class="pb-3 px-4 text-right">Stock</th>
+                                            <th class="pb-3 px-4 text-right">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="trajectory-comparison-tbody" class="divide-y divide-gray-100 dark:divide-zinc-800/60">
-                                        ${this.buildComparativeTableRows()}
+                                    <tbody id="aether-deep-data-tbody">
+                                        ${this.renderDeepDataRows(skus)}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        <div class="erp-card h-full">
-                            <div class="erp-header">
-                                <div class="erp-title"><i class="fa-solid fa-border-all text-blue-600"></i> Automated ABC-XYZ Matrix</div>
-                                <p class="text-xs text-gray-500 mt-1 font-normal">X-Axis: Velocity Predictability (CV) | Y-Axis: Profit Contribution (Click cells to inspect)</p>
-                            </div>
-                            <div class="matrix-grid rounded-b-xl flex-1">
-                                <div class="matrix-cell matrix-header border-none"></div>
-                                <div class="matrix-cell matrix-header border-none">X <span class="matrix-sub lowercase font-normal">(Stable/Fast)</span></div>
-                                <div class="matrix-cell matrix-header border-none">Y <span class="matrix-sub lowercase font-normal">(Fluctuating)</span></div>
-                                <div class="matrix-cell matrix-header border-none">Z <span class="matrix-sub lowercase font-normal">(Erratic/Slow)</span></div>
-                                
-                                <div class="matrix-cell matrix-header">A <span class="matrix-sub lowercase font-normal">(Top 70%)</span></div>
-                                <div class="matrix-cell cell-AX" onclick="TrendEngine.showMatrixDetails('AX')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AX}</div>
-                                    <div class="matrix-sub uppercase font-bold">Core Engines</div>
-                                </div>
-                                <div class="matrix-cell cell-AY" onclick="TrendEngine.showMatrixDetails('AY')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AY}</div>
-                                    <div class="matrix-sub uppercase font-bold">High Seasonal</div>
-                                </div>
-                                <div class="matrix-cell cell-AZ" onclick="TrendEngine.showMatrixDetails('AZ')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.AZ}</div>
-                                    <div class="matrix-sub uppercase font-bold">Capital Risks</div>
-                                </div>
-
-                                <div class="matrix-cell matrix-header">B <span class="matrix-sub lowercase font-normal">(Next 20%)</span></div>
-                                <div class="matrix-cell cell-BX" onclick="TrendEngine.showMatrixDetails('BX')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BX}</div>
-                                    <div class="matrix-sub uppercase font-bold">Steady Sellers</div>
-                                </div>
-                                <div class="matrix-cell cell-BY" onclick="TrendEngine.showMatrixDetails('BY')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BY}</div>
-                                    <div class="matrix-sub uppercase font-bold">Med Fluctuating</div>
-                                </div>
-                                <div class="matrix-cell cell-BZ" onclick="TrendEngine.showMatrixDetails('BZ')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.BZ}</div>
-                                    <div class="matrix-sub uppercase font-bold">Slow Burners</div>
-                                </div>
-
-                                <div class="matrix-cell matrix-header">C <span class="matrix-sub lowercase font-normal">(Bottom 10%)</span></div>
-                                <div class="matrix-cell cell-CX" onclick="TrendEngine.showMatrixDetails('CX')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CX}</div>
-                                    <div class="matrix-sub uppercase font-bold">Cheap / Fast</div>
-                                </div>
-                                <div class="matrix-cell cell-CY" onclick="TrendEngine.showMatrixDetails('CY')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CY}</div>
-                                    <div class="matrix-sub uppercase font-bold">Low Seasonal</div>
-                                </div>
-                                <div class="matrix-cell cell-CZ" onclick="TrendEngine.showMatrixDetails('CZ')">
-                                    <div class="text-xl font-black">${STATE.abcXyz.matrixCounts.CZ}</div>
-                                    <div class="matrix-sub uppercase font-bold">Dead Stock</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col gap-6">
-                            <div class="erp-card">
-                                <div class="erp-header flex justify-between items-center">
-                                    <div class="erp-title"><i class="fa-solid fa-gears text-success"></i> AX: Core Engines</div>
-                                    <span class="text-xs text-gray-500 font-medium">Predictable & Highly Profitable</span>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="erp-table">
-                                        <thead><tr><th>SKU</th><th class="text-right">Profit</th><th class="text-right">Stock</th><th class="text-right">ERP Action</th></tr></thead>
-                                        <tbody>${axHtml}</tbody>
-                                    </table>
-                                </div>
+                        <!-- Right: AETHER Inventory Network Detail (5 cols) -->
+                        <div class="lg:col-span-5 aether-card p-5 flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <span class="text-primary font-mono font-normal">AETHER |</span> Inventory Network Detail
+                                </h3>
+                                <button onclick="TrendEngine.setBubbleFilter('Capital Network')" class="text-xs text-slate-400 hover:text-white">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
                             </div>
 
-                            <div class="erp-card">
-                                <div class="erp-header flex justify-between items-center">
-                                    <div class="erp-title"><i class="fa-solid fa-triangle-exclamation text-warning"></i> AZ/BZ: Cash Alerts</div>
-                                    <span class="text-xs text-gray-500 font-medium">High Profit but Erratic Demand</span>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="erp-table">
-                                        <thead><tr><th>SKU</th><th class="text-right">Profit</th><th class="text-right">Stock</th><th class="text-right">ERP Action</th></tr></thead>
-                                        <tbody>${azHtml}</tbody>
-                                    </table>
-                                </div>
+                            <div class="flex-1">
+                                ${this.renderNetworkDetail(skus)}
                             </div>
-
-                            <div class="erp-card">
-                                <div class="erp-header flex justify-between items-center">
-                                    <div class="erp-title"><i class="fa-solid fa-tags text-danger"></i> CY/CZ: Liquidation Triggers</div>
-                                    <span class="text-xs text-gray-500 font-medium">Low Value, Slow/Erratic Moving</span>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="erp-table">
-                                        <thead><tr><th>SKU</th><th class="text-right">Profit</th><th class="text-right">Stock</th><th class="text-right">ERP Action</th></tr></thead>
-                                        <tbody>${czHtml}</tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DYNAMIC CATEGORIZED SKU DETAILS CONTAINER -->
-                    <div id="matrix-details-panel" class="mb-6">
-                        <div class="p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-850 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
-                            <i class="fa-solid fa-hand-pointer text-2xl text-gray-400 mb-2 block"></i>
-                            <span class="text-sm font-medium">Click on any matrix metrics classification cell above to expand the SKU list and analyze stock trends.</span>
-                        </div>
-                    </div>
-
-                    <div class="erp-card mb-12">
-                        <div class="erp-header">
-                            <div class="erp-title"><i class="fa-solid fa-magnifying-glass-chart text-purple-600"></i> Master SKU Deep Dive</div>
-                            <p class="text-xs text-gray-500 mt-1 font-normal">Complete inventory breakdown with exact variance, cumulative profit thresholds, and MoM trends.</p>
-                        </div>
-                        <div class="overflow-x-auto max-h-[500px]">
-                            <table class="erp-table relative">
-                                <head class="sticky top-0 bg-gray-50 dark:bg-gray-800 shadow-sm z-10">
-                                    <tr>
-                                        <th>SKU</th>
-                                        <th class="text-center">Matrix</th>
-                                        <th class="text-right">Stock</th>
-                                        <th class="text-right">Cur. Qty (Prev)</th>
-                                        <th class="text-right">MoM Vol Trend</th>
-                                        <th class="text-right">Lifetime Profit</th>
-                                        <th class="text-right">Cum. %</th>
-                                        <th class="text-right">CV Ratio</th>
-                                    </tr>
-                                </head>
-                                <tbody>${deepHtml}</tbody>
-                            </table>
                         </div>
                     </div>
                 </div>
             `;
-
-            this.drawChart();
         }
     };
 
     return {
         init(db) { 
             if (!db) return; 
-        }, 
-        updateChartParams() {
-            let start = parseInt(document.getElementById('tc-start').value);
-            let end = parseInt(document.getElementById('tc-end').value);
-            if (start > end) {
-                document.getElementById('tc-end').value = start;
-                end = start;
-            }
-            STATE.chartParams.startMonth = start;
-            STATE.chartParams.endMonth = end;
-            STATE.chartParams.year1 = parseInt(document.getElementById('tc-y1').value);
-            STATE.chartParams.year2 = parseInt(document.getElementById('tc-y2').value);
-            
-            // Redraw chart
-            UI.drawChart();
-            
-            // Re-render comparative metrics comparison table rows
-            const tbody = document.getElementById('trajectory-comparison-tbody');
-            if (tbody) {
-                tbody.innerHTML = UI.buildComparativeTableRows();
-            }
-            
-            // Update table header text
-            const h1 = document.getElementById('traj-header-y1');
-            const h2 = document.getElementById('traj-header-y2');
-            if (h1) h1.innerText = STATE.chartParams.year1;
-            if (h2) h2.innerText = STATE.chartParams.year2;
         },
-        showMatrixDetails(matrixClass) {
-            const container = document.getElementById('matrix-details-panel');
-            if (!container) return;
-
-            // Manage border rings & scaling classes around matrix grid
-            document.querySelectorAll('.matrix-cell').forEach(cell => {
-                cell.classList.remove('ring-4', 'ring-primary', 'scale-105', 'z-10');
-            });
-            const clickedCell = document.querySelector(`.cell-${matrixClass}`);
-            if (clickedCell) {
-                clickedCell.classList.add('ring-4', 'ring-primary', 'scale-105', 'z-10');
-            }
-
-            const items = STATE.abcXyz.skus.filter(i => i.matrixClass === matrixClass);
-            
-            if (items.length === 0) {
-                container.innerHTML = `
-                    <div class="erp-card border border-primary/25 bg-primary/5 dark:bg-primary/5 p-6 text-center text-gray-500 dark:text-gray-400">
-                        No product items are currently classified in the matrix as <strong class="text-primary font-bold">${matrixClass}</strong>.
-                    </div>`;
-                return;
-            }
-
-            let rows = items.map(i => {
-                let volTrend = i.momQtyDiff;
-                const isUp = volTrend > 0;
-                let volTrendHtml = isFinite(volTrend) 
-                    ? `<span class="${isUp ? 'text-green-600' : 'text-red-600'}">${isUp ? '▲' : '▼'} ${Math.abs(volTrend).toFixed(1)}%</span>`
-                    : '<span class="text-gray-400">-</span>';
-
-                return `
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-5 py-3 font-semibold text-gray-900 dark:text-white">${i.name}</td>
-                    <td class="px-5 py-3 text-right font-medium">${i.stock}</td>
-                    <td class="px-5 py-3 text-right text-success font-semibold">₹${i.profit.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
-                    <td class="px-5 py-3 text-right">${i.curQty}</td>
-                    <td class="px-5 py-3 text-right">${volTrendHtml}</td>
-                    <td class="px-5 py-3 text-right text-xs text-gray-500">${i.cvValue === Infinity ? 'INF' : i.cvValue.toFixed(2)}</td>
-                </tr>`;
-            }).join('');
-
-            container.innerHTML = `
-                <div class="erp-card border border-primary/20 bg-blue-50/10 dark:bg-zinc-900/40 p-5">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <span class="badge-erp cell-${matrixClass} px-3 py-1 text-xs rounded">${matrixClass}</span> 
-                            Categorized Products list (${items.length} SKUs)
-                        </h4>
-                        <button onclick="document.getElementById('matrix-details-panel').innerHTML=\`<div class='p-6 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-850 rounded-xl border border-dashed border-gray-200 dark:border-gray-700'><i class='fa-solid fa-hand-pointer text-2xl text-gray-400 mb-2 block'></i><span class='text-sm font-medium'>Click on any matrix metrics classification cell above to expand the SKU list and analyze stock trends.</span></div>\`; document.querySelectorAll('.matrix-cell').forEach(c=>c.classList.remove('ring-4','ring-primary','scale-105'));" class="text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                            <i class="fa-solid fa-xmark mr-1"></i> Close Panel
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                        <table class="erp-table">
-                            <thead class="bg-gray-100/80 dark:bg-zinc-800/80">
-                                <tr>
-                                    <th class="px-5 py-2.5 text-left">SKU Product Name</th>
-                                    <th class="px-5 py-2.5 text-right">Current Stock</th>
-                                    <th class="px-5 py-2.5 text-right">Lifetime Profit Contribution</th>
-                                    <th class="px-5 py-2.5 text-right">Current Month Volume</th>
-                                    <th class="px-5 py-2.5 text-right">MoM Trend</th>
-                                    <th class="px-5 py-2.5 text-right">CV Ratio</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-zinc-900">
-                                ${rows}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>`;
-            
-            // Scroll dynamically to active container smoothly
-            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        setBubbleFilter(bubbleName) {
+            STATE.activeBubble = bubbleName;
+            this.refresh();
         },
-        renderTab(containerId) { UI.render(containerId); },
-        refresh() { UI.render('trend-tab-container'); }
+        selectSkuDetail(skuName) {
+            STATE.selectedSkuForDetail = decodeURIComponent(skuName);
+            const panel = document.getElementById('aether-deep-data-tbody');
+            if (panel) {
+                this.refresh();
+            }
+        },
+        renderTab(containerId) { 
+            UI.render(containerId); 
+        },
+        refresh() { 
+            UI.render('trend-tab-container'); 
+        }
     };
 })();
 
