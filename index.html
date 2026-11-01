@@ -614,6 +614,16 @@
                             <p class="text-xs text-slate-400 mb-5">Predictive inventory search with multi-item checkout</p>
 
                             <form id="form-sale" class="space-y-4">
+                                
+                                <!-- STANDARD SALE ENTRY MODE PILL TOGGLE -->
+                                <div class="flex items-center justify-between bg-slate-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-slate-200 dark:border-zinc-700/80">
+                                    <span class="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Entry Mode:</span>
+                                    <div class="inline-flex rounded-lg bg-slate-200 dark:bg-zinc-700 p-0.5 text-xs font-semibold">
+                                        <button type="button" id="sale-mode-unit" class="px-3 py-1 rounded-md transition-all">Unit Rate</button>
+                                        <button type="button" id="sale-mode-total" class="px-3 py-1 rounded-md transition-all">Final Total</button>
+                                    </div>
+                                </div>
+
                                 <div class="relative">
                                     <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Select Item</label>
                                     <input type="text" id="sale-item" autocomplete="off" placeholder="Start typing item name..." 
@@ -636,10 +646,18 @@
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate per Unit (₹)</label>
-                                    <input type="number" id="sale-rate" placeholder="0.00" step="0.01" 
-                                        class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none">
+                                <!-- DUAL VALUE FIELDS FOR UNIT RATE & FINAL TOTAL -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate (₹/unit)</label>
+                                        <input type="number" id="sale-rate" placeholder="0.00" step="0.01" 
+                                            class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 font-bold text-base border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Final Amount (₹ Total)</label>
+                                        <input type="number" id="sale-final-amount" placeholder="0.00" step="0.01" 
+                                            class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 font-bold text-base border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none">
+                                    </div>
                                 </div>
 
                                 <button type="button" id="btn-add-to-cart" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2 active:scale-95">
@@ -673,6 +691,16 @@
                         <p class="text-xs text-slate-400 mb-5">Ad-hoc sales not tracked in physical inventory</p>
 
                         <form id="form-cosmetic" class="space-y-4">
+                            
+                            <!-- COSMETIC ENTRY MODE PILL TOGGLE -->
+                            <div class="flex items-center justify-between bg-slate-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-slate-200 dark:border-zinc-700/80">
+                                <span class="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Entry Mode:</span>
+                                <div class="inline-flex rounded-lg bg-slate-200 dark:bg-zinc-700 p-0.5 text-xs font-semibold">
+                                    <button type="button" id="cosmetic-mode-unit" class="px-3 py-1 rounded-md transition-all">Unit Rate</button>
+                                    <button type="button" id="cosmetic-mode-total" class="px-3 py-1 rounded-md transition-all">Final Total</button>
+                                </div>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Custom Item Name</label>
                                 <input type="text" id="cosmetic-item" required placeholder="e.g. Gift Wrap, Service..." 
@@ -692,10 +720,18 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate (₹)</label>
-                                <input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" 
-                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-pink-600 dark:text-pink-400 font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
+                            <!-- DUAL RATE AND TOTAL AMOUNT FOR COSMETIC -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate (₹/unit)</label>
+                                    <input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" 
+                                        class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-pink-600 dark:text-pink-400 font-bold text-base border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Final Amount (₹ Total)</label>
+                                    <input type="number" id="cosmetic-final-amount" required placeholder="0.00" step="0.01" 
+                                        class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-pink-600 dark:text-pink-400 font-bold text-base border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
+                                </div>
                             </div>
 
                             <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-pink-600/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95">
@@ -717,6 +753,16 @@
 
                 <div class="bg-white dark:bg-[#14151c] p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
                     <form id="form-purchase" class="space-y-4">
+                        
+                        <!-- PURCHASES ENTRY MODE PILL TOGGLE -->
+                        <div class="flex items-center justify-between bg-slate-50 dark:bg-zinc-800/80 p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700/80">
+                            <span class="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Entry Mode:</span>
+                            <div class="inline-flex rounded-lg bg-slate-200 dark:bg-zinc-700 p-0.5 text-xs font-semibold">
+                                <button type="button" id="purchase-mode-total" class="px-3 py-1 rounded-md transition-all">Final Total (₹)</button>
+                                <button type="button" id="purchase-mode-unit" class="px-3 py-1 rounded-md transition-all">Unit Rate (₹)</button>
+                            </div>
+                        </div>
+
                         <div class="relative">
                             <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Item Name</label>
                             <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search existing or type to create new..." 
@@ -726,16 +772,21 @@
                             <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-60 overflow-y-auto"></div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Quantity Added</label>
                                 <input type="number" id="purchase-qty" step="any" required placeholder="0" 
-                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
+                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Unit Cost (₹/unit)</label>
+                                <input type="number" id="purchase-rate" step="0.01" placeholder="0.00" 
+                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Total Paid (₹)</label>
-                                <input type="number" id="purchase-amount" required placeholder="0.00" 
-                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-danger font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
+                                <input type="number" id="purchase-amount" required step="0.01" placeholder="0.00" 
+                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-danger font-bold text-base border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
                             </div>
                         </div>
 
@@ -842,10 +893,11 @@
             <div id="tab-settings" class="tab max-w-3xl mx-auto space-y-6">
                 <div>
                     <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Settings & Configuration</h1>
-                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Financial year parameters, theme preference, and data pipeline</p>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Financial year parameters, input defaults, and data pipeline</p>
                 </div>
 
                 <div class="space-y-4">
+                    
                     <!-- Global Year Filter -->
                     <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div>
@@ -857,6 +909,32 @@
                         <select id="global-year-filter" class="w-full sm:w-44 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 font-bold text-xs text-slate-800 dark:text-white outline-none cursor-pointer">
                             <option value="All">All Years</option>
                         </select>
+                    </div>
+
+                    <!-- DEFAULT ENTRY PREFERENCES SETTINGS CARD -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <div class="mb-4">
+                            <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-primary"></i> Default Entry Preferences
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Choose whether forms default to Unit-Wise Rate or Final Total Value</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Default Sales Input Mode</label>
+                                <select id="setting-default-sale-mode" class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 font-semibold text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-primary outline-none">
+                                    <option value="unit">Unit Rate (₹ per piece)</option>
+                                    <option value="total">Final Sale Value (₹ Total)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Default Purchases Input Mode</label>
+                                <select id="setting-default-purchase-mode" class="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 font-semibold text-xs text-slate-800 dark:text-white focus:ring-2 focus:ring-primary outline-none">
+                                    <option value="total">Final Purchase Value (₹ Total)</option>
+                                    <option value="unit">Unit Cost (₹ per piece)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Appearance -->
