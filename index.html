@@ -209,8 +209,99 @@
     </div>
 
     <!-- 2. MAIN APPLICATION WORKSPACE -->
-    <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden">
+    <div id="app-container" style="display: none;" class="h-screen w-full flex flex-col lg:flex-row overflow-hidden">
         
+        <!-- ============================================== -->
+        <!-- MOBILE TOP APP BAR (WISE HEADER FOR MOBILE)    -->
+        <!-- ============================================== -->
+        <header class="lg:hidden sticky top-0 z-40 bg-white/95 dark:bg-[#121319]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800 px-4 py-2.5 flex items-center justify-between select-none">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-blue-500 flex items-center justify-center text-white shadow-sm shadow-primary/30">
+                    <i class="fa-solid fa-bolt-lightning text-xs"></i>
+                </div>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-900 dark:text-white tracking-tight leading-tight">StoreOps ERP</h2>
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live System
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <!-- Direct Mobile Settings Button -->
+                <button onclick="document.getElementById('btn-settings').click(); closeMobileDrawer();" title="Settings" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 flex items-center justify-center text-xs active:scale-95 transition">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <!-- Mobile Drawer Trigger Button -->
+                <button onclick="toggleMobileDrawer();" title="Menu" class="w-8 h-8 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center text-xs active:scale-95 transition">
+                    <i class="fa-solid fa-bars text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- ============================================== -->
+        <!-- MOBILE SLIDE-OVER DRAWER (MORE TABS & TOOLS)   -->
+        <!-- ============================================== -->
+        <div id="mobile-drawer-overlay" class="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300 lg:hidden">
+            <div id="mobile-drawer-panel" class="fixed inset-y-0 right-0 w-[84%] max-w-xs bg-white dark:bg-[#121319] shadow-2xl p-5 flex flex-col justify-between transform translate-x-full transition-transform duration-300 ease-out border-l border-slate-200 dark:border-zinc-800">
+                <div>
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Navigation Hub</span>
+                        </div>
+                        <button onclick="closeMobileDrawer();" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1.5 block">Operations</span>
+                            <div class="space-y-1">
+                                <button onclick="selectMobileTab('btn-transactions')" class="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                                    <i class="fa-regular fa-receipt w-5 text-center text-primary"></i> Ledger Audit
+                                </button>
+                                <button onclick="selectMobileTab('btn-purchases')" class="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                                    <i class="fa-regular fa-truck-ramp-box w-5 text-center text-danger"></i> Purchases Desk
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1.5 block">Intelligence</span>
+                            <div class="space-y-1">
+                                <button onclick="selectMobileTab('btn-analytics')" class="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                                    <i class="fa-regular fa-chart-pie w-5 text-center text-purple-500"></i> Analytics & ABC
+                                </button>
+                                <button onclick="selectMobileTab('btn-trends')" class="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                                    <i class="fa-solid fa-fire w-5 text-center text-orange-500"></i> Trend Engine
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-1.5 block">Preferences</span>
+                            <div class="space-y-1">
+                                <button onclick="selectMobileTab('btn-settings')" class="flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                                    <i class="fa-solid fa-gear w-5 text-center text-slate-500"></i> Settings & Sync
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
+                    <button onclick="document.getElementById('btn-theme-toggle').click();" class="flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800">
+                        <span>Toggle Theme</span>
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button onclick="document.getElementById('btn-logout').click();" class="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-danger hover:bg-red-50 dark:hover:bg-red-950/30">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- DESKTOP SIDEBAR -->
         <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-[#121319] border-r border-slate-200/80 dark:border-zinc-800/80 h-full z-20 select-none">
             <!-- Brand Logo -->
@@ -269,7 +360,7 @@
         </aside>
 
         <!-- MAIN SCROLLABLE VIEWPORT -->
-        <main class="flex-1 h-full overflow-y-auto bg-slate-50/70 dark:bg-[#0c0d12] p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 relative">
+        <main class="flex-1 h-full overflow-y-auto bg-slate-50/70 dark:bg-[#0c0d12] p-4 sm:p-6 lg:p-8 pb-28 md:pb-8 relative">
             
             <!-- ============================================== -->
             <!-- TAB 1: DASHBOARD OVERVIEW -->
@@ -987,39 +1078,108 @@
             
         </main>
 
-        <!-- MOBILE DOCKED BOTTOM NAVIGATION -->
-        <nav class="lg:hidden bg-white/90 dark:bg-[#121319]/90 backdrop-blur-xl border-t border-slate-200/80 dark:border-zinc-800 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
-            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-chart-line text-base mb-1"></i>Home
+        <!-- ============================================== -->
+        <!-- WISE MOBILE BOTTOM DOCKED NAVIGATION (5 TABS)  -->
+        <!-- ============================================== -->
+        <nav class="lg:hidden bg-white/95 dark:bg-[#121319]/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-zinc-800 w-full fixed bottom-0 left-0 z-40 px-2 py-1.5 flex items-center justify-around select-none">
+            
+            <!-- 1. Home -->
+            <button onclick="selectMobileTab('btn-dashboard', this);" class="mob-bottom-btn text-primary flex flex-col items-center flex-1 py-1 transition-all">
+                <i class="fa-solid fa-chart-line text-lg mb-0.5"></i>
+                <span class="text-[10px] font-bold">Home</span>
             </button>
-            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-cart-shopping text-base mb-1"></i>POS
+            
+            <!-- 2. Sales (POS) -->
+            <button onclick="selectMobileTab('btn-sales', this);" class="mob-bottom-btn text-slate-400 dark:text-zinc-500 flex flex-col items-center flex-1 py-1 transition-all">
+                <i class="fa-solid fa-cart-shopping text-lg mb-0.5"></i>
+                <span class="text-[10px] font-semibold">Sales</span>
             </button>
-            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-boxes-stacked text-base mb-1"></i>Stock
+
+            <!-- 3. Purchases (PROMOTED DIRECTLY TO MOBILE BAR) -->
+            <button onclick="selectMobileTab('btn-purchases', this);" class="mob-bottom-btn text-slate-400 dark:text-zinc-500 flex flex-col items-center flex-1 py-1 transition-all">
+                <div class="relative">
+                    <i class="fa-solid fa-truck-ramp-box text-lg mb-0.5"></i>
+                </div>
+                <span class="text-[10px] font-semibold">Purchases</span>
             </button>
-            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-receipt text-base mb-1"></i>Ledger
+            
+            <!-- 4. Stock -->
+            <button onclick="selectMobileTab('btn-inventory', this);" class="mob-bottom-btn text-slate-400 dark:text-zinc-500 flex flex-col items-center flex-1 py-1 transition-all">
+                <i class="fa-solid fa-boxes-stacked text-lg mb-0.5"></i>
+                <span class="text-[10px] font-semibold">Stock</span>
             </button>
-            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-chart-pie text-base mb-1"></i>Analytics
-            </button>
-            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-                <i class="fa-solid fa-fire text-base mb-1"></i>Trends
+            
+            <!-- 5. More (Trigger Drawer) -->
+            <button onclick="toggleMobileDrawer();" class="mob-bottom-btn text-slate-400 dark:text-zinc-500 flex flex-col items-center flex-1 py-1 transition-all">
+                <i class="fa-solid fa-ellipsis text-lg mb-0.5"></i>
+                <span class="text-[10px] font-semibold">More</span>
             </button>
         </nav>
     </div>
 
-    <!-- Mobile Nav Active Synchronizer -->
+    <!-- ============================================== -->
+    <!-- MOBILE INTERACTION LOGIC & TAB SYNCHRONIZER    -->
+    <!-- ============================================== -->
     <script>
-        function updateMobileNav(activeBtn) {
-            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
-                btn.classList.remove('text-primary');
-                btn.classList.add('text-slate-400');
-            });
-            activeBtn.classList.remove('text-slate-400');
-            activeBtn.classList.add('text-primary');
-            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        function toggleMobileDrawer() {
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            if (overlay.classList.contains('hidden')) {
+                openMobileDrawer();
+            } else {
+                closeMobileDrawer();
+            }
+        }
+
+        function openMobileDrawer() {
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            const panel = document.getElementById('mobile-drawer-panel');
+            overlay.classList.remove('hidden');
+            void overlay.offsetWidth; // trigger reflow
+            overlay.classList.remove('opacity-0');
+            panel.classList.remove('translate-x-full');
+        }
+
+        function closeMobileDrawer() {
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            const panel = document.getElementById('mobile-drawer-panel');
+            overlay.classList.add('opacity-0');
+            panel.classList.add('translate-x-full');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+
+        // Close drawer when clicking backdrop outside panel
+        document.getElementById('mobile-drawer-overlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'mobile-drawer-overlay') {
+                closeMobileDrawer();
+            }
+        });
+
+        // Wise tab selection with automatic synchronization
+        function selectMobileTab(tabButtonId, bottomNavBtn = null) {
+            const targetBtn = document.getElementById(tabButtonId);
+            if (targetBtn) {
+                targetBtn.click();
+            }
+            closeMobileDrawer();
+
+            // Scroll viewport to top on tab switch
+            document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Update bottom bar colors if clicked from bottom bar
+            if (bottomNavBtn) {
+                document.querySelectorAll('.mob-bottom-btn').forEach(btn => {
+                    btn.classList.remove('text-primary');
+                    btn.classList.add('text-slate-400', 'dark:text-zinc-500');
+                    const span = btn.querySelector('span');
+                    if (span) span.className = 'text-[10px] font-semibold';
+                });
+                bottomNavBtn.classList.remove('text-slate-400', 'dark:text-zinc-500');
+                bottomNavBtn.classList.add('text-primary');
+                const activeSpan = bottomNavBtn.querySelector('span');
+                if (activeSpan) activeSpan.className = 'text-[10px] font-bold';
+            }
         }
     </script>
     
