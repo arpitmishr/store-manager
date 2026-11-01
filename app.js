@@ -25,16 +25,16 @@ window.getDoc = getDoc;
 
 let unsubInventory = null;
 let unsubTransactions = null;
-let allTransactions =[];
-let allInventory =[]; 
+let allTransactions = [];
+let allInventory = []; 
 
 let myChartMonthly = null;
 let myChartABC = null;
 let myChartFSN = null;
 
 const todayStr = new Date().toISOString().split('T')[0];
-document.getElementById('filter-trans-start').value = todayStr;
-document.getElementById('filter-trans-end').value = todayStr;
+if (document.getElementById('filter-trans-start')) document.getElementById('filter-trans-start').value = todayStr;
+if (document.getElementById('filter-trans-end')) document.getElementById('filter-trans-end').value = todayStr;
 
 
 // ==========================================
@@ -45,25 +45,25 @@ function showSuccessAnimation(msg = "Success!") {
     const card = document.getElementById('success-card');
     const iconContainer = document.getElementById('success-icon-container');
     
+    if (!overlay || !card) return;
+    
     document.getElementById('success-msg').innerText = msg;
     
     // Make visible in DOM
     overlay.classList.remove('hidden');
-    // Trigger reflow to restart CSS transitions
     void overlay.offsetWidth;
     
-    // Fade in overlay & scale up card
     overlay.classList.remove('opacity-0');
     overlay.classList.add('opacity-100', 'pointer-events-auto');
     card.classList.remove('scale-50');
     card.classList.add('scale-100');
     
-    // Restart popping animation
-    iconContainer.style.animation = 'none';
-    void iconContainer.offsetWidth; 
-    iconContainer.style.animation = null;
+    if (iconContainer) {
+        iconContainer.style.animation = 'none';
+        void iconContainer.offsetWidth; 
+        iconContainer.style.animation = null;
+    }
 
-    // Auto-hide after 2 seconds
     setTimeout(() => {
         overlay.classList.remove('opacity-100', 'pointer-events-auto');
         overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -72,7 +72,7 @@ function showSuccessAnimation(msg = "Success!") {
         
         setTimeout(() => {
             overlay.classList.add('hidden');
-        }, 300); // Wait for fade-out transition
+        }, 300);
     }, 2000);
 }
 
@@ -80,31 +80,31 @@ function showSuccessAnimation(msg = "Success!") {
 // ----- GLOBAL YEAR FILTER STATE -----
 let globalYearFilter = "All";
 
-document.getElementById('global-year-filter').addEventListener('change', (e) => {
-    globalYearFilter = e.target.value;
-    
-    // Update Dashboard UI text
-    if (document.getElementById('dash-year-label')) {
-        document.getElementById('dash-year-label').innerText = `(${globalYearFilter === 'All' ? 'All Years' : globalYearFilter})`;
-    }
+const globalYearSelect = document.getElementById('global-year-filter');
+if (globalYearSelect) {
+    globalYearSelect.addEventListener('change', (e) => {
+        globalYearFilter = e.target.value;
+        
+        if (document.getElementById('dash-year-label')) {
+            document.getElementById('dash-year-label').innerText = `(${globalYearFilter === 'All' ? 'All Years' : globalYearFilter})`;
+        }
 
-    // Instantly Re-render Everything
-    updateDashboardMetrics();
-    renderTransactionsTable();
-    renderDashboardTopItems();
-    if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
-});
+        updateDashboardMetrics();
+        renderTransactionsTable();
+        renderDashboardTopItems();
+        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+    });
+}
 
-// Helper function to check if a transaction belongs to the selected year
 function isYearMatch(dateStr) {
     if (globalYearFilter === "All") return true;
     if (!dateStr) return false;
     return new Date(dateStr).getFullYear().toString() === globalYearFilter;
 }
 
-// Dynamically populates the Year Dropdown based on your database dates
 function updateYearDropdown(transactions) {
     const selectEl = document.getElementById('global-year-filter');
+    if (!selectEl) return;
     const currentVal = selectEl.value;
     
     const years = new Set();
@@ -122,7 +122,6 @@ function updateYearDropdown(transactions) {
     
     selectEl.innerHTML = html;
     
-    // Remember user's selection after database refreshes
     if (years.has(currentVal) || currentVal === "All") {
         selectEl.value = currentVal;
     } else {
@@ -131,19 +130,22 @@ function updateYearDropdown(transactions) {
     }
 }
 
+
 // ----- THEME LOGIC -----
 const btnThemeToggle = document.getElementById('btn-theme-toggle');
 if (localStorage.getItem('theme') === 'dark') {
     document.body.classList.add('dark-mode');
-    btnThemeToggle.innerText = "Switch to Light Mode";
+    if (btnThemeToggle) btnThemeToggle.innerText = "Switch Theme";
 }
-btnThemeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    btnThemeToggle.innerText = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    if(myChartMonthly) renderCharts(lastMonthlyData, lastAbcTotals, lastFsnTotals);
-});
+if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        if(myChartMonthly) renderCharts(lastMonthlyData, lastAbcTotals, lastFsnTotals);
+    });
+}
+
 
 // ----- AUTHENTICATION LOGIC -----
 onAuthStateChanged(auth, (user) => {
@@ -180,8 +182,9 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 });
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
+
 // ----- TAB NAVIGATION -----
-const tabs =['dashboard', 'transactions', 'trends', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
+const tabs = ['dashboard', 'transactions', 'trends', 'analytics', 'sales', 'purchases', 'inventory', 'settings'];
 
 tabs.forEach(tab => {
     const btn = document.getElementById(`btn-${tab}`);
@@ -199,7 +202,6 @@ tabs.forEach(tab => {
             
             if(tab === 'analytics') setTimeout(runAnalytics, 10); 
             
-            // Guarantee Trend Engine draws when clicked if it hasn't yet
             if(tab === 'trends' && window.TrendEngine) {
                 if(!document.getElementById('te-root')) {
                     TrendEngine.renderTab('trend-tab-container');
@@ -210,15 +212,13 @@ tabs.forEach(tab => {
 });
 
 
-
-
 // ----- DATABASE LISTENERS -----
 let currentInventorySearch = "";
 let currentInventoryFilter = "all";
 
 function startDatabaseListeners() {
    unsubInventory = onSnapshot(collection(db, "inventory"), (snapshot) => {
-        allInventory =[];
+        allInventory = [];
 
         snapshot.forEach((docSnap) => {
             const item = docSnap.data();
@@ -226,7 +226,6 @@ function startDatabaseListeners() {
             allInventory.push(item);
         });
 
-        // Add this one magical line so Trend Engine can see your stock
         window.allInventory = allInventory;
 
         updateInventoryStats();
@@ -237,7 +236,7 @@ function startDatabaseListeners() {
     });
 
     unsubTransactions = onSnapshot(query(collection(db, "transactions"), orderBy("date", "desc")), (snapshot) => {
-        allTransactions =[];
+        allTransactions = [];
 
         snapshot.forEach((docSnap) => {
             const trans = docSnap.data();
@@ -267,28 +266,24 @@ function stopDatabaseListeners() {
 }
 
 
-
-
 // ==========================================
 // ====== CATEGORIZED PREDICTIVE SEARCH =====
 // ==========================================
-
 function setupPredictiveSearch(inputId, dropdownId, isSale) {
     const inputEl = document.getElementById(inputId);
     const dropdownEl = document.getElementById(dropdownId);
 
-    // Close dropdown when clicking outside
+    if (!inputEl || !dropdownEl) return;
+
     document.addEventListener('click', (e) => {
         if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
             dropdownEl.classList.add('hidden');
         }
     });
 
-    // Show dropdown on focus and input
     inputEl.addEventListener('focus', () => renderDropdown());
     inputEl.addEventListener('input', () => {
         renderDropdown();
-        // Auto-fill cost if exact match is typed (for Sales)
         if (isSale) {
             const typedName = inputEl.value.trim().toLowerCase();
             const foundItem = allInventory.find(item => item.name.toLowerCase() === typedName);
@@ -307,11 +302,10 @@ function setupPredictiveSearch(inputId, dropdownId, isSale) {
         let html = '';
 
         if (filtered.length === 0) {
-            html = `<div class="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">No inventory items found.</div>`;
+            html = `<div class="p-3 text-xs text-slate-400 text-center">No inventory items found.</div>`;
             if (!isSale && query) {
-                // For purchases, allow creating new
-                html += `<div class="px-4 py-3 bg-danger/10 text-danger cursor-pointer font-semibold text-sm hover:bg-danger hover:text-white transition-colors dropdown-item" data-name="${inputEl.value}" data-price="0">
-                    <i class="fa-solid fa-plus mr-2"></i> Add as new item: "${inputEl.value}"
+                html += `<div class="px-4 py-2.5 bg-danger/10 text-danger cursor-pointer font-semibold text-xs hover:bg-danger hover:text-white transition-colors dropdown-item" data-name="${inputEl.value}" data-price="0">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Add as new item: "${inputEl.value}"
                 </div>`;
             }
             dropdownEl.innerHTML = html;
@@ -320,11 +314,10 @@ function setupPredictiveSearch(inputId, dropdownId, isSale) {
             return;
         }
 
-        // Categorize by Stock Level
         const grouped = {
-            "🟢 In Stock":[],
-            "🟠 Low Stock":[],
-            "🔴 Out of Stock":[]
+            "🟢 In Stock": [],
+            "🟠 Low Stock": [],
+            "🔴 Out of Stock": []
         };
 
         filtered.forEach(item => {
@@ -334,19 +327,17 @@ function setupPredictiveSearch(inputId, dropdownId, isSale) {
             else grouped["🟢 In Stock"].push(item);
         });
 
-        for (const[category, items] of Object.entries(grouped)) {
+        for (const [category, items] of Object.entries(grouped)) {
             if (items.length > 0) {
-                // Category Header
-                html += `<div class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700/80 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-y border-gray-200 dark:border-gray-600">${category}</div>`;
+                html += `<div class="px-3 py-1.5 bg-slate-100 dark:bg-zinc-800 text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm z-10 border-y border-slate-200 dark:border-zinc-700">${category}</div>`;
                 
-                // Items
                 items.forEach(item => {
                     const priceStr = Number(item.price).toFixed(2);
                     html += `
-                    <div class="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-600/50 cursor-pointer flex justify-between items-center dropdown-item border-b border-gray-50 dark:border-gray-700 dark:last:border-0 transition-colors" data-name="${item.name}" data-price="${item.price}">
-                        <span class="font-semibold text-sm text-gray-800 dark:text-gray-100">${item.name}</span>
+                    <div class="px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-zinc-700/50 cursor-pointer flex justify-between items-center dropdown-item border-b border-slate-100 dark:border-zinc-800 last:border-0 transition-colors" data-name="${item.name}" data-price="${item.price}">
+                        <span class="font-semibold text-xs text-slate-800 dark:text-zinc-100">${item.name}</span>
                         <div class="text-right">
-                            <span class="block text-xs text-gray-500 dark:text-gray-400">Stock: ${item.qty}</span>
+                            <span class="block text-[10px] text-slate-400">Stock: ${item.qty}</span>
                             <span class="block text-xs font-bold text-primary">₹${priceStr}</span>
                         </div>
                     </div>`;
@@ -376,7 +367,6 @@ function setupPredictiveSearch(inputId, dropdownId, isSale) {
 // ==========================================
 // ====== DASHBOARD WIDGETS & METRICS =======
 // ==========================================
-
 function updateDashboardMetrics() {
     if (!allInventory || !allTransactions) return;
 
@@ -387,7 +377,6 @@ function updateDashboardMetrics() {
     let lowStockCount = 0;
     let totalStockUnits = 0;
 
-    // Inventory is a snapshot of current stock (not affected by Year filter)
     allInventory.forEach(item => {
         const qty = Number(item.qty) || 0;
         const price = Number(item.price) || 0;
@@ -402,7 +391,6 @@ function updateDashboardMetrics() {
     let todayItemTrends = {};
 
     allTransactions.forEach(t => {
-        // YEAR FILTER APPLIED HERE
         if (!isYearMatch(t.date)) return;
 
         const tDateISO = t.date.split('T')[0];
@@ -423,7 +411,6 @@ function updateDashboardMetrics() {
                 todayItemTrends[t.item] = (todayItemTrends[t.item] || 0) + qty; 
             }
         } else if (t.type === 'Sale Return' || t.type === 'Cosmetic Return') {
-            // NOTE: Retained to calculate accurate totals for past returns if they still exist
             overallSales -= amt;
             let cost = t.type === 'Sale Return' ? ((invMap[t.item]?.cost || 0) * qty) : ((Number(t.cost) || 0) * qty);
             overallCogs -= cost;
@@ -468,17 +455,18 @@ function updateDashboardMetrics() {
 const dashMonthSelect = document.getElementById('dash-top-month');
 const dashTypeSelect = document.getElementById('dash-top-type');
 
-dashMonthSelect.addEventListener('change', renderDashboardTopItems);
-dashTypeSelect.addEventListener('change', renderDashboardTopItems);
+if (dashMonthSelect) dashMonthSelect.addEventListener('change', renderDashboardTopItems);
+if (dashTypeSelect) dashTypeSelect.addEventListener('change', renderDashboardTopItems);
 
 function updateDashboardMonths(transactions) {
+    if (!dashMonthSelect) return;
     const currentSelection = dashMonthSelect.value;
     let monthsSet = new Set();
     
     monthsSet.add(new Date().toLocaleString('default', { month: 'long', year: 'numeric' }));
 
     transactions.forEach(t => {
-        if (!isYearMatch(t.date)) return; // Filter Months based on Global Year
+        if (!isYearMatch(t.date)) return;
         const d = new Date(t.date);
         monthsSet.add(d.toLocaleString('default', { month: 'long', year: 'numeric' }));
     });
@@ -490,14 +478,15 @@ function updateDashboardMonths(transactions) {
 }
 
 function renderDashboardTopItems() {
+    if (!dashMonthSelect || !dashTypeSelect) return;
     const selectedMonth = dashMonthSelect.value;
     const selectedType = dashTypeSelect.value;
     const listContainer = document.getElementById('dash-top-list');
+    if (!listContainer) return;
     
     let itemSalesMap = {};
 
     allTransactions.forEach(t => {
-        // YEAR FILTER APPLIED HERE
         if (!isYearMatch(t.date)) return;
 
         if (!t.type.includes('Sale')) return;
@@ -520,19 +509,19 @@ function renderDashboardTopItems() {
 
     listContainer.innerHTML = '';
     if (sortedItems.length === 0) {
-        listContainer.innerHTML = `<li class="text-center py-6 text-gray-500">No sales found for this filter.</li>`;
+        listContainer.innerHTML = `<li class="text-center py-6 text-xs text-slate-400">No sales found for this filter.</li>`;
         return;
     }
 
     let rank = 1;
     sortedItems.forEach(item => {
-        let rankColor = rank === 1 ? '#f59e0b' : (rank === 2 ? '#9ca3af' : (rank === 3 ? '#b45309' : '#6b7280'));
-        let rankIcon = rank <= 3 ? `<i class="fa-solid fa-medal" style="color: ${rankColor}"></i>` : `<span class="inline-block w-5 text-center text-white rounded-full text-xs leading-5" style="background:${rankColor}">${rank}</span>`;
+        let rankColor = rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#b45309' : '#64748b'));
+        let rankIcon = rank <= 3 ? `<i class="fa-solid fa-medal" style="color: ${rankColor}"></i>` : `<span class="inline-block w-4 text-center text-white rounded-full text-[10px] leading-4" style="background:${rankColor}">${rank}</span>`;
         
         listContainer.innerHTML += `
-            <li class="flex justify-between items-center py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-                <div class="text-sm font-medium"><span class="mr-3">${rankIcon}</span> ${item.name}</div>
-                <div class="text-xs font-bold text-success bg-success/10 px-2 py-1 rounded">${item.sold} sold</div>
+            <li class="flex justify-between items-center py-2.5 px-3 hover:bg-slate-50 dark:hover:bg-zinc-800/60 rounded-xl transition-colors">
+                <div class="text-xs font-semibold text-slate-800 dark:text-zinc-200"><span class="mr-2">${rankIcon}</span> ${item.name}</div>
+                <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200/50 dark:border-emerald-800/40">${item.sold} sold</div>
             </li>`;
         rank++;
     });
@@ -542,52 +531,53 @@ function renderDashboardTopItems() {
 // ==========================================
 // ====== TRANSACTIONS & RETURNS LOGIC ======
 // ==========================================
-
-document.getElementById('btn-trans-filter').addEventListener('click', renderTransactionsTable);
-document.getElementById('btn-trans-clear').addEventListener('click', () => { 
+document.getElementById('btn-trans-filter')?.addEventListener('click', renderTransactionsTable);
+document.getElementById('btn-trans-clear')?.addEventListener('click', () => { 
     document.getElementById('filter-trans-start').value = ''; 
     document.getElementById('filter-trans-end').value = ''; 
     renderTransactionsTable(); 
 });
 
 function renderTransactionsTable() {
-    const startVal = document.getElementById('filter-trans-start').value; 
-    const endVal = document.getElementById('filter-trans-end').value;
+    const startVal = document.getElementById('filter-trans-start')?.value; 
+    const endVal = document.getElementById('filter-trans-end')?.value;
     let sD = startVal ? new Date(startVal + 'T00:00:00') : null; 
     let eD = endVal ? new Date(endVal + 'T23:59:59') : null;
 
-    let html =[];
+    let html = [];
     allTransactions.forEach((t) => {
-        // YEAR FILTER APPLIED HERE
         if (!isYearMatch(t.date)) return;
 
         const tDate = new Date(t.date);
         if (sD && tDate < sD) return; 
         if (eD && tDate > eD) return;
         
-        let tColorClass = t.type.includes('Sale') ? (t.type.includes('Cosmetic') ? 'text-cosmetic' : 'text-success') : (t.type.includes('Purchase') ? 'text-danger' : 'text-warning');
+        let tColorClass = t.type.includes('Sale') 
+            ? (t.type.includes('Cosmetic') ? 'text-pink-600 dark:text-pink-400' : 'text-emerald-600 dark:text-emerald-400') 
+            : (t.type.includes('Purchase') ? 'text-danger' : 'text-amber-500');
         
         let actionBtn = (t.type === 'Sale' || t.type === 'Purchase' || t.type === 'Cosmetic Sale') 
-            ? `<button class="btn-return bg-warning/20 hover:bg-warning text-warning hover:text-white px-3 py-1 rounded text-xs font-bold transition-colors" data-id="${t.id}">Return</button>`
-            : `<span class="text-xs text-gray-400 font-medium italic">Returned</span>`;
+            ? `<button class="btn-return bg-amber-50 hover:bg-amber-500 text-amber-600 hover:text-white dark:bg-amber-950/30 dark:hover:bg-amber-500 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border border-amber-200/60 dark:border-amber-800/50" data-id="${t.id}">Return</button>`
+            : `<span class="text-[11px] text-slate-400 font-medium italic">Returned</span>`;
         
         html.push(`
-        <tr>
-            <td class="px-6 py-4 whitespace-nowrap">${tDate.toLocaleDateString()}</td>
-            <td class="px-6 py-4 whitespace-nowrap font-bold ${tColorClass}">${t.type}</td>
-            <td class="px-6 py-4">${t.item || "Unknown"}</td>
-            <td class="px-6 py-4 whitespace-nowrap">${Number(t.qty) || 0}</td>
-            <td class="px-6 py-4 whitespace-nowrap font-semibold">₹${(Number(t.amount) || 0).toFixed(2)}</td>
-            <td class="px-6 py-4 text-center whitespace-nowrap">${actionBtn}</td>
+        <tr class="hover:bg-slate-50/60 dark:hover:bg-zinc-800/40 transition-colors">
+            <td class="px-5 py-3 whitespace-nowrap text-slate-600 dark:text-zinc-400">${tDate.toLocaleDateString()}</td>
+            <td class="px-5 py-3 whitespace-nowrap font-bold ${tColorClass}">${t.type}</td>
+            <td class="px-5 py-3 font-semibold text-slate-900 dark:text-white">${t.item || "Unknown"}</td>
+            <td class="px-5 py-3 whitespace-nowrap font-medium">${Number(t.qty) || 0}</td>
+            <td class="px-5 py-3 whitespace-nowrap font-bold text-slate-900 dark:text-white">₹${(Number(t.amount) || 0).toFixed(2)}</td>
+            <td class="px-5 py-3 text-center whitespace-nowrap">${actionBtn}</td>
         </tr>`);
     });
-    document.querySelector('#table-transactions tbody').innerHTML = html.join('');
+    const tbody = document.querySelector('#table-transactions tbody');
+    if (tbody) tbody.innerHTML = html.join('');
 }
 
-document.querySelector('#table-transactions tbody').addEventListener('click', async (e) => {
+document.querySelector('#table-transactions tbody')?.addEventListener('click', async (e) => {
     if (e.target.classList.contains('btn-return')) {
         const btn = e.target;
-        if (btn.disabled) return; // Prevent double clicking return
+        if (btn.disabled) return;
 
         const id = btn.getAttribute('data-id');
         const t = allTransactions.find(x => x.id === id);
@@ -596,13 +586,12 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         let returnQtyStr = prompt(`How many '${t.item}' do you want to return?\n(Original Quantity: ${t.qty})`, t.qty);
         if (returnQtyStr === null) return; 
         
-        let returnQty = parseFloat(returnQtyStr); // Support decimal returns
+        let returnQty = parseFloat(returnQtyStr);
         if (isNaN(returnQty) || returnQty <= 0 || returnQty > t.qty) {
             alert(`Invalid quantity! Must be between 0.01 and ${t.qty}`);
             return;
         }
 
-        // Freeze button
         const originalHTML = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
@@ -613,19 +602,15 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
         try {
             const batch = writeBatch(db);
 
-            // FIX: Instead of adding a new "Return" transaction, we delete or update the original!
             if (returnQty === t.qty) {
-                // Completely remove the transaction if returned fully (Cleans up the ledger!)
                 batch.delete(doc(db, "transactions", t.id));
             } else {
-                // If it's a partial return, we simply reduce the quantity and amount of the original item
                 batch.update(doc(db, "transactions", t.id), {
                     qty: t.qty - returnQty,
                     amount: t.amount - returnAmount
                 });
             }
             
-            // Adjust Inventory Stock Level accordingly
             if (t.type !== 'Cosmetic Sale') {
                 const localInvItem = allInventory.find(i => i.name === t.item);
                 if (localInvItem) {
@@ -652,31 +637,27 @@ document.querySelector('#table-transactions tbody').addEventListener('click', as
 });
 
 
-
-
-
 // ==========================================
 // ====== ADVANCED ANALYTICS ENGINE =========
 // ==========================================
-
-document.getElementById('btn-ana-filter').addEventListener('click', runAnalytics);
-document.getElementById('btn-ana-clear').addEventListener('click', () => {
+document.getElementById('btn-ana-filter')?.addEventListener('click', runAnalytics);
+document.getElementById('btn-ana-clear')?.addEventListener('click', () => {
     document.getElementById('ana-start').value = ''; document.getElementById('ana-end').value = ''; runAnalytics();
 });
-document.getElementById('btn-ana-today').addEventListener('click', () => {
+document.getElementById('btn-ana-today')?.addEventListener('click', () => {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('ana-start').value = today; document.getElementById('ana-end').value = today; runAnalytics();
 });
-document.getElementById('ana-class-filter').addEventListener('change', runAnalytics);
-document.getElementById('filter-top-selling').addEventListener('change', runAnalytics);
-document.getElementById('filter-inv-status').addEventListener('change', runAnalytics);
+document.getElementById('ana-class-filter')?.addEventListener('change', runAnalytics);
+document.getElementById('filter-top-selling')?.addEventListener('change', runAnalytics);
+document.getElementById('filter-inv-status')?.addEventListener('change', runAnalytics);
 
 let lastMonthlyData = {}; let lastAbcTotals = {}; let lastFsnTotals = {};
 
 function runAnalytics() {
     if(!document.getElementById('tab-analytics').classList.contains('active')) return;
 
-    const startVal = document.getElementById('ana-start').value; const endVal = document.getElementById('ana-end').value;
+    const startVal = document.getElementById('ana-start')?.value; const endVal = document.getElementById('ana-end')?.value;
     let startDate = startVal ? new Date(startVal + 'T00:00:00') : null; let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
 
     let revenue = 0; let cogs = 0; 
@@ -688,7 +669,6 @@ function runAnalytics() {
     });
 
     allTransactions.forEach(trans => {
-        // YEAR FILTER APPLIED HERE
         if (!isYearMatch(trans.date)) return;
 
         const tDate = new Date(trans.date);
@@ -718,11 +698,11 @@ function runAnalytics() {
                 itemStats[trans.item].qtySold -= trans.qty; 
                 itemStats[trans.item].totalRevenue -= trans.amount;
             }
-            cogs -= cost; monthlyData[monthKey].profit -= (trans.amount - cost);
+            cogs -= cost; monthlyData[monthKey].profit += (trans.amount - cost);
         } else if (trans.type === 'Cosmetic Return') {
             revenue -= trans.amount; monthlyData[monthKey].sales -= trans.amount;
             let cost = (trans.cost || 0) * trans.qty;
-            cogs -= cost; monthlyData[monthKey].profit -= (trans.amount - cost);
+            cogs -= cost; monthlyData[monthKey].profit += (trans.amount - cost);
         }
     });
 
@@ -735,39 +715,46 @@ function runAnalytics() {
     document.getElementById('ana-margin').innerText = `${margin}%`;
     document.getElementById('ana-stock').innerText = totalStock;
 
-    let totalInvValue = 0; let abcArray =[];
+    let totalInvValue = 0; let abcArray = [];
     for (const[name, data] of Object.entries(itemStats)) {
         totalInvValue += data.invValue; abcArray.push({ name, value: data.invValue });
     }
     abcArray.sort((a,b) => b.value - a.value);
     
-    let cumValue = 0; let abcTotals = { A: 0, B: 0, C: 0 }; let abcHtml =[];
+    let cumValue = 0; let abcTotals = { A: 0, B: 0, C: 0 }; let abcHtml = [];
     abcArray.forEach(item => {
         cumValue += item.value; let pct = totalInvValue > 0 ? cumValue / totalInvValue : 0; let category = 'C';
-        let catClass = 'text-danger';
-        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; catClass = 'text-success'; }
-        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; catClass = 'text-warning'; }
+        let catClass = 'text-danger font-bold';
+        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; catClass = 'text-emerald-600 dark:text-emerald-400 font-bold'; }
+        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; catClass = 'text-amber-500 font-bold'; }
         else { abcTotals.C += item.value; category = 'C'; }
         
-        abcHtml.push(`<tr><td class="py-3 px-4">${item.name}</td><td class="py-3 px-4">₹${item.value.toFixed(2)}</td><td class="py-3 px-4">${(pct * 100).toFixed(1)}%</td><td class="py-3 px-4 font-bold ${catClass}">${category}</td></tr>`);
+        abcHtml.push(`<tr><td class="py-2.5 px-4 font-semibold text-slate-800 dark:text-zinc-200">${item.name}</td><td class="py-2.5 px-4">₹${item.value.toFixed(2)}</td><td class="py-2.5 px-4">${(pct * 100).toFixed(1)}%</td><td class="py-2.5 px-4 ${catClass}">${category}</td></tr>`);
     });
-    document.querySelector('#table-abc tbody').innerHTML = abcHtml.join('');
+    const abcTbody = document.querySelector('#table-abc tbody');
+    if (abcTbody) abcTbody.innerHTML = abcHtml.join('');
 
-    const filterTop = document.getElementById('filter-top-selling').value; let topHtml =[];
+    const filterTop = document.getElementById('filter-top-selling')?.value; let topHtml = [];
     let sortedTop = Object.keys(itemStats).map(k => ({name: k, sold: itemStats[k].qtySold})).sort((a,b) => b.sold - a.sold);
     if(filterTop === 'Top10') sortedTop = sortedTop.slice(0, 10);
-    sortedTop.forEach(item => { if(item.sold > 0 || filterTop === 'All') topHtml.push(`<tr><td class="py-2 px-3">${item.name}</td><td class="py-2 px-3 text-right font-bold text-success">${item.sold}</td></tr>`); });
-    document.getElementById('tbody-top-selling').innerHTML = topHtml.join('');
+    sortedTop.forEach(item => { 
+        if(item.sold > 0 || filterTop === 'All') {
+            topHtml.push(`<tr><td class="py-2 px-3 font-medium text-slate-800 dark:text-zinc-200">${item.name}</td><td class="py-2 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">${item.sold}</td></tr>`);
+        }
+    });
+    const topTbody = document.getElementById('tbody-top-selling');
+    if (topTbody) topTbody.innerHTML = topHtml.join('');
 
-    const filterInv = document.getElementById('filter-inv-status').value; let invHtml =[];
+    const filterInv = document.getElementById('filter-inv-status')?.value; let invHtml = [];
     let sortedInv = Object.keys(itemStats).map(k => ({name: k, stock: itemStats[k].stock})).sort((a,b) => a.stock - b.stock);
     sortedInv.forEach(item => {
         if (filterInv === 'Low' && item.stock > 3) return; 
-        invHtml.push(`<tr><td class="py-2 px-3">${item.name}</td><td class="py-2 px-3 text-right ${item.stock <= 3 ? 'text-danger font-bold' : ''}">${item.stock}</td></tr>`);
+        invHtml.push(`<tr><td class="py-2 px-3 font-medium text-slate-800 dark:text-zinc-200">${item.name}</td><td class="py-2 px-3 text-right ${item.stock <= 3 ? 'text-danger font-bold' : ''}">${item.stock}</td></tr>`);
     });
-    document.getElementById('tbody-inv-status').innerHTML = invHtml.join('');
+    const invTbody = document.getElementById('tbody-inv-status');
+    if (invTbody) invTbody.innerHTML = invHtml.join('');
 
-    let fsnTotals = { F: 0, S: 0, N: 0 }; let matrixRows =[];
+    let fsnTotals = { F: 0, S: 0, N: 0 }; let matrixRows = [];
     let maxQtySold = Math.max(...Object.values(itemStats).map(i => i.qtySold), 0);
     let maxRev = Math.max(...Object.values(itemStats).map(i => i.totalRevenue), 0);
 
@@ -784,14 +771,15 @@ function runAnalytics() {
         matrixRows.push({ name, stock: data.stock, invValue: data.invValue, rev: data.totalRevenue, FSN, HMV, actClass });
     }
 
-    const filterClass = document.getElementById('ana-class-filter').value; let matrixHtml =[];
+    const filterClass = document.getElementById('ana-class-filter')?.value; let matrixHtml = [];
     matrixRows.sort((a,b) => b.rev - a.rev).forEach(row => {
         if(filterClass !== "All" && !row.actClass.includes(filterClass)) return;
-        let fsnColor = row.FSN==='F'?'text-success':(row.FSN==='S'?'text-warning':'text-danger');
-        let hmvColor = row.HMV==='H'?'text-primary':(row.HMV==='M'?'text-purple-500':'text-gray-500');
-        matrixHtml.push(`<tr><td class="py-3 px-4 font-bold">${row.name}</td><td class="py-3 px-4">${row.stock}</td><td class="py-3 px-4">₹${row.invValue.toFixed(2)}</td><td class="py-3 px-4">₹${row.rev.toFixed(2)}</td><td class="py-3 px-4 font-bold ${fsnColor}">${row.FSN}</td><td class="py-3 px-4 font-bold ${hmvColor}">${row.HMV}</td><td class="py-3 px-4">${row.actClass}</td></tr>`);
+        let fsnColor = row.FSN==='F'?'text-emerald-600 dark:text-emerald-400':(row.FSN==='S'?'text-amber-500':'text-danger');
+        let hmvColor = row.HMV==='H'?'text-primary':(row.HMV==='M'?'text-purple-500':'text-slate-400');
+        matrixHtml.push(`<tr><td class="py-2.5 px-4 font-bold text-slate-800 dark:text-zinc-100">${row.name}</td><td class="py-2.5 px-4">${row.stock}</td><td class="py-2.5 px-4">₹${row.invValue.toFixed(2)}</td><td class="py-2.5 px-4">₹${row.rev.toFixed(2)}</td><td class="py-2.5 px-4 font-bold ${fsnColor}">${row.FSN}</td><td class="py-2.5 px-4 font-bold ${hmvColor}">${row.HMV}</td><td class="py-2.5 px-4 font-medium">${row.actClass}</td></tr>`);
     });
-    document.querySelector('#table-matrix tbody').innerHTML = matrixHtml.join('');
+    const matrixTbody = document.querySelector('#table-matrix tbody');
+    if (matrixTbody) matrixTbody.innerHTML = matrixHtml.join('');
 
     lastMonthlyData = monthlyData; lastAbcTotals = abcTotals; lastFsnTotals = fsnTotals;
     renderCharts(monthlyData, abcTotals, fsnTotals);
@@ -803,35 +791,211 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
     const dataSales = labelsMonth.map(m => monthlyData[m].sales);
     const dataProfit = labelsMonth.map(m => monthlyData[m].profit);
     const isDark = document.body.classList.contains('dark-mode');
-    const chartTextColor = isDark ? '#e0e0e0' : '#2c3e50';
+    const chartTextColor = isDark ? '#cbd5e1' : '#475569';
     Chart.defaults.color = chartTextColor;
+    Chart.defaults.font.family = '"Plus Jakarta Sans", system-ui, sans-serif';
 
-    myChartMonthly = new Chart(document.getElementById('chart-monthly'), {
-        type: 'bar', data: { labels: labelsMonth.length ? labelsMonth : ["No Data"], datasets:[{ label: 'Sales (₹)', data: dataSales, backgroundColor: '#3b82f6' }, { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#10b981' }] },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } }, animation: { duration: 0 } }
-    });
-    myChartABC = new Chart(document.getElementById('chart-abc'), {
-        type: 'doughnut', data: { labels:['A (Top Value)', 'B (Medium)', 'C (Low)'], datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } }, animation: { duration: 0 } }
-    });
-    myChartFSN = new Chart(document.getElementById('chart-fsn'), {
-        type: 'pie', data: { labels:['Fast Moving', 'Slow Moving', 'Non-Moving'], datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3b82f6', '#f59e0b', '#9ca3af'], borderWidth: 0 }] },
-        options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } }, animation: { duration: 0 } }
+    const canvasMonthly = document.getElementById('chart-monthly');
+    if (canvasMonthly) {
+        myChartMonthly = new Chart(canvasMonthly, {
+            type: 'bar', 
+            data: { 
+                labels: labelsMonth.length ? labelsMonth : ["No Data"], 
+                datasets: [
+                    { label: 'Sales (₹)', data: dataSales, backgroundColor: '#3b82f6', borderRadius: 6 }, 
+                    { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#10b981', borderRadius: 6 }
+                ] 
+            },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } }, animation: { duration: 0 } }
+        });
+    }
+
+    const canvasAbc = document.getElementById('chart-abc');
+    if (canvasAbc) {
+        myChartABC = new Chart(canvasAbc, {
+            type: 'doughnut', 
+            data: { labels:['A (Top 70%)', 'B (Next 20%)', 'C (Bottom 10%)'], datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } }, animation: { duration: 0 } }
+        });
+    }
+
+    const canvasFsn = document.getElementById('chart-fsn');
+    if (canvasFsn) {
+        myChartFSN = new Chart(canvasFsn, {
+            type: 'pie', 
+            data: { labels:['Fast Moving', 'Slow Moving', 'Non-Moving'], datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3b82f6', '#f59e0b', '#94a3b8'], borderWidth: 0 }] },
+            options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } }, animation: { duration: 0 } }
+        });
+    }
+}
+
+
+// ==========================================
+// ====== DUAL ENTRY MODES & SETTINGS =======
+// ==========================================
+
+let currentSaleMode = localStorage.getItem('pref_sale_mode') || 'unit'; // 'unit' | 'total'
+let currentCosmeticMode = localStorage.getItem('pref_sale_mode') || 'unit';
+let currentPurchaseMode = localStorage.getItem('pref_purchase_mode') || 'total'; // 'total' | 'unit'
+
+function updatePillStyles(unitBtnId, totalBtnId, activeMode) {
+    const btnUnit = document.getElementById(unitBtnId);
+    const btnTotal = document.getElementById(totalBtnId);
+    if (!btnUnit || !btnTotal) return;
+
+    if (activeMode === 'unit') {
+        btnUnit.className = "px-3 py-1 rounded-md text-white bg-primary shadow-sm font-bold text-xs transition-all";
+        btnTotal.className = "px-3 py-1 rounded-md text-slate-500 dark:text-zinc-400 font-semibold text-xs hover:text-slate-800 dark:hover:text-white transition-all";
+    } else {
+        btnTotal.className = "px-3 py-1 rounded-md text-white bg-primary shadow-sm font-bold text-xs transition-all";
+        btnUnit.className = "px-3 py-1 rounded-md text-slate-500 dark:text-zinc-400 font-semibold text-xs hover:text-slate-800 dark:hover:text-white transition-all";
+    }
+}
+
+// 1. STANDARD SALE MODE & SYNC
+function setSaleMode(mode) {
+    currentSaleMode = mode;
+    updatePillStyles('sale-mode-unit', 'sale-mode-total', mode);
+}
+
+document.getElementById('sale-mode-unit')?.addEventListener('click', () => setSaleMode('unit'));
+document.getElementById('sale-mode-total')?.addEventListener('click', () => setSaleMode('total'));
+
+const saleQtyInput = document.getElementById('sale-qty');
+const saleRateInput = document.getElementById('sale-rate');
+const saleFinalAmountInput = document.getElementById('sale-final-amount');
+
+function syncSaleCalculations(origin) {
+    const qty = parseFloat(saleQtyInput?.value) || 0;
+    if (origin === 'rate' || (origin === 'qty' && currentSaleMode === 'unit')) {
+        const rate = parseFloat(saleRateInput?.value) || 0;
+        if (qty > 0 && rate >= 0) {
+            saleFinalAmountInput.value = (qty * rate).toFixed(2);
+        }
+    } else if (origin === 'total' || (origin === 'qty' && currentSaleMode === 'total')) {
+        const total = parseFloat(saleFinalAmountInput?.value) || 0;
+        if (qty > 0) {
+            saleRateInput.value = (total / qty).toFixed(2);
+        }
+    }
+}
+
+saleQtyInput?.addEventListener('input', () => syncSaleCalculations('qty'));
+saleRateInput?.addEventListener('input', () => syncSaleCalculations('rate'));
+saleFinalAmountInput?.addEventListener('input', () => syncSaleCalculations('total'));
+
+
+// 2. COSMETIC SALE MODE & SYNC
+function setCosmeticMode(mode) {
+    currentCosmeticMode = mode;
+    updatePillStyles('cosmetic-mode-unit', 'cosmetic-mode-total', mode);
+}
+
+document.getElementById('cosmetic-mode-unit')?.addEventListener('click', () => setCosmeticMode('unit'));
+document.getElementById('cosmetic-mode-total')?.addEventListener('click', () => setCosmeticMode('total'));
+
+const cosmeticQtyInput = document.getElementById('cosmetic-qty');
+const cosmeticRateInput = document.getElementById('cosmetic-rate');
+const cosmeticFinalAmountInput = document.getElementById('cosmetic-final-amount');
+
+function syncCosmeticCalculations(origin) {
+    const qty = parseFloat(cosmeticQtyInput?.value) || 0;
+    if (origin === 'rate' || (origin === 'qty' && currentCosmeticMode === 'unit')) {
+        const rate = parseFloat(cosmeticRateInput?.value) || 0;
+        if (qty > 0 && rate >= 0) {
+            cosmeticFinalAmountInput.value = (qty * rate).toFixed(2);
+        }
+    } else if (origin === 'total' || (origin === 'qty' && currentCosmeticMode === 'total')) {
+        const total = parseFloat(cosmeticFinalAmountInput?.value) || 0;
+        if (qty > 0) {
+            cosmeticRateInput.value = (total / qty).toFixed(2);
+        }
+    }
+}
+
+cosmeticQtyInput?.addEventListener('input', () => syncCosmeticCalculations('qty'));
+cosmeticRateInput?.addEventListener('input', () => syncCosmeticCalculations('rate'));
+cosmeticFinalAmountInput?.addEventListener('input', () => syncCosmeticCalculations('total'));
+
+
+// 3. PURCHASE MODE & SYNC
+function setPurchaseMode(mode) {
+    currentPurchaseMode = mode;
+    updatePillStyles('purchase-mode-unit', 'purchase-mode-total', mode);
+}
+
+document.getElementById('purchase-mode-unit')?.addEventListener('click', () => setPurchaseMode('unit'));
+document.getElementById('purchase-mode-total')?.addEventListener('click', () => setPurchaseMode('total'));
+
+const purchaseQtyInput = document.getElementById('purchase-qty');
+const purchaseRateInput = document.getElementById('purchase-rate');
+const purchaseAmountInput = document.getElementById('purchase-amount');
+
+function syncPurchaseCalculations(origin) {
+    const qty = parseFloat(purchaseQtyInput?.value) || 0;
+    if (origin === 'rate' || (origin === 'qty' && currentPurchaseMode === 'unit')) {
+        const rate = parseFloat(purchaseRateInput?.value) || 0;
+        if (qty > 0 && rate >= 0) {
+            purchaseAmountInput.value = (qty * rate).toFixed(2);
+        }
+    } else if (origin === 'total' || (origin === 'qty' && currentPurchaseMode === 'total')) {
+        const total = parseFloat(purchaseAmountInput?.value) || 0;
+        if (qty > 0) {
+            purchaseRateInput.value = (total / qty).toFixed(2);
+        }
+    }
+}
+
+purchaseQtyInput?.addEventListener('input', () => syncPurchaseCalculations('qty'));
+purchaseRateInput?.addEventListener('input', () => syncPurchaseCalculations('rate'));
+purchaseAmountInput?.addEventListener('input', () => syncPurchaseCalculations('total'));
+
+
+// 4. SETTINGS CONFIGURATION LISTENER
+const defaultSaleModeSelect = document.getElementById('setting-default-sale-mode');
+const defaultPurchaseModeSelect = document.getElementById('setting-default-purchase-mode');
+
+if (defaultSaleModeSelect) {
+    defaultSaleModeSelect.value = currentSaleMode;
+    defaultSaleModeSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        localStorage.setItem('pref_sale_mode', val);
+        setSaleMode(val);
+        setCosmeticMode(val);
+        showSuccessAnimation("Default Sales Mode Updated!");
     });
 }
+
+if (defaultPurchaseModeSelect) {
+    defaultPurchaseModeSelect.value = currentPurchaseMode;
+    defaultPurchaseModeSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        localStorage.setItem('pref_purchase_mode', val);
+        setPurchaseMode(val);
+        showSuccessAnimation("Default Purchases Mode Updated!");
+    });
+}
+
+// Initialize active pills based on configured defaults
+setSaleMode(currentSaleMode);
+setCosmeticMode(currentCosmeticMode);
+setPurchaseMode(currentPurchaseMode);
+
 
 // ==========================================
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
 
 // CART LOGIC FOR STANDARD SALE 
-let saleCart =[]; 
+let saleCart = []; 
 
 function updateCartUI() {
     const cartContainer = document.getElementById('cart-container');
     const cartList = document.getElementById('cart-list');
     const cartTotal = document.getElementById('cart-total');
     
+    if (!cartContainer || !cartList || !cartTotal) return;
+
     cartList.innerHTML = '';
     let totalAmount = 0;
 
@@ -842,10 +1006,10 @@ function updateCartUI() {
         saleCart.forEach((cartItem, index) => {
             totalAmount += cartItem.amount;
             cartList.innerHTML += `
-                <li class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
-                    <span class="text-gray-800 dark:text-gray-200">${cartItem.item} <b class="text-primary">(x${cartItem.qty})</b></span>
-                    <span class="font-bold">₹${cartItem.amount.toFixed(2)} 
-                        <button type="button" onclick="window.removeCartItem(${index})" class="text-danger hover:text-red-700 ml-3 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+                <li class="flex justify-between items-center py-1.5 border-b border-slate-200 dark:border-zinc-700/80 last:border-0">
+                    <span class="text-slate-800 dark:text-zinc-200">${cartItem.item} <b class="text-primary">(x${cartItem.qty})</b></span>
+                    <span class="font-bold text-slate-900 dark:text-white">₹${cartItem.amount.toFixed(2)} 
+                        <button type="button" onclick="window.removeCartItem(${index})" class="text-danger hover:text-red-700 ml-2.5 transition-colors"><i class="fa-solid fa-xmark"></i></button>
                     </span>
                 </li>`;
         });
@@ -858,13 +1022,25 @@ window.removeCartItem = function(index) {
     updateCartUI();
 };
 
-document.getElementById('btn-add-to-cart').addEventListener('click', () => {
+document.getElementById('btn-add-to-cart')?.addEventListener('click', () => {
     const item = document.getElementById('sale-item').value.trim();
     const qtyStr = document.getElementById('sale-qty').value;
-    const rateStr = document.getElementById('sale-rate').value;
+    let rateStr = document.getElementById('sale-rate').value;
+    let amountStr = document.getElementById('sale-final-amount').value;
 
-    if (!item || !qtyStr || !rateStr) {
-        alert("Please fill Item Name, Quantity, and Selling Rate before adding to the list.");
+    let qty = parseFloat(qtyStr);
+    let rate = parseFloat(rateStr);
+    let amount = parseFloat(amountStr);
+
+    // Auto-calculate if only one of rate or amount was typed
+    if ((isNaN(rate) || rate === 0) && !isNaN(amount) && qty > 0) {
+        rate = amount / qty;
+    } else if (!isNaN(rate) && (isNaN(amount) || amount === 0) && qty > 0) {
+        amount = qty * rate;
+    }
+
+    if (!item || isNaN(qty) || qty <= 0 || isNaN(amount) || amount < 0) {
+        alert("Please enter a valid Item Name, Quantity, and either Selling Rate or Final Amount.");
         return;
     }
 
@@ -874,16 +1050,6 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
         return;
     }
 
-    let qty = parseFloat(qtyStr); // Support decimal values
-    let rate = parseFloat(rateStr);
-    if (qty <= 0 || rate < 0) {
-        alert("Please enter a valid quantity and rate.");
-        return;
-    }
-
-    let amount = qty * rate;
-
-    // FIX: Check if item already exists in the cart, if yes just increase qty to prevent math errors
     const existingIndex = saleCart.findIndex(c => c.item === item && c.rate === rate);
     if (existingIndex !== -1) {
         saleCart[existingIndex].qty += qty;
@@ -895,21 +1061,20 @@ document.getElementById('btn-add-to-cart').addEventListener('click', () => {
     document.getElementById('sale-item').value = '';
     document.getElementById('sale-qty').value = '';
     document.getElementById('sale-rate').value = '';
+    document.getElementById('sale-final-amount').value = '';
     document.getElementById('sale-cost').value = '';
     
     updateCartUI();
 });
 
 
-
-
 // INSTANT MULTI-SALE SAVE
 const saleForm = document.getElementById('form-sale');
-saleForm.addEventListener('submit', async (e) => {
+saleForm?.addEventListener('submit', async (e) => {
     e.preventDefault(); 
     
     const submitBtn = document.getElementById('btn-save-sale');
-    if (submitBtn.disabled) return; // FIX: Prevent double clicks while processing
+    if (submitBtn?.disabled) return;
     
     const pendingItem = document.getElementById('sale-item').value.trim();
     if (pendingItem) {
@@ -921,7 +1086,6 @@ saleForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // --- LOCK UI & SHOW LOADING ---
     const originalBtnHTML = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing...`;
@@ -943,7 +1107,7 @@ saleForm.addEventListener('submit', async (e) => {
             const localInvItem = allInventory.find(inv => inv.name === cartItem.item);
             if (localInvItem) {
                 let newQty = Number(localInvItem.qty) - cartItem.qty;
-                localInvItem.qty = newQty < 0 ? 0 : newQty; // Update local state inside loop to prevent double deduction issues
+                localInvItem.qty = newQty < 0 ? 0 : newQty;
                 batch.update(doc(db, "inventory", localInvItem.id), { qty: localInvItem.qty });
             }
         }
@@ -954,15 +1118,14 @@ saleForm.addEventListener('submit', async (e) => {
         updateCartUI();
         saleForm.reset();
         document.getElementById('sale-cost').value = '';
+        document.getElementById('sale-final-amount').value = '';
         
-        // Trigger Happy Animation!
         showSuccessAnimation("Standard Sale Recorded!");
         
     } catch (error) { 
         console.error(error); 
         alert("An error occurred while saving the sale.");
     } finally {
-        // --- UNLOCK UI ---
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnHTML;
         submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
@@ -970,34 +1133,34 @@ saleForm.addEventListener('submit', async (e) => {
 });
 
 
-
-
-
 // COSMETIC SALE 
 const cosmeticForm = document.getElementById('form-cosmetic');
-cosmeticForm.addEventListener('submit', async (e) => {
+cosmeticForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = cosmeticForm.querySelector('button[type="submit"]');
-    if (submitBtn.disabled) return;
+    if (submitBtn?.disabled) return;
 
-    // Lock UI
     const originalBtnHTML = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
     const item = document.getElementById('cosmetic-item').value.trim() + " (Cosmetic)";
-    let qty = parseFloat(document.getElementById('cosmetic-qty').value); // Support decimal values
+    let qty = parseFloat(document.getElementById('cosmetic-qty').value);
     let cost = parseFloat(document.getElementById('cosmetic-cost').value);
     let rate = parseFloat(document.getElementById('cosmetic-rate').value);
-    let amount = qty * rate; 
+    let amount = parseFloat(document.getElementById('cosmetic-final-amount').value);
+
+    // Auto resolve dual fields
+    if ((isNaN(rate) || rate === 0) && !isNaN(amount) && qty > 0) rate = amount / qty;
+    if ((isNaN(amount) || amount === 0) && !isNaN(rate)) amount = qty * rate;
+
     const date = new Date().toISOString();
 
     try {
         await addDoc(collection(db, "transactions"), { type: "Cosmetic Sale", item, qty, cost, rate, amount, date });
         cosmeticForm.reset();
-        
         showSuccessAnimation("Cosmetic Sale Saved!");
     } catch (e) { 
         console.error(e);
@@ -1010,26 +1173,29 @@ cosmeticForm.addEventListener('submit', async (e) => {
 });
 
 
-
-
-
 // INSTANT PURCHASE SAVE
 const purchaseForm = document.getElementById('form-purchase');
-purchaseForm.addEventListener('submit', async (e) => {
+purchaseForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const submitBtn = purchaseForm.querySelector('button[type="submit"]');
-    if (submitBtn.disabled) return;
+    if (submitBtn?.disabled) return;
 
-    // Lock UI
     const originalBtnHTML = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
     const item = document.getElementById('purchase-item').value.trim();
-    let qty = parseFloat(document.getElementById('purchase-qty').value); // Support decimal values
+    let qty = parseFloat(document.getElementById('purchase-qty').value);
+    let rate = parseFloat(document.getElementById('purchase-rate').value);
     let amount = parseFloat(document.getElementById('purchase-amount').value);
+
+    // Auto resolve dual fields for purchase
+    if ((isNaN(amount) || amount === 0) && !isNaN(rate) && qty > 0) {
+        amount = qty * rate;
+    }
+
     const date = new Date().toISOString();
 
     try {
@@ -1043,7 +1209,7 @@ purchaseForm.addEventListener('submit', async (e) => {
             batch.update(doc(db, "inventory", localInvItem.id), { qty: Number(localInvItem.qty) + qty });
         } else {
             const newInvRef = doc(collection(db, "inventory"));
-            batch.set(newInvRef, { name: item, qty: qty, price: qty>0?(amount/qty):0 });
+            batch.set(newInvRef, { name: item, qty: qty, price: qty > 0 ? (amount / qty) : 0 });
         }
 
         await batch.commit();
@@ -1063,10 +1229,9 @@ purchaseForm.addEventListener('submit', async (e) => {
 
 
 // ==========================================
-// ====== INVENTORY REDESIGN LOGIC ==========
+// ====== INVENTORY MANAGEMENT LOGIC ========
 // ==========================================
 
-// 1. Render Top Stat Cards
 function updateInventoryStats() {
     let totalItems = allInventory.length;
     let outCount = 0;
@@ -1079,29 +1244,27 @@ function updateInventoryStats() {
         
         totalValue += (qty * price);
         if (qty === 0) outCount++;
-        else if (qty <= 2) lowCount++; // Set to 2 based on your new design
+        else if (qty <= 2) lowCount++;
     });
 
-    document.getElementById('stat-inv-total').innerText = totalItems;
-    document.getElementById('stat-inv-value').innerText = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-    document.getElementById('stat-inv-out').innerText = outCount;
-    document.getElementById('stat-inv-low').innerText = lowCount;
+    if (document.getElementById('stat-inv-total')) {
+        document.getElementById('stat-inv-total').innerText = totalItems;
+        document.getElementById('stat-inv-value').innerText = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        document.getElementById('stat-inv-out').innerText = outCount;
+        document.getElementById('stat-inv-low').innerText = lowCount;
+    }
 }
 
-// 2. Render Table with Filters, Badges & Search
 function renderInventoryTable() {
     let rowsHtml = [];
     const query = currentInventorySearch.toLowerCase().trim();
 
-    // Filter Items based on Tabs & Search
     let filtered = allInventory.filter(item => {
         const itemName = (item.name || "").toLowerCase();
         const qty = Number(item.qty) || 0;
         
-        // Search filter
         if (query && !itemName.includes(query)) return false;
         
-        // Tab Filter
         if (currentInventoryFilter === 'out' && qty !== 0) return false;
         if (currentInventoryFilter === 'low' && (qty === 0 || qty > 2)) return false;
         
@@ -1114,32 +1277,31 @@ function renderInventoryTable() {
         const itemPrice = Number(item.price) || 0;
         const stockValue = itemQty * itemPrice;
 
-        // Generate Status Badge
         let badgeHtml = "";
         if (itemQty === 0) {
-            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full whitespace-nowrap">Out of stock</span>`;
+            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 rounded-full whitespace-nowrap">Out of stock</span>`;
         } else if (itemQty <= 2) {
-            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full whitespace-nowrap">Low &mdash; ${itemQty} left</span>`;
+            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-full whitespace-nowrap">Low &mdash; ${itemQty} left</span>`;
         } else {
-            badgeHtml = `<span class="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full whitespace-nowrap">${itemQty} in stock</span>`;
+            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full whitespace-nowrap">${itemQty} in stock</span>`;
         }
 
         rowsHtml.push(`
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <td class="px-5 py-4">
-                <div class="font-medium text-gray-900 dark:text-white">${itemName}</div>
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors">
+            <td class="px-5 py-3">
+                <div class="font-semibold text-slate-900 dark:text-white">${itemName}</div>
             </td>
-            <td class="px-5 py-4 text-right text-gray-900 dark:text-gray-100 font-medium">${itemQty}</td>
-            <td class="px-5 py-4 text-right text-gray-900 dark:text-gray-100">₹${itemPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="px-5 py-4 text-right text-gray-600 dark:text-gray-400 font-medium">₹${stockValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="px-5 py-4 text-right">${badgeHtml}</td>
-            <td class="px-5 py-4 text-right">
-                <div class="flex justify-end gap-2">
-                    <button class="btn-edit w-8 h-8 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:text-primary hover:border-primary dark:hover:text-primary transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}" title="Edit">
-                        <i class="fa-solid fa-pen pointer-events-none text-xs"></i>
+            <td class="px-5 py-3 text-right font-medium">${itemQty}</td>
+            <td class="px-5 py-3 text-right">₹${itemPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="px-5 py-3 text-right text-slate-600 dark:text-zinc-400 font-semibold">₹${stockValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="px-5 py-3 text-right">${badgeHtml}</td>
+            <td class="px-5 py-3 text-right">
+                <div class="flex justify-end gap-1.5">
+                    <button class="btn-edit w-7 h-7 rounded-lg border border-slate-200 dark:border-zinc-700 flex items-center justify-center text-slate-500 hover:text-primary hover:border-primary transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}" title="Edit">
+                        <i class="fa-solid fa-pen pointer-events-none text-[11px]"></i>
                     </button>
-                    <button class="btn-delete w-8 h-8 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-danger hover:border-red-200 dark:hover:bg-red-900/20 dark:hover:border-red-800 transition-colors" data-id="${item.id}" title="Delete">
-                        <i class="fa-solid fa-xmark pointer-events-none"></i>
+                    <button class="btn-delete w-7 h-7 rounded-lg border border-slate-200 dark:border-zinc-700 flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-danger hover:border-red-200 dark:hover:bg-red-950/30 transition-colors" data-id="${item.id}" title="Delete">
+                        <i class="fa-solid fa-xmark pointer-events-none text-xs"></i>
                     </button>
                 </div>
             </td>
@@ -1147,42 +1309,39 @@ function renderInventoryTable() {
     });
 
     if (filtered.length === 0) {
-        rowsHtml.push(`<tr><td colspan="6" class="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No items found.</td></tr>`);
+        rowsHtml.push(`<tr><td colspan="6" class="px-5 py-10 text-center text-xs text-slate-400">No items found.</td></tr>`);
     }
 
-    document.querySelector('#table-inventory tbody').innerHTML = rowsHtml.join('');
+    const tbody = document.querySelector('#table-inventory tbody');
+    if (tbody) tbody.innerHTML = rowsHtml.join('');
 }
 
-// 3. Search & Tab Listeners
-document.getElementById('search-inventory').addEventListener('input', (e) => {
+document.getElementById('search-inventory')?.addEventListener('input', (e) => {
     currentInventorySearch = e.target.value;
     renderInventoryTable();
 });
 
 document.querySelectorAll('.inv-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
-        // Reset styles on all tabs
         document.querySelectorAll('.inv-tab').forEach(t => {
-            t.classList.remove('active', 'bg-white', 'dark:bg-gray-600', 'text-primary', 'shadow-sm', 'border-gray-200', 'dark:border-gray-500');
-            t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+            t.classList.remove('active', 'bg-white', 'dark:bg-zinc-700', 'text-primary', 'shadow-sm');
+            t.classList.add('text-slate-500', 'dark:text-zinc-400');
         });
         
-        // Add active styles to clicked tab
         const activeBtn = e.target;
-        activeBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
-        activeBtn.classList.add('active', 'bg-white', 'dark:bg-gray-600', 'text-primary', 'shadow-sm', 'border-gray-200', 'dark:border-gray-500');
+        activeBtn.classList.remove('text-slate-500', 'dark:text-zinc-400');
+        activeBtn.classList.add('active', 'bg-white', 'dark:bg-zinc-700', 'text-primary', 'shadow-sm');
         
         currentInventoryFilter = activeBtn.getAttribute('data-filter');
         renderInventoryTable();
     });
 });
 
-// 4. Form Submit Logic (Add/Edit)
 const inventoryForm = document.getElementById('form-inventory');
-inventoryForm.addEventListener('submit', async (e) => {
+inventoryForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('inv-name').value.trim();
-    let qty = parseFloat(document.getElementById('inv-qty').value); // Support decimal stock quantities
+    let qty = parseFloat(document.getElementById('inv-qty').value);
     let price = parseFloat(document.getElementById('inv-price').value);
     
     if (isNaN(qty)) qty = 0; 
@@ -1201,8 +1360,7 @@ inventoryForm.addEventListener('submit', async (e) => {
     }
 });
 
-// 5. Form Cancel Logic
-document.getElementById('btn-inv-cancel').addEventListener('click', resetInventoryForm);
+document.getElementById('btn-inv-cancel')?.addEventListener('click', resetInventoryForm);
 
 function resetInventoryForm() {
     inventoryForm.reset(); 
@@ -1212,8 +1370,7 @@ function resetInventoryForm() {
     document.getElementById('btn-inv-cancel').style.display = "none";
 }
 
-// 6. Table Edit/Delete Click Logic
-document.querySelector('#table-inventory tbody').addEventListener('click', async (e) => {
+document.querySelector('#table-inventory tbody')?.addEventListener('click', async (e) => {
     const btnDel = e.target.closest('.btn-delete');
     if (btnDel) {
         if (confirm("Delete this item?")) {
@@ -1238,14 +1395,15 @@ document.querySelector('#table-inventory tbody').addEventListener('click', async
 });
 
 
-
 // ==========================================
 // ====== SETTINGS & DATA MANAGEMENT ========
 // ==========================================
 
-document.getElementById('btn-trigger-excel').addEventListener('click', () => { document.getElementById('excel-file').click(); });
+document.getElementById('btn-trigger-excel')?.addEventListener('click', () => { 
+    document.getElementById('excel-file').click(); 
+});
 
-document.getElementById('excel-file').addEventListener('change', async (e) => {
+document.getElementById('excel-file')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if(!file) return;
 
@@ -1254,7 +1412,9 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
     }
 
     const btn = document.getElementById('btn-trigger-excel');
-    const ogText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-sm">Importing...</span>`; btn.disabled = true;
+    const ogText = btn.innerHTML; 
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-xs font-bold">Importing...</span>`; 
+    btn.disabled = true;
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -1282,26 +1442,33 @@ document.getElementById('excel-file').addEventListener('change', async (e) => {
             showSuccessAnimation("Excel Successfully Imported!");
             
         } catch (error) {
-            console.error(error); alert("An error occurred during import. Check the console for details.");
+            console.error(error); 
+            alert("An error occurred during import. Check the console for details.");
         } finally {
-            btn.innerHTML = ogText; btn.disabled = false; document.getElementById('excel-file').value = ''; 
+            btn.innerHTML = ogText; 
+            btn.disabled = false; 
+            document.getElementById('excel-file').value = ''; 
         }
     };
     reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('btn-sync-drive').addEventListener('click', () => { alert("Sync to Google Drive initiated."); });
+document.getElementById('btn-sync-drive')?.addEventListener('click', () => { 
+    alert("Sync to Google Drive initiated."); 
+});
 
-document.getElementById('btn-merge-dup').addEventListener('click', async () => {
+document.getElementById('btn-merge-dup')?.addEventListener('click', async () => {
     if(!confirm("Are you sure you want to scan and merge identical items? (Quantities will be summed, Prices will be averaged.)")) return;
     const btn = document.getElementById('btn-merge-dup');
-    const ogText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-sm">Merging...</span>`; btn.disabled = true;
+    const ogText = btn.innerHTML; 
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i> <span class="text-xs font-bold">Merging...</span>`; 
+    btn.disabled = true;
 
     try {
         const itemsMap = {};
         allInventory.forEach(item => {
             const key = item.name.trim().toLowerCase(); 
-            if(!itemsMap[key]) itemsMap[key] =[];
+            if(!itemsMap[key]) itemsMap[key] = [];
             itemsMap[key].push(item);
         });
 
@@ -1330,6 +1497,11 @@ document.getElementById('btn-merge-dup').addEventListener('click', async () => {
             alert("No duplicates found. Your inventory is clean!");
         }
 
-    } catch (err) { console.error(err); alert("An error occurred during merge.");
-    } finally { btn.innerHTML = ogText; btn.disabled = false; }
+    } catch (err) { 
+        console.error(err); 
+        alert("An error occurred during merge.");
+    } finally { 
+        btn.innerHTML = ogText; 
+        btn.disabled = false; 
+    }
 });
