@@ -32,6 +32,9 @@ let myChartMonthly = null;
 let myChartABC = null;
 let myChartFSN = null;
 
+// Session flag for dead stock auto-purge
+let hasAutoPurgedThisSession = false;
+
 const todayStr = new Date().toISOString().split('T')[0];
 if (document.getElementById('filter-trans-start')) document.getElementById('filter-trans-start').value = todayStr;
 if (document.getElementById('filter-trans-end')) document.getElementById('filter-trans-end').value = todayStr;
@@ -49,7 +52,6 @@ function showSuccessAnimation(msg = "Success!") {
     
     document.getElementById('success-msg').innerText = msg;
     
-    // Make visible in DOM
     overlay.classList.remove('hidden');
     void overlay.offsetWidth;
     
@@ -92,7 +94,7 @@ if (globalYearSelect) {
         updateDashboardMetrics();
         renderTransactionsTable();
         renderDashboardTopItems();
-        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+        if (document.getElementById('tab-analytics')?.classList.contains('active')) runAnalytics();
     });
 }
 
@@ -169,7 +171,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-document.getElementById('form-login').addEventListener('submit', async (e) => {
+document.getElementById('form-login')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
         await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
@@ -180,7 +182,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
         document.getElementById('login-error').innerText = "Error: Invalid Credentials.";
     }
 });
-document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+document.getElementById('btn-logout')?.addEventListener('click', () => signOut(auth));
 
 
 // ----- TAB NAVIGATION -----
@@ -197,8 +199,8 @@ tabs.forEach(tab => {
                 if(btnEl) btnEl.classList.remove('active');
             });
             
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            document.getElementById(`btn-${tab}`).classList.add('active');
+            document.getElementById(`tab-${tab}`)?.classList.add('active');
+            document.getElementById(`btn-${tab}`)?.classList.add('active');
             
             if(tab === 'analytics') setTimeout(runAnalytics, 10); 
             
@@ -231,7 +233,7 @@ function startDatabaseListeners() {
         updateInventoryStats();
         renderInventoryTable();
         
-        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+        if (document.getElementById('tab-analytics')?.classList.contains('active')) runAnalytics();
         updateDashboardMetrics();
     });
 
@@ -252,10 +254,18 @@ function startDatabaseListeners() {
         renderDashboardTopItems();
         updateDashboardMetrics();
         
-        if (document.getElementById('tab-analytics').classList.contains('active')) runAnalytics();
+        if (document.getElementById('tab-analytics')?.classList.contains('active')) runAnalytics();
         
-        if (document.getElementById('tab-trends') && document.getElementById('tab-trends').classList.contains('active') && window.TrendEngine) {
+        if (document.getElementById('tab-trends')?.classList.contains('active') && window.TrendEngine) {
             TrendEngine.refresh();
+        }
+
+        // Auto-purge items at 0 stock for >6 months (Runs once per session)
+        if (!hasAutoPurgedThisSession && allInventory.length > 0 && allTransactions.length > 0) {
+            hasAutoPurgedThisSession = true;
+            setTimeout(() => {
+                purgeDeadStock(true); // Silent run in background
+            }, 3000);
         }
     });
 }
@@ -621,7 +631,12 @@ document.querySelector('#table-transactions tbody')?.addEventListener('click', a
                     else if (t.type === 'Purchase') newStock -= returnQty; 
                     
                     if(newStock < 0) newStock = 0;
-                    batch.update(doc(db, "inventory", localInvItem.id), { qty: newStock });
+                    
+                    // Clear zeroStockSince if returning stock puts inventory > 0
+                    batch.update(doc(db, "inventory", localInvItem.id), { 
+                        qty: newStock,
+                        ...(newStock > 0 ? { zeroStockSince: null } : { zeroStockSince: new Date().toISOString() })
+                    });
                 }
             }
             await batch.commit(); 
@@ -655,7 +670,7 @@ document.getElementById('filter-inv-status')?.addEventListener('change', runAnal
 let lastMonthlyData = {}; let lastAbcTotals = {}; let lastFsnTotals = {};
 
 function runAnalytics() {
-    if(!document.getElementById('tab-analytics').classList.contains('active')) return;
+    if(!document.getElementById('tab-analytics')?.classList.contains('active')) return;
 
     const startVal = document.getElementById('ana-start')?.value; const endVal = document.getElementById('ana-end')?.value;
     let startDate = startVal ? new Date(startVal + 'T00:00:00') : null; let endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
@@ -698,7 +713,7 @@ function runAnalytics() {
                 itemStats[trans.item].qtySold -= trans.qty; 
                 itemStats[trans.item].totalRevenue -= trans.amount;
             }
-            cogs -= cost; monthlyData[monthKey].profit += (trans.amount - cost);
+            cogs += cost; monthlyData[monthKey].profit += (trans.amount - cost);
         } else if (trans.type === 'Cosmetic Return') {
             revenue -= trans.amount; monthlyData[monthKey].sales -= trans.amount;
             let cost = (trans.cost || 0) * trans.qty;
@@ -1108,7 +1123,12 @@ saleForm?.addEventListener('submit', async (e) => {
             if (localInvItem) {
                 let newQty = Number(localInvItem.qty) - cartItem.qty;
                 localInvItem.qty = newQty < 0 ? 0 : newQty;
-                batch.update(doc(db, "inventory", localInvItem.id), { qty: localInvItem.qty });
+                
+                // Stamp zeroStockSince if item drops to zero stock
+                batch.update(doc(db, "inventory", localInvItem.id), { 
+                    qty: localInvItem.qty,
+                    ...(localInvItem.qty === 0 ? { zeroStockSince: new Date().toISOString() } : {})
+                });
             }
         }
 
@@ -1206,10 +1226,19 @@ purchaseForm?.addEventListener('submit', async (e) => {
 
         const localInvItem = allInventory.find(i => i.name === item);
         if (localInvItem) {
-            batch.update(doc(db, "inventory", localInvItem.id), { qty: Number(localInvItem.qty) + qty });
+            const newQty = Number(localInvItem.qty) + qty;
+            batch.update(doc(db, "inventory", localInvItem.id), { 
+                qty: newQty,
+                ...(newQty > 0 ? { zeroStockSince: null } : {})
+            });
         } else {
             const newInvRef = doc(collection(db, "inventory"));
-            batch.set(newInvRef, { name: item, qty: qty, price: qty > 0 ? (amount / qty) : 0 });
+            batch.set(newInvRef, { 
+                name: item, 
+                qty: qty, 
+                price: qty > 0 ? (amount / qty) : 0,
+                ...(qty === 0 ? { zeroStockSince: new Date().toISOString() } : { zeroStockSince: null })
+            });
         }
 
         await batch.commit();
@@ -1348,13 +1377,24 @@ inventoryForm?.addEventListener('submit', async (e) => {
     if (isNaN(price)) price = 0;
     
     const editId = inventoryForm.getAttribute('data-edit-id'); 
+    const zeroStockSince = (qty === 0) ? new Date().toISOString() : null;
 
     if (editId) { 
-        await updateDoc(doc(db, "inventory", editId), { name, qty, price }); 
+        await updateDoc(doc(db, "inventory", editId), { 
+            name, 
+            qty, 
+            price,
+            ...(qty === 0 ? { zeroStockSince } : { zeroStockSince: null })
+        }); 
         resetInventoryForm(); 
         showSuccessAnimation("Item Updated!");
     } else { 
-        await addDoc(collection(db, "inventory"), { name, qty, price }); 
+        await addDoc(collection(db, "inventory"), { 
+            name, 
+            qty, 
+            price,
+            ...(qty === 0 ? { zeroStockSince } : {})
+        }); 
         inventoryForm.reset(); 
         showSuccessAnimation("Item Added to Stock!");
     }
@@ -1396,8 +1436,87 @@ document.querySelector('#table-inventory tbody')?.addEventListener('click', asyn
 
 
 // ==========================================
+// ====== AUTO-PURGE 6-MONTH DEAD STOCK =====
+// ==========================================
+
+const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000; // 180 Days (~6 Months)
+
+async function purgeDeadStock(silent = false) {
+    if (!allInventory || !allTransactions || allInventory.length === 0) return;
+
+    const now = Date.now();
+    const deadItemsToDelete = [];
+
+    allInventory.forEach(inv => {
+        const qty = Number(inv.qty) || 0;
+        
+        // Only target items that are currently 0 or negative
+        if (qty <= 0) {
+            // Find all transaction records for this item
+            const itemTrans = allTransactions.filter(t => t.item === inv.name && t.date);
+
+            if (itemTrans.length > 0) {
+                // Find timestamp of the most recent sale or purchase
+                const lastTransTime = Math.max(...itemTrans.map(t => new Date(t.date).getTime()));
+                
+                // If last movement was 6+ months ago, it is dead stock
+                if ((now - lastTransTime) >= SIX_MONTHS_MS) {
+                    deadItemsToDelete.push({
+                        id: inv.id,
+                        name: inv.name,
+                        lastDate: new Date(lastTransTime).toLocaleDateString()
+                    });
+                }
+            } else if (inv.zeroStockSince) {
+                // For items with no recorded transactions, check when it was flagged at 0
+                const zeroSince = new Date(inv.zeroStockSince).getTime();
+                if ((now - zeroSince) >= SIX_MONTHS_MS) {
+                    deadItemsToDelete.push({
+                        id: inv.id,
+                        name: inv.name,
+                        lastDate: "No activity (>6m)"
+                    });
+                }
+            }
+        }
+    });
+
+    if (deadItemsToDelete.length === 0) {
+        if (!silent) alert("No dead stock items older than 6 months were found. Your catalog is clean!");
+        return;
+    }
+
+    if (!silent) {
+        const itemNames = deadItemsToDelete.map(i => `• ${i.name} (Last active: ${i.lastDate})`).slice(0, 10).join("\n");
+        const extraCount = deadItemsToDelete.length > 10 ? `\n...and ${deadItemsToDelete.length - 10} more` : "";
+        const confirmed = confirm(`Found ${deadItemsToDelete.length} item(s) out of stock for > 6 months:\n\n${itemNames}${extraCount}\n\nDo you want to permanently delete these items from inventory?`);
+        if (!confirmed) return;
+    }
+
+    try {
+        const batch = writeBatch(db);
+        deadItemsToDelete.forEach(item => {
+            batch.delete(doc(db, "inventory", item.id));
+        });
+        await batch.commit();
+
+        console.log(`[AutoPurge] Successfully removed ${deadItemsToDelete.length} dead stock items:`, deadItemsToDelete);
+        showSuccessAnimation(`Purged ${deadItemsToDelete.length} Dead Stock Items!`);
+    } catch (err) {
+        console.error("Error purging dead stock:", err);
+        if (!silent) alert("Failed to purge dead stock. Check console for details.");
+    }
+}
+
+
+// ==========================================
 // ====== SETTINGS & DATA MANAGEMENT ========
 // ==========================================
+
+// Manual purge button listener
+document.getElementById('btn-purge-dead-stock')?.addEventListener('click', () => {
+    purgeDeadStock(false); // false = shows confirmation prompt & summary
+});
 
 document.getElementById('btn-trigger-excel')?.addEventListener('click', () => { 
     document.getElementById('excel-file').click(); 
@@ -1435,7 +1554,12 @@ document.getElementById('excel-file')?.addEventListener('change', async (e) => {
                 if(name && name.trim() !== '') {
                     const qty = Number(qtyStr) || 0;
                     const price = Number(rateStr) || 0;
-                    await addDoc(collection(db, "inventory"), { name: name.trim(), qty, price });
+                    await addDoc(collection(db, "inventory"), { 
+                        name: name.trim(), 
+                        qty, 
+                        price,
+                        ...(qty === 0 ? { zeroStockSince: new Date().toISOString() } : {})
+                    });
                 }
             }
             
@@ -1484,7 +1608,11 @@ document.getElementById('btn-merge-dup')?.addEventListener('click', async () => 
                     totalQty += iQty; totalPriceObj += (iQty * iPrice);
                 });
                 let avgPrice = totalQty > 0 ? (totalPriceObj / totalQty) : 0;
-                await updateDoc(doc(db, "inventory", mainId), { qty: totalQty, price: avgPrice });
+                await updateDoc(doc(db, "inventory", mainId), { 
+                    qty: totalQty, 
+                    price: avgPrice,
+                    ...(totalQty > 0 ? { zeroStockSince: null } : { zeroStockSince: new Date().toISOString() })
+                });
                 
                 for(let i = 1; i < itemsMap[key].length; i++) {
                     await deleteDoc(doc(db, "inventory", itemsMap[key][i].id));
