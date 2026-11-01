@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AETHER | Unified Enterprise UX</title>
+    <title>StoreOps ERP | Unified Enterprise Manager</title>
     
-    <!-- External Analytics & Utilities -->
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS with Project Aether Enterprise Tokens -->
+    <!-- Tailwind CSS with Clean White Enterprise Tokens -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -29,29 +29,21 @@
                         mono: ['"JetBrains Mono"', 'monospace']
                     },
                     colors: {
-                        aether: {
-                            base: '#080d19',
-                            surface: '#0f172a',
-                            card: '#111927',
-                            cardHover: '#162237',
-                            border: '#1e293b',
-                            borderLight: '#2a3b53',
-                            blue: '#2563eb',
-                            cyan: '#06b6d4',
-                            purple: '#7c3aed',
-                            pink: '#db2777',
-                            coral: '#e11d48'
+                        primary: {
+                            DEFAULT: '#2563eb',
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
                         },
-                        primary: '#2563eb',
                         success: '#10b981',
                         warning: '#f59e0b',
                         danger: '#ef4444',
                         cosmetic: '#ec4899'
                     },
                     boxShadow: {
-                        'aether-glow': '0 0 25px -4px rgba(37, 99, 235, 0.35)',
-                        'aether-card': '0 4px 20px -2px rgba(0, 0, 0, 0.45)',
-                        'node-glow': '0 0 15px rgba(96, 165, 250, 0.5)'
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)',
+                        'dropdown': '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)'
                     }
                 }
             }
@@ -59,799 +51,412 @@
     </script>
 
     <style>
-        :root { color-scheme: dark; }
+        :root { 
+            color-scheme: light; 
+        }
+
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #080d19;
-            color: #e2e8f0;
+            background-color: #f8fafc;
+            color: #0f172a;
             letter-spacing: -0.012em;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Tab Transition Controls */
+        /* Active Tab Management */
         .tab { display: none; }
-        .tab.active { display: block; animation: aetherFade 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes aetherFade {
-            from { opacity: 0; transform: translateY(5px); }
+        .tab.active { display: block; animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Slim Enterprise Nav Rail */
+        /* Enterprise Nav Buttons */
         .nav-btn {
             position: relative;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.18s ease;
         }
         .nav-btn.active { 
-            background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.05) 100%);
-            color: #60a5fa; 
-            border: 1px solid rgba(59, 130, 246, 0.4);
+            background-color: #eff6ff; 
+            color: #2563eb; 
+            font-weight: 600;
+        }
+        .nav-btn.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            bottom: 20%;
+            width: 3.5px;
+            background: #2563eb;
+            border-radius: 0 4px 4px 0;
         }
 
-        /* Custom Wave Sparklines */
-        .sparkline-svg path.wave-line {
-            stroke-dasharray: 400;
-            stroke-dashoffset: 400;
-            animation: drawWave 1.2s ease-out forwards;
-        }
-        @keyframes drawWave {
-            to { stroke-dashoffset: 0; }
-        }
-
-        /* Bubble Network Nodes */
-        .aether-node {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: pointer;
-        }
-        .aether-node:hover {
-            transform: scale(1.08);
-            filter: brightness(1.2);
-        }
-
-        /* Custom Scrollbar */
+        /* Clean Scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="dark-mode bg-[#080d19] text-slate-100 min-h-screen selection:bg-blue-600 selection:text-white flex overflow-hidden">
+<body class="min-h-screen selection:bg-blue-600 selection:text-white flex overflow-hidden">
 
-    <!-- GLOBAL ACTION TOAST NOTIFICATION -->
-    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-black/70 backdrop-blur-md opacity-0 transition-opacity duration-200 pointer-events-none">
-        <div id="success-card" class="bg-[#111927] border border-blue-500/40 px-8 py-6 rounded-3xl shadow-aether-glow flex flex-col items-center justify-center transform scale-50 transition-all duration-300 max-w-sm mx-4">
-            <div id="success-icon-container" class="w-14 h-14 bg-gradient-to-tr from-blue-600 to-cyan-400 text-white rounded-2xl flex items-center justify-center text-2xl mb-3 shadow-lg shadow-blue-500/30">
+    <!-- REAL-TIME SUCCESS NOTIFICATION -->
+    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/30 backdrop-blur-sm opacity-0 transition-opacity duration-200 pointer-events-none">
+        <div id="success-card" class="bg-white border border-slate-100 px-8 py-6 rounded-2xl shadow-xl flex flex-col items-center justify-center transform scale-50 transition-all duration-200 max-w-sm mx-4">
+            <div id="success-icon-container" class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-xl mb-3 border border-emerald-100">
                 <i class="fa-solid fa-check"></i>
             </div>
-            <h2 id="success-msg" class="text-base font-bold text-white tracking-tight text-center">Action Verified</h2>
-            <p class="text-xs text-slate-400 mt-1">Synchronized with Operations Hub</p>
+            <h2 id="success-msg" class="text-sm font-bold text-slate-900 tracking-tight text-center">Action Completed</h2>
+            <p class="text-[11px] text-slate-500 mt-0.5">Database synchronized in real time</p>
         </div>
     </div>
 
-    <!-- 1. AUTHENTICATION / LOGIN OVERLAY -->
-    <div id="login-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080d19] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(37,99,235,0.25),rgba(255,255,255,0))]">
-        <div class="bg-[#0f172a]/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-800 w-full max-w-md relative z-10">
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50">
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-md relative z-10">
             <div class="text-center mb-8">
-                <div class="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold font-mono shadow-aether-glow">
-                    A
+                <div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-blue-500/20 text-lg">
+                    <i class="fa-solid fa-store"></i>
                 </div>
-                <h2 class="text-2xl font-bold tracking-tight text-white"><span class="text-blue-500 font-mono">AETHER</span> Login</h2>
-                <p class="text-xs text-slate-400 mt-1">Operations & Velocity Control Access</p>
+                <h2 class="text-xl font-bold tracking-tight text-slate-900">Sign in to StoreOps</h2>
+                <p class="text-xs text-slate-500 mt-1">Enter your admin credentials to access inventory</p>
             </div>
 
             <form id="form-login" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email Terminal</label>
-                    <input type="email" id="login-email" placeholder="operator@aether.corp" required 
-                        class="w-full px-4 py-3 rounded-xl border border-slate-800 bg-[#080d19] text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-0.5">Email Address</label>
+                    <input type="email" id="login-email" placeholder="admin@store.com" required 
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Authorization Code</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-0.5">Password</label>
                     <input type="password" id="login-password" placeholder="••••••••••••" required 
-                        class="w-full px-4 py-3 rounded-xl border border-slate-800 bg-[#080d19] text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all">
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
                 </div>
-                <p id="login-error" class="text-rose-400 hidden text-xs font-medium bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl"></p>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl shadow-md transition active:scale-95 text-xs">
-                    Authorize Session
+                <p id="login-error" class="text-rose-600 hidden text-xs font-medium bg-rose-50 border border-rose-100 p-2.5 rounded-xl"></p>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl shadow-sm transition active:scale-[0.98] text-xs">
+                    Sign In
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- 2. MAIN APP INTERFACE -->
+    <!-- 2. MAIN APP SHELL -->
     <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden">
         
-        <!-- COMPACT ICON-ONLY ENTERPRISE RAIL (Left Sidebar from Image) -->
-        <aside class="w-16 bg-[#0a0f1d] border-r border-[#1e293b] flex flex-col items-center py-4 justify-between z-30 select-none">
-            <div class="flex flex-col items-center gap-5 w-full">
-                <!-- Aether Brand Badge -->
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-base font-black font-mono shadow-aether-glow cursor-pointer">
-                    A
+        <!-- CLEAN WHITE SIDEBAR -->
+        <aside class="hidden lg:flex flex-col w-60 bg-white border-r border-slate-200 h-full z-20 select-none shrink-0">
+            <!-- Brand -->
+            <div class="h-14 px-5 flex items-center gap-3 border-b border-slate-100">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                    <i class="fa-solid fa-boxes-packing"></i>
                 </div>
-
-                <!-- Nav Action Icons -->
-                <nav class="flex flex-col gap-2.5 w-full px-2">
-                    <button id="btn-dashboard" class="nav-btn active w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Operations & Velocity Hub">
-                        <i class="fa-solid fa-table-cells-large text-sm"></i>
-                    </button>
-                    <button id="btn-sales" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Sales Desk / POS">
-                        <i class="fa-solid fa-cart-shopping text-sm"></i>
-                    </button>
-                    <button id="btn-inventory" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Stock Inventory">
-                        <i class="fa-solid fa-boxes-stacked text-sm"></i>
-                    </button>
-                    <button id="btn-transactions" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Ledger Audit">
-                        <i class="fa-solid fa-bars-staggered text-sm"></i>
-                    </button>
-                    <button id="btn-analytics" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Analytics & Matrix">
-                        <i class="fa-solid fa-chart-pie text-sm"></i>
-                    </button>
-                    <button id="btn-trends" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Trend Engine">
-                        <i class="fa-solid fa-fire text-amber-500 text-sm"></i>
-                    </button>
-                    <button id="btn-purchases" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Purchases">
-                        <i class="fa-solid fa-truck-ramp-box text-sm"></i>
-                    </button>
-                </nav>
+                <div>
+                    <h1 class="text-sm font-bold text-slate-900 tracking-tight leading-none">StoreOps</h1>
+                    <span class="text-[10px] text-slate-400 font-medium">Enterprise Manager</span>
+                </div>
             </div>
 
-            <!-- Footer Rail Options -->
-            <div class="flex flex-col gap-2.5 w-full px-2">
-                <button id="btn-settings" class="nav-btn w-full h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition" title="Configuration">
-                    <i class="fa-solid fa-cube text-sm"></i>
+            <!-- Workspace Navigation -->
+            <div class="px-4 pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Operations</div>
+            <nav class="flex-1 overflow-y-auto px-3 space-y-0.5 py-1">
+                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-chart-pie w-4 text-center"></i> Dashboard
                 </button>
-                <button id="btn-logout" class="w-full h-10 rounded-xl flex items-center justify-center text-rose-400 hover:bg-rose-500/10 transition" title="Logout">
-                    <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-cart-shopping w-4 text-center"></i> Record Sales
+                </button>
+                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-truck-ramp-box w-4 text-center"></i> Record Purchases
+                </button>
+                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-cubes-stacked w-4 text-center"></i> Stock Inventory
+                </button>
+                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-receipt w-4 text-center"></i> Ledger Audit
+                </button>
+
+                <div class="pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intelligence</div>
+                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-chart-line w-4 text-center"></i> Analytics & ABC
+                </button>
+                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                    <i class="fa-solid fa-fire text-amber-500 w-4 text-center"></i> Trend Engine
+                </button>
+            </nav>
+
+            <!-- Bottom Tools -->
+            <div class="p-3 border-t border-slate-100 space-y-1">
+                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-xs text-slate-600 hover:bg-slate-50">
+                    <i class="fa-solid fa-gear w-4 text-center"></i> Settings & Backup
+                </button>
+                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-xs text-rose-600 hover:bg-rose-50 transition">
+                    <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sign Out
                 </button>
             </div>
         </aside>
 
-        <!-- MAIN SCROLLABLE APP CANVAS -->
-        <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#080d19]">
+        <!-- MAIN SCROLLABLE CONTENT VIEWPORT -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
             
-            <!-- TOP APP BAR (From Screenshot) -->
-            <header class="h-14 border-b border-[#1e293b] bg-[#0c1322] px-5 flex items-center justify-between gap-4 select-none shrink-0 z-20">
-                <!-- Title -->
-                <div class="flex items-center gap-2">
-                    <h1 class="text-sm font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                        <span class="font-mono text-blue-500">AETHER</span>
-                        <span class="text-slate-600">|</span>
-                        <span>Operations & Velocity Hub</span>
-                    </h1>
+            <!-- TOP SYSTEM BAR -->
+            <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between gap-4 shrink-0 z-10">
+                <div class="flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-semibold text-slate-700">Live Database Connected</span>
                 </div>
 
-                <!-- Universal Search -->
-                <div class="flex-1 max-w-md hidden md:block">
-                    <div class="relative">
-                        <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                        <input type="text" placeholder="Universal Search..." 
-                            class="w-full pl-9 pr-4 py-1.5 rounded-full bg-[#111927] border border-[#1e293b] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition">
-                    </div>
-                </div>
-
-                <!-- Control Badges (Date Filter, Notifications, Assistant, Avatar) -->
-                <div class="flex items-center gap-2.5">
-                    <!-- Date Filtering Pill -->
-                    <div class="flex items-center gap-1.5 bg-[#111927] border border-[#1e293b] px-3 py-1.5 rounded-full text-xs text-slate-300 font-mono">
-                        <span class="text-[10px] text-slate-400 uppercase font-sans font-bold">Date Filtering</span>
-                        <span class="text-slate-500">|</span>
-                        <span class="text-[11px] text-slate-200">dd-mm-yyyy - dd-mm-yyyy</span>
-                        <i class="fa-regular fa-calendar-days text-slate-400 text-xs ml-1"></i>
-                    </div>
-
-                    <!-- Notifications -->
-                    <button class="flex items-center gap-1.5 bg-[#111927] border border-[#1e293b] px-3 py-1.5 rounded-full text-xs text-slate-300 hover:text-white transition">
-                        <i class="fa-regular fa-bell text-slate-400"></i>
-                        <span class="hidden sm:inline text-[11px] font-semibold">Notifications</span>
-                    </button>
-
-                    <!-- Aether Assistant -->
-                    <button class="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-sm transition">
-                        <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
-                        <span>Aether Assistant</span>
-                    </button>
-
-                    <!-- User Hex Badge -->
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 p-[1px] cursor-pointer">
-                        <div class="w-full h-full rounded-full bg-[#0c1322] flex items-center justify-center text-xs text-cyan-300 font-bold">
-                            <i class="fa-solid fa-circle-nodes"></i>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-3">
+                    <span id="dash-year-label" class="text-xs font-medium text-slate-500">(All Fiscal Years)</span>
                 </div>
             </header>
 
-            <!-- SCROLLABLE WORKSPACE TABS -->
-            <main class="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 pb-20 md:pb-6 relative">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
                 
-                <!-- ============================================================ -->
-                <!-- TAB 1: OPERATIONS & VELOCITY HUB (EXACT SCREENSHOT DASHBOARD) -->
-                <!-- ============================================================ -->
-                <div id="tab-dashboard" class="tab active max-w-[1600px] mx-auto space-y-5">
+                <!-- ============================================== -->
+                <!-- TAB 1: REAL-TIME DASHBOARD (100% REAL LIVE DATA)-->
+                <!-- ============================================== -->
+                <div id="tab-dashboard" class="tab active max-w-7xl mx-auto space-y-6">
                     
-                    <!-- TOP HALF: IMMEDIATE OPERATIONS + STRATEGIC INSIGHTS + FINANCIAL FLOW -->
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                        
-                        <!-- 1. IMMEDIATE OPERATIONS (Left 4 cols) -->
-                        <div class="lg:col-span-4 flex flex-col justify-between space-y-2">
-                            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                Immediate Operations
-                            </h2>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Real-time financial status calculated directly from your ledger</p>
+                    </div>
 
-                            <div class="grid grid-cols-2 gap-3 flex-1">
-                                <!-- Card 1: Revenue (Vibrant Blue Card) -->
-                                <div class="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] p-4 rounded-2xl border border-blue-400/40 shadow-aether-card flex flex-col justify-between relative overflow-hidden">
-                                    <div>
-                                        <div class="text-[11px] font-bold text-white/80 uppercase tracking-wider">Revenue</div>
-                                        <div id="dash-today-sales" class="text-2xl font-black text-white font-mono mt-1">₹668336.70</div>
-                                    </div>
-                                    <div class="mt-2 sparkline-svg">
-                                        <svg viewBox="0 0 200 40" class="w-full h-9 overflow-visible" preserveAspectRatio="none">
-                                            <path d="M 0,30 Q 30,5 60,25 T 120,10 T 170,28 T 200,8" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" class="wave-line"/>
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                <!-- Card 2: Total Profit (Crisp White/Card Surface) -->
-                                <div class="bg-white text-slate-900 p-4 rounded-2xl border border-slate-200 shadow-aether-card flex flex-col justify-between relative overflow-hidden">
-                                    <div>
-                                        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Profit</div>
-                                        <div id="dash-today-profit" class="text-2xl font-black text-slate-900 font-mono mt-1">₹32,045.38</div>
-                                    </div>
-                                    <div class="mt-2 sparkline-svg">
-                                        <svg viewBox="0 0 200 40" class="w-full h-9 overflow-visible" preserveAspectRatio="none">
-                                            <path d="M 0,25 Q 35,35 70,15 T 130,28 T 175,10 T 200,20" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" class="wave-line"/>
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                <!-- Card 3: Margin Card with Dress Thumbnails -->
-                                <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b] shadow-aether-card flex flex-col justify-between">
-                                    <div>
-                                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Margin</div>
-                                        <div id="dash-today-margin" class="text-2xl font-black text-white font-mono mt-1">51.3%</div>
-                                    </div>
-                                    <div>
-                                        <svg viewBox="0 0 200 35" class="w-full h-7 overflow-visible mb-2" preserveAspectRatio="none">
-                                            <path d="M 0,25 Q 25,5 60,20 T 120,8 T 160,22 T 200,10" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                        <!-- Garment Thumbnails Row from Image -->
-                                        <div class="flex items-center gap-1 pt-1.5 border-t border-slate-800">
-                                            <span class="w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-shirt"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-pink-500/20 text-pink-400 border border-pink-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-person-dress"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-vest"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-shirt"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-person-dress"></i></span>
-                                            <span class="text-[10px] text-slate-500 font-bold ml-1">&bull;&bull;&bull;</span>
-                                            <span class="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-300 ml-auto"><i class="fa-solid fa-user text-[9px]"></i></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Card 4: Items Sold with Dress Thumbnails -->
-                                <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b] shadow-aether-card flex flex-col justify-between">
-                                    <div>
-                                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Items Sold</div>
-                                        <div id="dash-today-items" class="text-2xl font-black text-white font-mono mt-1">32.50</div>
-                                    </div>
-                                    <div>
-                                        <svg viewBox="0 0 200 35" class="w-full h-7 overflow-visible mb-2" preserveAspectRatio="none">
-                                            <path d="M 0,20 Q 35,5 75,25 T 130,12 T 180,26 T 200,8" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                        <!-- Garment Thumbnails Row 2 -->
-                                        <div class="flex items-center gap-1 pt-1.5 border-t border-slate-800">
-                                            <span class="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-shirt"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-vest"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-person-dress"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-shirt"></i></span>
-                                            <span class="w-5 h-5 rounded-md bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center text-[10px]"><i class="fa-solid fa-vest"></i></span>
-                                            <span class="text-[10px] text-slate-500 font-bold ml-1">&bull;&bull;&bull;</span>
-                                            <span class="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-300 ml-auto"><i class="fa-solid fa-user text-[9px]"></i></span>
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- 1. Today's Performance (Live Calculations) -->
+                    <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Today's Performance</div>
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sales Today</span>
+                                <div id="dash-today-sales" class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1.5">₹0.00</div>
                             </div>
-                        </div>
-
-                        <!-- 2. STRATEGIC INSIGHTS: BUBBLE NETWORK (Center 5 cols) -->
-                        <div class="lg:col-span-5 bg-[#111927] p-5 rounded-2xl border border-[#1e293b] shadow-aether-card flex flex-col justify-between">
-                            <div>
-                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Strategic Insights</h3>
-                                <div class="text-sm font-bold text-white mt-0.5">Interactive Network Visualization (Bubble Chart)</div>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Profit Today</span>
+                                <div id="dash-today-profit" class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1.5">₹0.00</div>
                             </div>
-
-                            <!-- SVG Bubble Clustered Node Network (Exact match from screenshot) -->
-                            <div class="relative w-full h-[260px] flex items-center justify-center select-none">
-                                <svg viewBox="0 0 420 260" class="w-full h-full">
-                                    <!-- Connective dashed spokes -->
-                                    <line x1="210" y1="130" x2="145" y2="70" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-                                    <line x1="210" y1="130" x2="285" y2="75" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-                                    <line x1="210" y1="130" x2="295" y2="165" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-                                    <line x1="210" y1="130" x2="255" y2="220" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-                                    <line x1="210" y1="130" x2="155" y2="205" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-                                    <line x1="210" y1="130" x2="110" y2="120" stroke="#334155" stroke-dasharray="3 3" stroke-width="1.5" />
-
-                                    <!-- Center Hub: Capital Network -->
-                                    <g class="aether-node">
-                                        <circle cx="210" cy="130" r="44" fill="#1e1b4b" stroke="#4338ca" stroke-width="2.5" />
-                                        <text x="210" y="127" text-anchor="middle" fill="#c7d2fe" font-size="11" font-weight="700">Capital</text>
-                                        <text x="210" y="142" text-anchor="middle" fill="#c7d2fe" font-size="11" font-weight="700">Network</text>
-                                    </g>
-
-                                    <!-- Capital Risks + Badge 22 (Top Left) -->
-                                    <g class="aether-node">
-                                        <circle cx="145" cy="70" r="28" fill="#3b0764" stroke="#7e22ce" stroke-width="1.5" />
-                                        <text x="145" y="67" text-anchor="middle" fill="#f5d0fe" font-size="9" font-weight="700">Capital</text>
-                                        <text x="145" y="79" text-anchor="middle" fill="#f5d0fe" font-size="9" font-weight="700">Risks</text>
-                                        <!-- Badge 22 -->
-                                        <circle cx="172" cy="48" r="14" fill="#581c87" />
-                                        <text x="172" y="52" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">22</text>
-                                    </g>
-
-                                    <!-- A category + Badge 4 (Top Right) -->
-                                    <g class="aether-node">
-                                        <circle cx="285" cy="75" r="26" fill="#581c87" stroke="#a855f7" stroke-width="1.5" />
-                                        <text x="285" y="73" text-anchor="middle" fill="#f3e8ff" font-size="9" font-weight="700">A</text>
-                                        <text x="285" y="85" text-anchor="middle" fill="#f3e8ff" font-size="8">category</text>
-                                        <circle cx="318" cy="98" r="11" fill="#701a75" />
-                                        <text x="318" y="102" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">4</text>
-                                    </g>
-
-                                    <!-- C category + Badges 3, 7 (Mid Right) -->
-                                    <g class="aether-node">
-                                        <circle cx="295" cy="165" r="25" fill="#831843" stroke="#f43f5e" stroke-width="1.5" />
-                                        <text x="295" y="163" text-anchor="middle" fill="#ffe4e6" font-size="9" font-weight="700">C</text>
-                                        <text x="295" y="174" text-anchor="middle" fill="#ffe4e6" font-size="8">category</text>
-                                        <!-- Satellite badge 3 -->
-                                        <circle cx="328" cy="180" r="11" fill="#be123c" />
-                                        <text x="328" y="184" text-anchor="middle" fill="#ffffff" font-size="9" font-weight="bold">3</text>
-                                        <!-- Satellite badge 7 -->
-                                        <circle cx="315" cy="212" r="16" fill="#9f1239" />
-                                        <text x="315" y="216" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="bold">7</text>
-                                    </g>
-
-                                    <!-- Dead Stock (Bottom Center) -->
-                                    <g class="aether-node">
-                                        <circle cx="255" cy="220" r="22" fill="#881337" stroke="#e11d48" stroke-width="1.5" />
-                                        <text x="255" y="218" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Dead</text>
-                                        <text x="255" y="228" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Stock</text>
-                                    </g>
-
-                                    <!-- Dead Stock (Bottom Left) -->
-                                    <g class="aether-node">
-                                        <circle cx="180" cy="228" r="21" fill="#9f1239" />
-                                        <text x="180" y="226" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Dead</text>
-                                        <text x="180" y="236" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="600">Stock</text>
-                                    </g>
-
-                                    <!-- Deepx Risks + Badge 14 (Mid Left) -->
-                                    <g class="aether-node">
-                                        <circle cx="130" cy="185" r="24" fill="#4c1d95" stroke="#7c3aed" stroke-width="1.5" />
-                                        <text x="130" y="182" text-anchor="middle" fill="#ede9fe" font-size="8" font-weight="600">Deepx</text>
-                                        <text x="130" y="193" text-anchor="middle" fill="#ede9fe" font-size="8" font-weight="600">Risks</text>
-                                        <circle cx="98" cy="165" r="13" fill="#312e81" />
-                                        <text x="98" y="169" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">14</text>
-                                    </g>
-
-                                    <!-- Node 18 -->
-                                    <circle cx="110" cy="120" r="16" fill="#1e1b4b" stroke="#3730a3" stroke-width="1.5" />
-                                    <text x="110" y="124" text-anchor="middle" fill="#e0e7ff" font-size="10" font-weight="bold">18</text>
-                                </svg>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Margin Today</span>
+                                <div id="dash-today-margin" class="text-xl sm:text-2xl font-black text-amber-500 font-mono mt-1.5">0.0%</div>
                             </div>
-                        </div>
-
-                        <!-- 3. FINANCIAL FLOW: FUNNEL CHART (Right 3 cols) -->
-                        <div class="lg:col-span-3 bg-[#111927] p-5 rounded-2xl border border-[#1e293b] shadow-aether-card flex flex-col justify-between">
-                            <div class="flex items-center justify-between mb-2">
-                                <div>
-                                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Financial Flow</h3>
-                                    <div class="text-sm font-bold text-white mt-0.5">Unified Financial Funnel Chart</div>
-                                </div>
-                                <span class="text-[10px] text-slate-500 font-semibold uppercase">Variance shift</span>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Units Sold</span>
+                                <div id="dash-today-items" class="text-xl sm:text-2xl font-black text-purple-600 font-mono mt-1.5">0</div>
                             </div>
-
-                            <!-- 4-Stage Inverted Funnel with Variance Badges -->
-                            <div class="space-y-2 py-1 flex-1 flex flex-col justify-center">
-                                <!-- Stage 1: Gross Revenue -->
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="flex-1 flex justify-center">
-                                        <div class="w-full bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl px-3.5 py-2 shadow-sm flex items-center justify-between border border-white/10">
-                                            <span class="text-xs font-semibold text-white/90">Gross Revenue</span>
-                                            <span class="text-xs font-black text-white font-mono">₹668336.70</span>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono min-w-[70px] text-center bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                        +65.95 pp
-                                    </span>
-                                </div>
-
-                                <!-- Stage 2: Total Profit -->
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="flex-1 flex justify-center">
-                                        <div class="w-[84%] bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-xl px-3 py-2 shadow-sm flex items-center justify-between border border-white/10">
-                                            <span class="text-xs font-semibold text-white/90">Total Profit</span>
-                                            <span class="text-xs font-black text-white font-mono">₹32,045.38</span>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono min-w-[70px] text-center bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                        +100.35 pp
-                                    </span>
-                                </div>
-
-                                <!-- Stage 3: Margin -->
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="flex-1 flex justify-center">
-                                        <div class="w-[68%] bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl px-3 py-2 shadow-sm flex items-center justify-between border border-white/10">
-                                            <span class="text-xs font-semibold text-white/90">Margin</span>
-                                            <span class="text-xs font-black text-white font-mono">₹342785.48</span>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono min-w-[70px] text-center bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                                        -51.22 pp
-                                    </span>
-                                </div>
-
-                                <!-- Stage 4: Net Profit -->
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="flex-1 flex justify-center">
-                                        <div class="w-[52%] bg-gradient-to-r from-rose-700 to-rose-800 rounded-xl px-2.5 py-2 shadow-sm flex items-center justify-between border border-white/10">
-                                            <span class="text-[11px] font-semibold text-white/90">Net Profit</span>
-                                            <span class="text-[11px] font-black text-white font-mono">₹342785.48</span>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono min-w-[70px] text-center bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                                        -100.99 pp
-                                    </span>
-                                </div>
+                            <div class="col-span-2 lg:col-span-1 bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Top SKU Today</span>
+                                <div id="dash-today-trending" class="text-sm font-bold text-slate-800 mt-2 truncate">No Sales Today</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- BOTTOM HALF: DEEP DATA LIST VIEW + INVENTORY NETWORK DETAIL -->
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                        
-                        <!-- 4. AETHER DEEP DATA LIST VIEW (Left 7 cols) -->
-                        <div class="lg:col-span-7 bg-[#111927] p-5 rounded-2xl border border-[#1e293b] shadow-aether-card">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
-                                    <span class="text-blue-500 font-mono font-normal">AETHER |</span> Deep Data List View
-                                </h3>
-
-                                <div class="flex items-center gap-2">
-                                    <!-- Month and Type dropdowns matching app.js hooks -->
-                                    <select id="dash-top-month" class="bg-[#0c1322] border border-[#1e293b] rounded-lg px-2.5 py-1 text-xs text-slate-200 outline-none"></select>
-                                    <select id="dash-top-type" class="bg-[#0c1322] border border-[#1e293b] rounded-lg px-2.5 py-1 text-xs text-slate-200 outline-none">
-                                        <option value="All">All SKUs</option>
-                                        <option value="Sale">Inventory</option>
-                                        <option value="Cosmetic Sale">Cosmetics</option>
-                                    </select>
-                                </div>
+                    <!-- 2. Lifetime Capital & Inventory Overview -->
+                    <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Lifetime Ledger Metrics</div>
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-medium text-slate-500">Gross Revenue</span>
+                                <div id="dash-overall-revenue" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
                             </div>
-
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-[#1e293b]">
-                                        <tr>
-                                            <th class="pb-3 px-3">SKU</th>
-                                            <th class="pb-3 px-3 text-right">Profit</th>
-                                            <th class="pb-3 px-3 text-right">Stock</th>
-                                            <th class="pb-3 px-3 text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dash-top-list" class="divide-y divide-slate-800/60 font-medium">
-                                        <!-- Sample/Dynamic rows matching the screenshot -->
-                                        <tr class="hover:bg-slate-800/30 transition">
-                                            <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
-                                                <span>FROCK SET 500</span>
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">AZ</span>
-                                            </td>
-                                            <td class="py-3 px-3 text-right font-mono font-bold text-white">₹14,190</td>
-                                            <td class="py-3 px-3 text-right font-mono text-slate-400">0 units</td>
-                                            <td class="py-3 px-3 text-right">
-                                                <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition">
-                                                    <i class="fa-solid fa-circle-nodes text-[10px]"></i> Review Risk
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr class="hover:bg-slate-800/30 transition">
-                                            <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
-                                                <span>KURTI SET 550</span>
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">AZ</span>
-                                            </td>
-                                            <td class="py-3 px-3 text-right font-mono font-bold text-white">₹8,520</td>
-                                            <td class="py-3 px-3 text-right font-mono text-slate-400">0 units</td>
-                                            <td class="py-3 px-3 text-right">
-                                                <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition">
-                                                    <i class="fa-solid fa-circle-nodes text-[10px]"></i> Review Risk
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr class="hover:bg-slate-800/30 transition">
-                                            <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
-                                                <span>TOP 220</span>
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">AZ</span>
-                                            </td>
-                                            <td class="py-3 px-3 text-right font-mono font-bold text-white">₹8,050</td>
-                                            <td class="py-3 px-3 text-right font-mono text-slate-400">32 units</td>
-                                            <td class="py-3 px-3 text-right">
-                                                <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white transition">
-                                                    <i class="fa-solid fa-thumbs-down text-[10px]"></i> Mark Down
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr class="hover:bg-slate-800/30 transition">
-                                            <td class="py-3 px-3 font-bold text-white flex items-center gap-2">
-                                                <span>KURTI SET 610</span>
-                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-300 border border-slate-700">AZ</span>
-                                            </td>
-                                            <td class="py-3 px-3 text-right font-mono font-bold text-white">₹5,550</td>
-                                            <td class="py-3 px-3 text-right font-mono text-slate-400">0 units</td>
-                                            <td class="py-3 px-3 text-right">
-                                                <button class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500 hover:text-white transition">
-                                                    <i class="fa-solid fa-thumbs-down text-[10px]"></i> Mark Down
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-medium text-slate-500">Net Profit</span>
+                                <div id="dash-overall-profit" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
                             </div>
-                        </div>
-
-                        <!-- 5. AETHER INVENTORY NETWORK DETAIL (Right 5 cols) -->
-                        <div class="lg:col-span-5 bg-[#111927] p-5 rounded-2xl border border-[#1e293b] shadow-aether-card flex flex-col justify-between">
-                            <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
-                                    <span class="text-blue-500 font-mono font-normal">AETHER |</span> Inventory Network Detail
-                                </h3>
-                                <button class="text-slate-500 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-medium text-slate-500">Current Stock Value</span>
+                                <div id="dash-inv-value" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
                             </div>
-
-                            <div class="flex-1 flex gap-3 items-center">
-                                <!-- Cone Beam Graphic (From Image) -->
-                                <div class="w-28 h-40 shrink-0 relative flex items-center justify-center">
-                                    <svg viewBox="0 0 120 160" class="w-full h-full">
-                                        <defs>
-                                            <linearGradient id="beamGrad" x1="0%" y1="50%" x2="100%" y2="50%">
-                                                <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.8"/>
-                                                <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0.1"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <polygon points="10,80 110,10 110,150" fill="url(#beamGrad)" opacity="0.35"/>
-                                        <circle cx="20" cy="80" r="16" fill="#4338ca" stroke="#6366f1" stroke-width="2"/>
-                                        <text x="20" y="83" text-anchor="middle" fill="#ffffff" font-size="7" font-weight="bold">Risk</text>
-                                    </svg>
-                                </div>
-
-                                <!-- SKU list with product thumbnails -->
-                                <div class="flex-1 overflow-x-auto">
-                                    <table class="w-full text-xs text-left">
-                                        <thead class="text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-[#1e293b]">
-                                            <tr>
-                                                <th class="pb-2">SKU</th>
-                                                <th class="pb-2 text-right">Profit</th>
-                                                <th class="pb-2 text-right">Stock</th>
-                                                <th class="pb-2 text-center"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-800/60 font-medium">
-                                            <tr class="hover:bg-slate-800/30 transition">
-                                                <td class="py-2 flex items-center gap-2 text-slate-200">
-                                                    <div class="w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 flex items-center justify-center text-[9px]"><i class="fa-solid fa-shirt"></i></div>
-                                                    <span class="truncate max-w-[90px] font-semibold text-[11px]">AMUL VEST 90</span>
-                                                </td>
-                                                <td class="py-2 text-right font-mono text-slate-200 text-xs">₹260</td>
-                                                <td class="py-2 text-right font-mono text-slate-400 text-xs">10</td>
-                                                <td class="py-2 text-center text-slate-500">&bull;&bull;&bull;</td>
-                                            </tr>
-                                            <tr class="hover:bg-slate-800/30 transition">
-                                                <td class="py-2 flex items-center gap-2 text-slate-200">
-                                                    <div class="w-5 h-5 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center text-[9px]"><i class="fa-solid fa-person-dress"></i></div>
-                                                    <span class="truncate max-w-[90px] font-semibold text-[11px]">FOAM BRA 32</span>
-                                                </td>
-                                                <td class="py-2 text-right font-mono text-slate-200 text-xs">₹280</td>
-                                                <td class="py-2 text-right font-mono text-slate-400 text-xs">6</td>
-                                                <td class="py-2 text-center text-slate-500">&bull;&bull;&bull;</td>
-                                            </tr>
-                                            <tr class="hover:bg-slate-800/30 transition">
-                                                <td class="py-2 flex items-center gap-2 text-slate-200">
-                                                    <div class="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[9px]"><i class="fa-solid fa-vest"></i></div>
-                                                    <span class="truncate max-w-[90px] font-semibold text-[11px]">TOWEL 120</span>
-                                                </td>
-                                                <td class="py-2 text-right font-mono text-slate-200 text-xs">₹280</td>
-                                                <td class="py-2 text-right font-mono text-slate-400 text-xs">11</td>
-                                                <td class="py-2 text-center text-slate-500">&bull;&bull;&bull;</td>
-                                            </tr>
-                                            <tr class="hover:bg-slate-800/30 transition">
-                                                <td class="py-2 flex items-center gap-2 text-slate-200">
-                                                    <div class="w-5 h-5 rounded-md bg-pink-500/20 text-pink-400 flex items-center justify-center text-[9px]"><i class="fa-solid fa-person-dress"></i></div>
-                                                    <span class="truncate max-w-[90px] font-semibold text-[11px]">BRA 34 40 NO</span>
-                                                </td>
-                                                <td class="py-2 text-right font-mono text-slate-200 text-xs">₹250</td>
-                                                <td class="py-2 text-right font-mono text-slate-400 text-xs">6</td>
-                                                <td class="py-2 text-center text-slate-500">&bull;&bull;&bull;</td>
-                                            </tr>
-                                            <tr class="hover:bg-slate-800/30 transition">
-                                                <td class="py-2 flex items-center gap-2 text-slate-200">
-                                                    <div class="w-5 h-5 rounded-md bg-rose-500/20 text-rose-400 flex items-center justify-center text-[9px]"><i class="fa-solid fa-shirt"></i></div>
-                                                    <span class="truncate max-w-[90px] font-semibold text-[11px]">SHORT SHORT</span>
-                                                </td>
-                                                <td class="py-2 text-right font-mono text-slate-200 text-xs">₹250</td>
-                                                <td class="py-2 text-right font-mono text-slate-400 text-xs">3</td>
-                                                <td class="py-2 text-center text-slate-500">&bull;&bull;&bull;</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-medium text-slate-500">Low Stock SKUs</span>
+                                <div id="dash-low-stock" class="text-lg font-bold text-rose-600 font-mono mt-1">0</div>
                             </div>
-
-                            <div class="mt-3 pt-3 border-t border-[#1e293b] flex justify-between items-center text-[10px] text-slate-400">
-                                <span>Connected SKU Network</span>
-                                <span id="dash-trending-label" class="font-bold text-blue-400">Cluster 01 Verified</span>
+                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                                <span class="text-[11px] font-medium text-slate-500">Total Units in Stock</span>
+                                <div id="dash-inventory" class="text-lg font-bold text-slate-900 font-mono mt-1">0</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hidden Hooks for App.js lifetime metrics -->
-                    <div class="hidden">
-                        <span id="dash-year-label"></span>
-                        <span id="dash-overall-revenue"></span>
-                        <span id="dash-overall-profit"></span>
-                        <span id="dash-inv-value"></span>
-                        <span id="dash-low-stock"></span>
-                        <span id="dash-inventory"></span>
-                        <span id="dash-today-trending"></span>
+                    <!-- 3. Top Selling Products Leaderboard -->
+                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden max-w-3xl">
+                        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-trophy text-amber-500 text-sm"></i>
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Top Selling Products</h3>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="dash-top-month" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 outline-none"></select>
+                                <select id="dash-top-type" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 outline-none">
+                                    <option value="All">All Items</option>
+                                    <option value="Sale">Inventory</option>
+                                    <option value="Cosmetic Sale">Cosmetics</option>
+                                </select>
+                            </div>
+                        </div>
+                        <ul id="dash-top-list" class="divide-y divide-slate-100 p-2 text-xs"></ul>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 2: TREND ENGINE HUB CONTAINER                           -->
-                <!-- ============================================================ -->
-                <div id="tab-trends" class="tab max-w-[1600px] mx-auto">
+                <!-- ============================================== -->
+                <!-- TAB 2: TREND ENGINE                            -->
+                <!-- ============================================== -->
+                <div id="tab-trends" class="tab max-w-7xl mx-auto">
                     <div id="trend-tab-container"></div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 3: LEDGER AUDIT / TRANSACTIONS                          -->
-                <!-- ============================================================ -->
-                <div id="tab-transactions" class="tab max-w-7xl mx-auto space-y-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-xl font-bold text-white tracking-tight">Ledger Audit</h2>
-                            <p class="text-xs text-slate-400">Chronological financial ledger with return processing</p>
-                        </div>
+                <!-- ============================================== -->
+                <!-- TAB 3: LEDGER AUDIT & RETURNS                 -->
+                <!-- ============================================== -->
+                <div id="tab-transactions" class="tab max-w-7xl mx-auto space-y-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Ledger Audit Trail</h2>
+                        <p class="text-xs text-slate-500">Live record of sales, purchases, and returns with instant reversal</p>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b] flex flex-wrap gap-3 items-end">
+                    <!-- Filter Controls -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-wrap gap-3 items-end">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">From</label>
-                            <input type="date" id="filter-trans-start" class="border border-[#1e293b] bg-[#0c1322] text-white rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Start Date</label>
+                            <input type="date" id="filter-trans-start" class="border border-slate-200 bg-slate-50 text-slate-900 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">To</label>
-                            <input type="date" id="filter-trans-end" class="border border-[#1e293b] bg-[#0c1322] text-white rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">End Date</label>
+                            <input type="date" id="filter-trans-end" class="border border-slate-200 bg-slate-50 text-slate-900 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500">
                         </div>
-                        <button id="btn-trans-filter" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">
-                            <i class="fa-solid fa-filter mr-1"></i> Filter
+                        <button id="btn-trans-filter" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
+                            <i class="fa-solid fa-filter mr-1"></i> Apply Filter
                         </button>
-                        <button id="btn-trans-clear" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        <button id="btn-trans-clear" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
                             Reset
                         </button>
                     </div>
 
                     <!-- Ledger Table -->
-                    <div class="bg-[#111927] rounded-2xl border border-[#1e293b] overflow-hidden shadow-aether-card">
+                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden">
                         <div class="overflow-x-auto">
-                            <table id="table-transactions" class="min-w-full divide-y divide-[#1e293b] text-left text-xs">
-                                <thead class="bg-[#0c1322] uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                            <table id="table-transactions" class="min-w-full divide-y divide-slate-100 text-left text-xs">
+                                <thead class="bg-slate-50/80 uppercase tracking-wider text-[10px] font-bold text-slate-500">
                                     <tr>
                                         <th class="px-5 py-3">Date</th>
                                         <th class="px-5 py-3">Type</th>
-                                        <th class="px-5 py-3">Item Name</th>
-                                        <th class="px-5 py-3">Quantity</th>
-                                        <th class="px-5 py-3">Total Amount</th>
+                                        <th class="px-5 py-3">Item Particulars</th>
+                                        <th class="px-5 py-3">Qty</th>
+                                        <th class="px-5 py-3">Amount</th>
                                         <th class="px-5 py-3 text-center">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-800/80 text-slate-200 font-medium"></tbody>
+                                <tbody class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 4: ANALYTICS & ABC MATRIX                               -->
-                <!-- ============================================================ -->
-                <div id="tab-analytics" class="tab max-w-7xl mx-auto space-y-5">
+                <!-- ============================================== -->
+                <!-- TAB 4: ANALYTICS & ABC CLASSIFICATION          -->
+                <!-- ============================================== -->
+                <div id="tab-analytics" class="tab max-w-7xl mx-auto space-y-6">
                     <div>
-                        <h2 class="text-xl font-bold text-white tracking-tight">Analytics & SKU Matrix</h2>
-                        <p class="text-xs text-slate-400">Velocity clustering and ABC capital contribution</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Business Analytics & Matrix</h2>
+                        <p class="text-xs text-slate-500">ABC revenue contribution and FSN inventory velocity</p>
                     </div>
 
                     <!-- Filters -->
-                    <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b] flex flex-wrap gap-3 items-end">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-wrap gap-3 items-end">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
-                            <input type="date" id="ana-start" class="border border-[#1e293b] bg-[#0c1322] text-white rounded-xl px-3 py-2 text-xs outline-none">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
+                            <input type="date" id="ana-start" class="border border-slate-200 bg-slate-50 rounded-lg px-3 py-1.5 text-xs text-slate-900 outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
-                            <input type="date" id="ana-end" class="border border-[#1e293b] bg-[#0c1322] text-white rounded-xl px-3 py-2 text-xs outline-none">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">To Date</label>
+                            <input type="date" id="ana-end" class="border border-slate-200 bg-slate-50 rounded-lg px-3 py-1.5 text-xs text-slate-900 outline-none">
                         </div>
-                        <button id="btn-ana-filter" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        <button id="btn-ana-filter" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
                             Analyze
                         </button>
-                        <button id="btn-ana-today" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        <button id="btn-ana-today" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
                             Today
                         </button>
-                        <button id="btn-ana-clear" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        <button id="btn-ana-clear" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
                             Reset
                         </button>
                     </div>
 
-                    <!-- Analytics KPI Cards -->
+                    <!-- Analytics Metrics -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filtered Rev.</span>
-                            <p id="ana-revenue" class="text-xl font-bold font-mono text-emerald-400 mt-1">₹0.00</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filtered Revenue</span>
+                            <p id="ana-revenue" class="text-xl font-bold font-mono text-emerald-600 mt-1">₹0.00</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filtered Profit</span>
-                            <p id="ana-profit" class="text-xl font-bold font-mono text-blue-400 mt-1">₹0.00</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filtered Profit</span>
+                            <p id="ana-profit" class="text-xl font-bold font-mono text-blue-600 mt-1">₹0.00</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Margin</span>
-                            <p id="ana-margin" class="text-xl font-bold font-mono text-amber-400 mt-1">0.0%</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gross Margin</span>
+                            <p id="ana-margin" class="text-xl font-bold font-mono text-amber-500 mt-1">0.0%</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stock Units</span>
-                            <p id="ana-stock" class="text-xl font-bold font-mono text-purple-400 mt-1">0</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stock Units</span>
+                            <p id="ana-stock" class="text-xl font-bold font-mono text-purple-600 mt-1">0</p>
                         </div>
                     </div>
 
                     <!-- Charts Grid -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <div class="xl:col-span-2 bg-[#111927] p-4 rounded-2xl border border-[#1e293b]"><canvas id="chart-monthly"></canvas></div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]"><canvas id="chart-abc"></canvas></div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]"><canvas id="chart-fsn"></canvas></div>
+                        <div class="xl:col-span-2 bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <canvas id="chart-monthly" class="max-h-72"></canvas>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-col justify-center">
+                            <canvas id="chart-abc" class="max-h-60"></canvas>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-col justify-center">
+                            <canvas id="chart-fsn" class="max-h-60"></canvas>
+                        </div>
                     </div>
 
-                    <!-- Side by Side Sub-tables -->
+                    <!-- Side-by-Side Tables -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
                             <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-xs font-bold uppercase text-slate-400">Top Velocity Products</h3>
-                                <select id="filter-top-selling" class="text-xs bg-[#0c1322] border border-[#1e293b] rounded px-2 py-1 text-white">
-                                    <option value="All">All</option>
+                                <h3 class="text-xs font-bold uppercase text-slate-700">Top Performing Products</h3>
+                                <select id="filter-top-selling" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                                    <option value="All">All Items</option>
                                     <option value="Top10">Top 10</option>
                                 </select>
                             </div>
                             <div class="overflow-x-auto max-h-56">
-                                <table class="min-w-full text-xs text-left"><tbody id="tbody-top-selling" class="divide-y divide-slate-800"></tbody></table>
+                                <table class="min-w-full text-xs text-left"><tbody id="tbody-top-selling" class="divide-y divide-slate-100"></tbody></table>
                             </div>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
                             <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-xs font-bold uppercase text-slate-400">Stock Threshold Alert</h3>
-                                <select id="filter-inv-status" class="text-xs bg-[#0c1322] border border-[#1e293b] rounded px-2 py-1 text-white">
+                                <h3 class="text-xs font-bold uppercase text-slate-700">Critical Stock Threshold</h3>
+                                <select id="filter-inv-status" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1">
                                     <option value="All">All</option>
-                                    <option value="Low">Low (&le; 3)</option>
+                                    <option value="Low">Low (&le; 3 units)</option>
                                 </select>
                             </div>
                             <div class="overflow-x-auto max-h-56">
-                                <table class="min-w-full text-xs text-left"><tbody id="tbody-inv-status" class="divide-y divide-slate-800"></tbody></table>
+                                <table class="min-w-full text-xs text-left"><tbody id="tbody-inv-status" class="divide-y divide-slate-100"></tbody></table>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ABC and FSN Matrices -->
+                    <!-- Deep Analytics Matrices -->
                     <div class="space-y-4">
-                        <div class="bg-[#111927] p-5 rounded-2xl border border-[#1e293b] overflow-x-auto">
-                            <h3 class="text-sm font-bold mb-2">ABC Capital Valuation Analysis</h3>
-                            <table id="table-abc" class="min-w-full text-xs text-left divide-y divide-[#1e293b]"><tbody class="divide-y divide-slate-800"></tbody></table>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card overflow-x-auto">
+                            <h3 class="text-xs font-bold uppercase text-slate-700 mb-1">ABC Inventory Valuation</h3>
+                            <p class="text-[11px] text-slate-400 mb-3">A = Top 70% Capital | B = Next 20% | C = Tail 10%</p>
+                            <table id="table-abc" class="min-w-full text-xs text-left divide-y divide-slate-100"><tbody class="divide-y divide-slate-100"></tbody></table>
                         </div>
-                        <div class="bg-[#111927] p-5 rounded-2xl border border-[#1e293b] overflow-x-auto">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card overflow-x-auto">
                             <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-sm font-bold">FSN &times; HMV Velocity Matrix</h3>
-                                <select id="ana-class-filter" class="text-xs bg-[#0c1322] border border-[#1e293b] text-white rounded px-2.5 py-1">
+                                <h3 class="text-xs font-bold uppercase text-slate-700">FSN &times; HMV Velocity Matrix</h3>
+                                <select id="ana-class-filter" class="text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1">
                                     <option value="All">All Classes</option>
                                     <option value="⭐ Stars">⭐ Stars</option>
                                     <option value="💰 Cash Cows">💰 Cash Cows</option>
@@ -864,203 +469,203 @@
                                     <option value="🗑️ Dead Stock">🗑️ Dead Stock</option>
                                 </select>
                             </div>
-                            <table id="table-matrix" class="min-w-full text-xs text-left divide-y divide-[#1e293b]"><tbody class="divide-y divide-slate-800"></tbody></table>
+                            <table id="table-matrix" class="min-w-full text-xs text-left divide-y divide-slate-100"><tbody class="divide-y divide-slate-100"></tbody></table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 5: POINT OF SALE / SALES DESK                          -->
-                <!-- ============================================================ -->
+                <!-- ============================================== -->
+                <!-- TAB 5: POINT OF SALE (CART-BASED BILLING)       -->
+                <!-- ============================================== -->
                 <div id="tab-sales" class="tab max-w-7xl mx-auto space-y-6">
                     <div>
-                        <h2 class="text-xl font-bold text-white tracking-tight">Record Sales</h2>
-                        <p class="text-xs text-slate-400">Checkout counter with auto stock deductions</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Record Sales</h2>
+                        <p class="text-xs text-slate-500">Fast checkout cart with automatic inventory stock deductions</p>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Standard Cart Sale -->
-                        <div class="bg-[#111927] p-6 rounded-2xl border border-[#1e293b] shadow-aether-card relative overflow-hidden">
-                            <div class="absolute top-0 right-0 bg-emerald-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase">
-                                Catalog Tracked
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-card relative overflow-hidden">
+                            <div class="absolute top-0 right-0 bg-emerald-600 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
+                                Inventory Tracked
                             </div>
 
-                            <h3 class="text-sm font-bold text-white mb-4">Standard POS Terminal</h3>
+                            <h3 class="text-sm font-bold text-slate-900 mb-4">Standard POS Terminal</h3>
                             <form id="form-sale" class="space-y-4">
                                 <div class="relative">
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Product SKU</label>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Select Item</label>
                                     <input type="text" id="sale-item" autocomplete="off" placeholder="Start typing SKU name..." 
-                                        class="w-full px-4 py-2.5 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl focus:border-blue-500 outline-none">
-                                    <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-[#0c1322] border border-[#1e293b] rounded-xl shadow-xl max-h-56 overflow-y-auto"></div>
+                                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
+                                    <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-dropdown max-h-56 overflow-y-auto"></div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Unit Cost</label>
-                                        <input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-3 py-2 bg-slate-900 border border-[#1e293b] text-slate-400 text-xs rounded-xl opacity-75">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Unit Cost (₹)</label>
+                                        <input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs rounded-xl cursor-not-allowed">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Quantity</label>
-                                        <input type="number" id="sale-qty" step="any" placeholder="0" class="w-full px-3 py-2 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
+                                        <input type="number" id="sale-qty" step="any" placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Rate (₹)</label>
-                                    <input type="number" id="sale-rate" step="0.01" placeholder="0.00" class="w-full px-4 py-2 bg-[#0c1322] border border-[#1e293b] text-emerald-400 font-bold text-base rounded-xl font-mono outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Selling Rate (₹)</label>
+                                    <input type="number" id="sale-rate" step="0.01" placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-emerald-600 font-bold text-base rounded-xl font-mono focus:ring-2 focus:ring-blue-500/20 outline-none">
                                 </div>
 
-                                <button type="button" id="btn-add-to-cart" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5">
+                                <button type="button" id="btn-add-to-cart" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-1.5">
                                     <i class="fa-solid fa-plus"></i> Add Item to Cart
                                 </button>
 
-                                <!-- Cart Container -->
-                                <div id="cart-container" class="hidden mt-3 bg-[#0c1322] border border-[#1e293b] rounded-xl p-3.5">
-                                    <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Cart Manifest</span>
+                                <!-- POS Cart Manifest -->
+                                <div id="cart-container" class="hidden mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                                    <span class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Cart Items</span>
                                     <ul id="cart-list" class="space-y-1.5 text-xs max-h-36 overflow-y-auto my-2"></ul>
-                                    <div class="pt-2 border-t border-[#1e293b] flex justify-between items-center">
-                                        <span class="text-xs text-slate-400">Total</span>
-                                        <span class="text-base font-black font-mono text-white">₹<span id="cart-total">0.00</span></span>
+                                    <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
+                                        <span class="text-xs text-slate-500 font-medium">Grand Total</span>
+                                        <span class="text-base font-black font-mono text-slate-900">₹<span id="cart-total">0.00</span></span>
                                     </div>
                                 </div>
 
-                                <button type="submit" id="btn-save-sale" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-md flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-circle-check"></i> Authorize & Checkout
+                                <button type="submit" id="btn-save-sale" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-circle-check"></i> Complete & Checkout
                                 </button>
                             </form>
                         </div>
 
                         <!-- Cosmetic Custom Sale -->
-                        <div class="bg-[#111927] p-6 rounded-2xl border border-[#1e293b] shadow-aether-card relative overflow-hidden h-fit">
-                            <div class="absolute top-0 right-0 bg-pink-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase">
-                                Non-Stock Service
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-card relative overflow-hidden h-fit">
+                            <div class="absolute top-0 right-0 bg-pink-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
+                                Custom / Non-Stock
                             </div>
 
-                            <h3 class="text-sm font-bold text-white mb-4">Cosmetic / Service Entry</h3>
+                            <h3 class="text-sm font-bold text-slate-900 mb-4">Cosmetic Sale Entry</h3>
                             <form id="form-cosmetic" class="space-y-4">
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Description</label>
-                                    <input type="text" id="cosmetic-item" required placeholder="Custom sale..." class="w-full px-4 py-2.5 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Item Description</label>
+                                    <input type="text" id="cosmetic-item" required placeholder="Custom sale..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
                                 </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Qty</label>
-                                        <input type="number" id="cosmetic-qty" step="any" required placeholder="0" class="w-full px-3 py-2 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
+                                        <input type="number" id="cosmetic-qty" step="any" required placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-400 mb-1">Cost (₹)</label>
-                                        <input type="number" id="cosmetic-cost" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
+                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Estimated Cost (₹)</label>
+                                        <input type="number" id="cosmetic-cost" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Rate (₹)</label>
-                                    <input type="number" id="cosmetic-rate" step="0.01" required placeholder="0.00" class="w-full px-4 py-2 bg-[#0c1322] border border-[#1e293b] text-pink-400 font-bold font-mono text-base rounded-xl outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Selling Rate (₹)</label>
+                                    <input type="number" id="cosmetic-rate" step="0.01" required placeholder="0.00" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-pink-600 font-bold font-mono text-base rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
                                 </div>
-                                <button type="submit" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-md flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-bolt"></i> Instant Record
+                                <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-bolt"></i> Instant Record Cosmetic Sale
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 6: PURCHASES                                             -->
-                <!-- ============================================================ -->
+                <!-- ============================================== -->
+                <!-- TAB 6: PURCHASES                               -->
+                <!-- ============================================== -->
                 <div id="tab-purchases" class="tab max-w-2xl mx-auto space-y-6">
                     <div>
-                        <h2 class="text-xl font-bold text-white tracking-tight">Record Inbound Purchases</h2>
-                        <p class="text-xs text-slate-400">Inventory receipts automatically increment stock levels</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Record Inbound Purchases</h2>
+                        <p class="text-xs text-slate-500">Adding new procurement automatically increments stock count</p>
                     </div>
 
-                    <div class="bg-[#111927] p-6 rounded-2xl border border-[#1e293b] shadow-aether-card">
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-card">
                         <form id="form-purchase" class="space-y-4">
                             <div class="relative">
-                                <label class="block text-xs font-semibold text-slate-400 mb-1">Item Particulars</label>
-                                <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search or specify new item..." 
-                                    class="w-full px-4 py-3 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
-                                <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-[#0c1322] border border-[#1e293b] rounded-xl shadow-xl max-h-56 overflow-y-auto"></div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Item Particulars</label>
+                                <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search existing or create new..." 
+                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none transition">
+                                <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-dropdown max-h-56 overflow-y-auto"></div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Units Added</label>
-                                    <input type="number" id="purchase-qty" step="any" required placeholder="0" class="w-full px-4 py-2.5 bg-[#0c1322] border border-[#1e293b] text-white text-xs rounded-xl outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity Added</label>
+                                    <input type="number" id="purchase-qty" step="any" required placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-400 mb-1">Total Paid (₹)</label>
-                                    <input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-2.5 bg-[#0c1322] border border-[#1e293b] text-rose-400 font-bold font-mono text-base rounded-xl outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Total Paid (₹)</label>
+                                    <input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-rose-600 font-bold font-mono text-base rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
                                 </div>
                             </div>
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-md flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-arrow-down-to-bracket"></i> Record Inbound Manifest
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-down-to-bracket"></i> Save Inbound Purchase
                             </button>
                         </form>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 7: INVENTORY STOCK MANAGEMENT                           -->
-                <!-- ============================================================ -->
+                <!-- ============================================== -->
+                <!-- TAB 7: INVENTORY MANAGEMENT                     -->
+                <!-- ============================================== -->
                 <div id="tab-inventory" class="tab max-w-7xl mx-auto space-y-6">
                     <div>
-                        <h2 class="text-xl font-bold text-white tracking-tight">Stock Register</h2>
-                        <p class="text-xs text-slate-400">Catalogue SKUs, valuations, and replenishment alarms</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Stock Register</h2>
+                        <p class="text-xs text-slate-500">Live catalogue inventory counts, unit cost valuation, and thresholds</p>
                     </div>
 
                     <!-- Inventory Counter Cards -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Catalogue Items</span>
-                            <p id="stat-inv-total" class="text-xl font-bold font-mono text-white mt-1">0</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Catalogue Items</span>
+                            <p id="stat-inv-total" class="text-xl font-bold font-mono text-slate-900 mt-1">0</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Valuation</span>
-                            <p id="stat-inv-value" class="text-xl font-bold font-mono text-emerald-400 mt-1">₹0</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Valuation</span>
+                            <p id="stat-inv-value" class="text-xl font-bold font-mono text-emerald-600 mt-1">₹0</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stockouts</span>
-                            <p id="stat-inv-out" class="text-xl font-bold font-mono text-rose-400 mt-1">0</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stockouts</span>
+                            <p id="stat-inv-out" class="text-xl font-bold font-mono text-rose-600 mt-1">0</p>
                         </div>
-                        <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Low Stock</span>
-                            <p id="stat-inv-low" class="text-xl font-bold font-mono text-amber-400 mt-1">0</p>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Low Stock</span>
+                            <p id="stat-inv-low" class="text-xl font-bold font-mono text-amber-500 mt-1">0</p>
                         </div>
                     </div>
 
-                    <!-- Inline Add Item Form -->
-                    <div class="bg-[#111927] p-4 rounded-2xl border border-[#1e293b]">
-                        <h3 id="inv-form-title" class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Add new item</h3>
+                    <!-- Add / Edit Item Form -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
+                        <h3 id="inv-form-title" class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3">Add new item</h3>
                         <form id="form-inventory" class="flex flex-col md:flex-row gap-2.5 items-center">
-                            <input type="text" id="inv-name" required placeholder="SKU name..." class="flex-1 w-full px-3.5 py-2 text-xs bg-[#0c1322] border border-[#1e293b] text-white rounded-xl outline-none">
-                            <input type="number" id="inv-qty" step="any" required placeholder="Qty" min="0" class="w-full md:w-28 px-3.5 py-2 text-xs bg-[#0c1322] border border-[#1e293b] text-white rounded-xl outline-none">
-                            <input type="number" id="inv-price" required step="0.01" placeholder="Cost (₹)" min="0" class="w-full md:w-32 px-3.5 py-2 text-xs bg-[#0c1322] border border-[#1e293b] text-white rounded-xl outline-none">
+                            <input type="text" id="inv-name" required placeholder="SKU name..." class="flex-1 w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
+                            <input type="number" id="inv-qty" step="any" required placeholder="Qty" min="0" class="w-full md:w-28 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
+                            <input type="number" id="inv-price" required step="0.01" placeholder="Cost (₹)" min="0" class="w-full md:w-32 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
                             <div class="flex gap-2 w-full md:w-auto">
-                                <button type="submit" id="btn-inv-submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-5 rounded-xl text-xs transition">Save</button>
-                                <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-slate-800 text-slate-300 font-semibold py-2 px-4 rounded-xl text-xs">Cancel</button>
+                                <button type="submit" id="btn-inv-submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-xl text-xs shadow-sm transition">Save</button>
+                                <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-xl text-xs">Cancel</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Inventory Table with Segmented Tabs -->
-                    <div class="bg-[#111927] rounded-2xl border border-[#1e293b] overflow-hidden shadow-aether-card">
-                        <div class="p-4 border-b border-[#1e293b] flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <!-- Inventory Table with Working Filter Tabs & Realtime Search -->
+                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                             <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-400 uppercase">Stock Register</span>
-                                <div class="flex gap-1 bg-[#0c1322] p-1 rounded-xl border border-[#1e293b]">
+                                <span class="text-xs font-bold text-slate-700 uppercase">Catalogue</span>
+                                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
                                     <button class="inv-tab active px-3 py-1 rounded-lg text-xs font-semibold" data-filter="all">All</button>
                                     <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="out">Out of stock</button>
                                     <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="low">Low stock</button>
                                 </div>
                             </div>
                             <div class="relative w-full sm:w-64">
-                                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                                <input type="text" id="search-inventory" placeholder="Search items..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#0c1322] border border-[#1e293b] text-white rounded-xl outline-none">
+                                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" id="search-inventory" placeholder="Search inventory..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
                             </div>
                         </div>
 
                         <div class="overflow-x-auto">
-                            <table id="table-inventory" class="min-w-full divide-y divide-[#1e293b] text-left text-xs">
-                                <thead class="bg-[#0c1322] uppercase tracking-wider text-[10px] font-bold text-slate-400">
+                            <table id="table-inventory" class="min-w-full divide-y divide-slate-100 text-left text-xs">
+                                <thead class="bg-slate-50/80 uppercase tracking-wider text-[10px] font-bold text-slate-500">
                                     <tr>
                                         <th class="px-5 py-3">Item</th>
                                         <th class="px-5 py-3 text-right">Stock Qty</th>
@@ -1070,62 +675,62 @@
                                         <th class="px-5 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-800 font-medium text-slate-200"></tbody>
+                                <tbody class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============================================================ -->
-                <!-- TAB 8: SETTINGS & DATA PIPELINE                              -->
-                <!-- ============================================================ -->
+                <!-- ============================================== -->
+                <!-- TAB 8: SETTINGS & BACKUP                      -->
+                <!-- ============================================== -->
                 <div id="tab-settings" class="tab max-w-3xl mx-auto space-y-6">
                     <div>
-                        <h2 class="text-xl font-bold text-white tracking-tight">Configuration & Utilities</h2>
-                        <p class="text-xs text-slate-400">Fiscal year filters, database maintenance, and spreadsheets</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Settings & Configuration</h2>
+                        <p class="text-xs text-slate-500">Fiscal year filters, database maintenance, and spreadsheets</p>
                     </div>
 
                     <div class="space-y-4">
                         <!-- Fiscal Year -->
-                        <div class="bg-[#111927] p-5 rounded-2xl border border-[#1e293b] flex items-center justify-between">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card flex items-center justify-between">
                             <div>
-                                <h3 class="font-bold text-sm text-white">Global Fiscal Year Filter</h3>
-                                <p class="text-xs text-slate-400">Filter all ledgers and metrics by fiscal cycle</p>
+                                <h3 class="font-bold text-sm text-slate-900">Global Fiscal Year Filter</h3>
+                                <p class="text-xs text-slate-500">Filter all metrics and ledgers across a fiscal year</p>
                             </div>
-                            <select id="global-year-filter" class="bg-[#0c1322] border border-[#1e293b] rounded-xl px-4 py-2 font-mono text-xs text-white outline-none cursor-pointer">
+                            <select id="global-year-filter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-900 outline-none cursor-pointer">
                                 <option value="All">All Fiscal Years</option>
                             </select>
                         </div>
 
                         <!-- Appearance Toggle -->
-                        <div class="bg-[#111927] p-5 rounded-2xl border border-[#1e293b] flex items-center justify-between">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card flex items-center justify-between">
                             <div>
-                                <h3 class="font-bold text-sm text-white">Theme Terminal</h3>
-                                <p class="text-xs text-slate-400">Toggle dark-mode OLED palette</p>
+                                <h3 class="font-bold text-sm text-slate-900">Display Theme</h3>
+                                <p class="text-xs text-slate-500">Toggle between clean white and dark OLED theme</p>
                             </div>
-                            <button id="btn-theme-toggle" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-5 rounded-xl text-xs transition">
-                                Switch Mode
+                            <button id="btn-theme-toggle" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-xl text-xs transition">
+                                Toggle Mode
                             </button>
                         </div>
 
                         <!-- Data Management Actions -->
-                        <div class="bg-[#111927] p-5 rounded-2xl border border-[#1e293b]">
-                            <h3 class="font-bold text-sm text-white mb-1">Data Maintenance</h3>
-                            <p class="text-xs text-slate-400 mb-4">Spreadsheet ingestions and inventory consolidation</p>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card">
+                            <h3 class="font-bold text-sm text-slate-900 mb-1">Data Maintenance</h3>
+                            <p class="text-xs text-slate-500 mb-4">Bulk spreadsheet imports and SKU consolidation</p>
 
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
-                                <button id="btn-trigger-excel" class="bg-[#0c1322] hover:bg-slate-800 border border-[#1e293b] p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-solid fa-file-excel text-emerald-400 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-200">Import Excel</span>
+                                <button id="btn-trigger-excel" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-file-excel text-emerald-600 text-xl"></i>
+                                    <span class="text-xs font-bold text-slate-800">Import Excel</span>
                                 </button>
-                                <button id="btn-sync-drive" class="bg-[#0c1322] hover:bg-slate-800 border border-[#1e293b] p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-brands fa-google-drive text-blue-400 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-200">Cloud Sync</span>
+                                <button id="btn-sync-drive" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
+                                    <i class="fa-brands fa-google-drive text-blue-600 text-xl"></i>
+                                    <span class="text-xs font-bold text-slate-800">Cloud Sync</span>
                                 </button>
-                                <button id="btn-merge-dup" class="bg-[#0c1322] hover:bg-slate-800 border border-[#1e293b] p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-200">Merge Duplicates</span>
+                                <button id="btn-merge-dup" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500 text-xl"></i>
+                                    <span class="text-xs font-bold text-slate-800">Merge Duplicates</span>
                                 </button>
                             </div>
                         </div>
@@ -1136,7 +741,29 @@
         </div>
     </div>
 
-    <!-- Core Scripts -->
+    <!-- Mobile Bottom Bar -->
+    <nav class="lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
+        <button onclick="document.getElementById('btn-dashboard').click();" class="text-blue-600 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-chart-pie text-sm mb-0.5"></i>Home
+        </button>
+        <button onclick="document.getElementById('btn-sales').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-cart-shopping text-sm mb-0.5"></i>POS
+        </button>
+        <button onclick="document.getElementById('btn-inventory').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-cubes-stacked text-sm mb-0.5"></i>Stock
+        </button>
+        <button onclick="document.getElementById('btn-transactions').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-receipt text-sm mb-0.5"></i>Ledger
+        </button>
+        <button onclick="document.getElementById('btn-analytics').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-chart-line text-sm mb-0.5"></i>Analytics
+        </button>
+        <button onclick="document.getElementById('btn-trends').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+            <i class="fa-solid fa-fire text-sm mb-0.5"></i>Trends
+        </button>
+    </nav>
+
+    <!-- Core App Logic -->
     <script type="module" src="app.js"></script>
     <script src="trend-engine.js"></script>
 </body>
