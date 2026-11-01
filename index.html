@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StoreOps ERP | Unified Enterprise Manager</title>
+    <title>Modern ERP & Store Manager</title>
     
     <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,12 +12,12 @@
     <!-- Font Awesome Pro Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Enterprise Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <!-- Modern Font: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS with Clean White Enterprise Tokens -->
+    <!-- Tailwind CSS with ERP Design Tokens -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -33,17 +33,39 @@
                             DEFAULT: '#2563eb',
                             50: '#eff6ff',
                             100: '#dbeafe',
+                            500: '#3b82f6',
                             600: '#2563eb',
-                            700: '#1d4ed8'
+                            700: '#1d4ed8',
                         },
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
-                        cosmetic: '#ec4899'
+                        success: {
+                            DEFAULT: '#10b981',
+                            50: '#ecfdf5',
+                            500: '#10b981',
+                            600: '#059669',
+                        },
+                        warning: {
+                            DEFAULT: '#f59e0b',
+                            50: '#fffbeb',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        danger: {
+                            DEFAULT: '#ef4444',
+                            50: '#fef2f2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                        },
+                        cosmetic: {
+                            DEFAULT: '#ec4899',
+                            50: '#fdf2f8',
+                            500: '#ec4899',
+                            600: '#db2777',
+                        }
                     },
                     boxShadow: {
-                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)',
-                        'dropdown': '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)'
+                        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+                        'card': '0 0 0 1px rgba(0,0,0,0.04), 0 2px 10px -2px rgba(0,0,0,0.06)',
+                        'glow': '0 0 25px -5px rgba(37, 99, 235, 0.25)',
                     }
                 }
             }
@@ -51,33 +73,38 @@
     </script>
 
     <style>
-        :root { 
-            color-scheme: light; 
+        :root {
+            color-scheme: light;
+        }
+        .dark-mode {
+            color-scheme: dark;
         }
 
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8fafc;
-            color: #0f172a;
-            letter-spacing: -0.012em;
+            letter-spacing: -0.011em;
             -webkit-font-smoothing: antialiased;
         }
-
-        /* Active Tab Management */
+        
+        /* Tab Transitions */
         .tab { display: none; }
-        .tab.active { display: block; animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
+        .tab.active { 
+            display: block; 
+            animation: tabFade 0.25s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        
+        @keyframes tabFade {
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Enterprise Nav Buttons */
+        /* Nav Tab Active States */
         .nav-btn {
             position: relative;
-            transition: all 0.18s ease;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .nav-btn.active { 
-            background-color: #eff6ff; 
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.03) 100%); 
             color: #2563eb; 
             font-weight: 600;
         }
@@ -91,679 +118,828 @@
             background: #2563eb;
             border-radius: 0 4px 4px 0;
         }
+        .dark-mode .nav-btn.active { 
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0.04) 100%);
+            color: #60a5fa; 
+        }
+        .dark-mode .nav-btn.active::before {
+            background: #60a5fa;
+            box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+        }
 
-        /* Clean Scrollbars */
+        /* Sleek Modern Scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        .dark-mode ::-webkit-scrollbar-thumb { background: #334155; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Autofill Styling Fixes */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+        .dark-mode input:-webkit-autofill,
+        .dark-mode input:-webkit-autofill:hover, 
+        .dark-mode input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 30px #18181b inset !important;
+            -webkit-text-fill-color: #f4f4f5 !important;
+        }
     </style>
 </head>
-<body class="min-h-screen selection:bg-blue-600 selection:text-white flex overflow-hidden">
+<body class="bg-slate-50/70 text-slate-800 dark:bg-[#0c0d12] dark:text-zinc-100 min-h-screen selection:bg-primary selection:text-white antialiased">
 
-    <!-- REAL-TIME SUCCESS NOTIFICATION -->
-    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/30 backdrop-blur-sm opacity-0 transition-opacity duration-200 pointer-events-none">
-        <div id="success-card" class="bg-white border border-slate-100 px-8 py-6 rounded-2xl shadow-xl flex flex-col items-center justify-center transform scale-50 transition-all duration-200 max-w-sm mx-4">
-            <div id="success-icon-container" class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-xl mb-3 border border-emerald-100">
+    <!-- GLOBAL SUCCESS OVERLAY ANIMATION -->
+    <div id="success-overlay" class="fixed inset-0 z-[999] hidden items-center justify-center bg-slate-900/40 dark:bg-black/70 backdrop-blur-md opacity-0 transition-opacity duration-200 pointer-events-none">
+        <div id="success-card" class="bg-white dark:bg-zinc-900 px-8 py-7 rounded-3xl shadow-2xl flex flex-col items-center justify-center transform scale-50 transition-all duration-300 ease-out border border-slate-100 dark:border-zinc-800 max-w-sm mx-4">
+            <div id="success-icon-container" class="w-16 h-16 bg-emerald-500 text-white rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-lg shadow-emerald-500/30">
                 <i class="fa-solid fa-check"></i>
             </div>
-            <h2 id="success-msg" class="text-sm font-bold text-slate-900 tracking-tight text-center">Action Completed</h2>
-            <p class="text-[11px] text-slate-500 mt-0.5">Database synchronized in real time</p>
+            <h2 id="success-msg" class="text-lg font-bold text-slate-900 dark:text-white tracking-tight text-center">Action Completed</h2>
+            <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">Changes updated in real-time</p>
         </div>
     </div>
 
-    <!-- 1. LOGIN SCREEN -->
-    <div id="login-container" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-50">
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-md relative z-10">
+    <!-- 1. AUTHENTICATION / LOGIN VIEW -->
+    <div id="login-container" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-100 via-white to-blue-50/40 dark:from-zinc-950 dark:via-[#0c0d12] dark:to-blue-950/20">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-8 sm:p-10 rounded-3xl shadow-soft border border-slate-200/80 dark:border-zinc-800 w-full max-w-md relative z-10">
             <div class="text-center mb-8">
-                <div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-blue-500/20 text-lg">
-                    <i class="fa-solid fa-store"></i>
+                <div class="w-14 h-14 bg-gradient-to-tr from-primary-600 to-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-glow">
+                    <i class="fa-solid fa-layer-group"></i>
                 </div>
-                <h2 class="text-xl font-bold tracking-tight text-slate-900">Sign in to StoreOps</h2>
-                <p class="text-xs text-slate-500 mt-1">Enter your admin credentials to access inventory</p>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Enterprise ERP</h2>
+                <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">Sign in to manage inventory & sales intelligence</p>
             </div>
 
             <form id="form-login" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-0.5">Email Address</label>
-                    <input type="email" id="login-email" placeholder="admin@store.com" required 
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="email" id="login-email" placeholder="admin@store.com" required 
+                            class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-750 bg-slate-50/60 dark:bg-zinc-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 text-sm focus:bg-white dark:focus:bg-zinc-800 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                    </div>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 ml-0.5">Password</label>
-                    <input type="password" id="login-password" placeholder="••••••••••••" required 
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="login-password" placeholder="••••••••••••" required 
+                            class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-750 bg-slate-50/60 dark:bg-zinc-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 text-sm focus:bg-white dark:focus:bg-zinc-800 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all">
+                    </div>
                 </div>
-                <p id="login-error" class="text-rose-600 hidden text-xs font-medium bg-rose-50 border border-rose-100 p-2.5 rounded-xl"></p>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl shadow-sm transition active:scale-[0.98] text-xs">
-                    Sign In
+
+                <p id="login-error" class="text-danger hidden text-xs font-medium bg-danger/10 border border-danger/20 p-2.5 rounded-xl"></p>
+
+                <button type="submit" class="w-full bg-primary hover:bg-primary-700 text-white font-semibold py-3.5 rounded-xl shadow-md shadow-primary/20 transition-all active:scale-[0.98] text-sm flex items-center justify-center gap-2">
+                    <span>Access ERP Workspace</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- 2. MAIN APP SHELL -->
+    <!-- 2. MAIN APPLICATION WORKSPACE -->
     <div id="app-container" style="display: none;" class="h-screen w-full flex overflow-hidden">
         
-        <!-- CLEAN WHITE SIDEBAR -->
-        <aside class="hidden lg:flex flex-col w-60 bg-white border-r border-slate-200 h-full z-20 select-none shrink-0">
-            <!-- Brand -->
-            <div class="h-14 px-5 flex items-center gap-3 border-b border-slate-100">
-                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                    <i class="fa-solid fa-boxes-packing"></i>
-                </div>
-                <div>
-                    <h1 class="text-sm font-bold text-slate-900 tracking-tight leading-none">StoreOps</h1>
-                    <span class="text-[10px] text-slate-400 font-medium">Enterprise Manager</span>
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-[#121319] border-r border-slate-200/80 dark:border-zinc-800/80 h-full z-20 select-none">
+            <!-- Brand Logo -->
+            <div class="p-5 flex items-center justify-between border-b border-slate-100 dark:border-zinc-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-blue-500 flex items-center justify-center text-white shadow-sm shadow-primary/30">
+                        <i class="fa-solid fa-bolt-lightning text-sm"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">StoreOps ERP</h2>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">Cloud Database</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Workspace Navigation -->
-            <div class="px-4 pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Operations</div>
-            <nav class="flex-1 overflow-y-auto px-3 space-y-0.5 py-1">
-                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-chart-pie w-4 text-center"></i> Dashboard
+            
+            <!-- Navigation Links -->
+            <div class="px-3 pt-3 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Workspace</div>
+            <nav class="flex-1 overflow-y-auto py-2 flex flex-col gap-0.5 px-3">
+                <button id="btn-dashboard" class="nav-btn active flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-chart-line w-4 text-center"></i> Dashboard
                 </button>
-                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-cart-shopping w-4 text-center"></i> Record Sales
+                <button id="btn-sales" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-cart-shopping w-4 text-center"></i> Point of Sale
                 </button>
-                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-truck-ramp-box w-4 text-center"></i> Record Purchases
+                <button id="btn-purchases" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-truck-ramp-box w-4 text-center"></i> Purchases
                 </button>
-                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-cubes-stacked w-4 text-center"></i> Stock Inventory
+                <button id="btn-inventory" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-boxes-stacked w-4 text-center"></i> Stock Inventory
                 </button>
-                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-receipt w-4 text-center"></i> Ledger Audit
+                <button id="btn-transactions" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-receipt w-4 text-center"></i> Ledger Audit
                 </button>
-
-                <div class="pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Intelligence</div>
-                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-chart-line w-4 text-center"></i> Analytics & ABC
+                
+                <div class="pt-4 pb-1 px-1 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Intelligence</div>
+                <button id="btn-analytics" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-regular fa-chart-pie w-4 text-center"></i> Analytics & ABC
                 </button>
-                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                    <i class="fa-solid fa-fire text-amber-500 w-4 text-center"></i> Trend Engine
+                <button id="btn-trends" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2.5 rounded-xl text-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-zinc-800/50">
+                    <i class="fa-solid fa-fire text-orange-500 w-4 text-center"></i> Trend Engine
                 </button>
             </nav>
 
-            <!-- Bottom Tools -->
-            <div class="p-3 border-t border-slate-100 space-y-1">
-                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-xs text-slate-600 hover:bg-slate-50">
-                    <i class="fa-solid fa-gear w-4 text-center"></i> Settings & Backup
+            <!-- Bottom System Links -->
+            <div class="p-3 border-t border-slate-100 dark:border-zinc-800 space-y-1">
+                <button id="btn-settings" class="nav-btn flex items-center gap-3 w-full text-left px-3.5 py-2 rounded-xl text-xs text-slate-500 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/60">
+                    <i class="fa-regular fa-gear w-4 text-center"></i> Settings & Sync
                 </button>
-                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-3 py-2 rounded-xl text-xs text-rose-600 hover:bg-rose-50 transition">
-                    <i class="fa-solid fa-right-from-bracket w-4 text-center"></i> Sign Out
+                <button id="btn-logout" class="flex items-center gap-3 w-full text-left px-3.5 py-2 rounded-xl text-xs text-danger hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                    <i class="fa-regular fa-arrow-right-from-bracket w-4 text-center"></i> Logout
                 </button>
             </div>
         </aside>
 
-        <!-- MAIN SCROLLABLE CONTENT VIEWPORT -->
-        <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
+        <!-- MAIN SCROLLABLE VIEWPORT -->
+        <main class="flex-1 h-full overflow-y-auto bg-slate-50/70 dark:bg-[#0c0d12] p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 relative">
             
-            <!-- TOP SYSTEM BAR -->
-            <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between gap-4 shrink-0 z-10">
-                <div class="flex items-center gap-3">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span class="text-xs font-semibold text-slate-700">Live Database Connected</span>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <span id="dash-year-label" class="text-xs font-medium text-slate-500">(All Fiscal Years)</span>
-                </div>
-            </header>
-
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">
+            <!-- ============================================== -->
+            <!-- TAB 1: DASHBOARD OVERVIEW -->
+            <!-- ============================================== -->
+            <div id="tab-dashboard" class="tab active max-w-7xl mx-auto space-y-6">
                 
-                <!-- ============================================== -->
-                <!-- TAB 1: REAL-TIME DASHBOARD (100% REAL LIVE DATA)-->
-                <!-- ============================================== -->
-                <div id="tab-dashboard" class="tab active max-w-7xl mx-auto space-y-6">
+                <!-- Header Bar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            Dashboard Overview
+                        </h1>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Real-time revenue, margins, and stock intelligence</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50 shadow-sm">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live Ledger Active
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Today's Snapshot Performance Cards -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                            <i class="fa-regular fa-sun text-amber-500"></i> Today's Performance
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+                        <div class="bg-white dark:bg-[#14151c] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                            <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Sales Today</span>
+                            <p id="dash-today-sales" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-2 tracking-tight">₹0.00</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                            <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Profit Today</span>
+                            <p id="dash-today-profit" class="text-xl sm:text-2xl font-black text-primary mt-2 tracking-tight">₹0.00</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                            <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Margin Today</span>
+                            <p id="dash-today-margin" class="text-xl sm:text-2xl font-black text-amber-500 mt-2 tracking-tight">0.0%</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                            <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Units Sold</span>
+                            <p id="dash-today-items" class="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 mt-2 tracking-tight">0</p>
+                        </div>
+                        <div class="col-span-2 lg:col-span-1 bg-white dark:bg-[#14151c] p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                            <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Trending SKU</span>
+                            <p id="dash-today-trending" class="text-base sm:text-lg font-bold text-orange-500 mt-2 truncate">N/A</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lifetime Cumulative Stats -->
+                <div>
+                    <div class="flex items-center justify-between mb-3 pt-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-earth-americas text-emerald-500"></i> Lifetime Metrics 
+                            <span id="dash-year-label" class="text-[11px] font-medium text-slate-500 lowercase">(All Years)</span>
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+                        <div class="bg-white dark:bg-[#14151c] p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-zinc-500">Gross Sales</span>
+                            <p id="dash-overall-revenue" class="text-lg font-bold text-slate-900 dark:text-white mt-1">₹0.00</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-zinc-500">Net Profit</span>
+                            <p id="dash-overall-profit" class="text-lg font-bold text-slate-900 dark:text-white mt-1">₹0.00</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-zinc-500">Current Stock Value</span>
+                            <p id="dash-inv-value" class="text-lg font-bold text-slate-900 dark:text-white mt-1">₹0.00</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-zinc-500">Low Stock Alert</span>
+                            <p id="dash-low-stock" class="text-lg font-bold text-danger mt-1">0</p>
+                        </div>
+                        <div class="bg-white dark:bg-[#14151c] p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-zinc-500">Total Units in Stock</span>
+                            <p id="dash-inventory" class="text-lg font-bold text-slate-900 dark:text-white mt-1">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Selling Leaderboard Table -->
+                <div class="bg-white dark:bg-[#14151c] rounded-2xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden shadow-soft max-w-4xl">
+                    <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500 text-sm"></i>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Top Selling Items</h3>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <select id="dash-top-month" class="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"></select>
+                            <select id="dash-top-type" class="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-primary">
+                                <option value="All">All Items</option>
+                                <option value="Sale">Inventory</option>
+                                <option value="Cosmetic Sale">Cosmetics</option>
+                            </select>
+                        </div>
+                    </div>
                     
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Real-time financial status calculated directly from your ledger</p>
-                    </div>
+                    <ul id="dash-top-list" class="divide-y divide-slate-100 dark:divide-zinc-800/80 max-h-96 overflow-y-auto p-2"></ul>
+                </div>
+            </div>
 
-                    <!-- 1. Today's Performance (Live Calculations) -->
-                    <div>
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Today's Performance</div>
-                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sales Today</span>
-                                <div id="dash-today-sales" class="text-xl sm:text-2xl font-black text-emerald-600 font-mono mt-1.5">₹0.00</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Profit Today</span>
-                                <div id="dash-today-profit" class="text-xl sm:text-2xl font-black text-blue-600 font-mono mt-1.5">₹0.00</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Margin Today</span>
-                                <div id="dash-today-margin" class="text-xl sm:text-2xl font-black text-amber-500 font-mono mt-1.5">0.0%</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Units Sold</span>
-                                <div id="dash-today-items" class="text-xl sm:text-2xl font-black text-purple-600 font-mono mt-1.5">0</div>
-                            </div>
-                            <div class="col-span-2 lg:col-span-1 bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Top SKU Today</span>
-                                <div id="dash-today-trending" class="text-sm font-bold text-slate-800 mt-2 truncate">No Sales Today</div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- ============================================== -->
+            <!-- TAB 2: TREND ENGINE -->
+            <!-- ============================================== -->
+            <div id="tab-trends" class="tab max-w-7xl mx-auto">
+                <div id="trend-tab-container"></div>
+            </div>
 
-                    <!-- 2. Lifetime Capital & Inventory Overview -->
-                    <div>
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">Lifetime Ledger Metrics</div>
-                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-medium text-slate-500">Gross Revenue</span>
-                                <div id="dash-overall-revenue" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-medium text-slate-500">Net Profit</span>
-                                <div id="dash-overall-profit" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-medium text-slate-500">Current Stock Value</span>
-                                <div id="dash-inv-value" class="text-lg font-bold text-slate-900 font-mono mt-1">₹0.00</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-medium text-slate-500">Low Stock SKUs</span>
-                                <div id="dash-low-stock" class="text-lg font-bold text-rose-600 font-mono mt-1">0</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                                <span class="text-[11px] font-medium text-slate-500">Total Units in Stock</span>
-                                <div id="dash-inventory" class="text-lg font-bold text-slate-900 font-mono mt-1">0</div>
-                            </div>
-                        </div>
-                    </div>
+            <!-- ============================================== -->
+            <!-- TAB 3: TRANSACTIONS AUDIT LEDGER -->
+            <!-- ============================================== -->
+            <div id="tab-transactions" class="tab max-w-7xl mx-auto space-y-5">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Transactions Ledger</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Complete chronological trail with line-item return actions</p>
+                </div>
 
-                    <!-- 3. Top Selling Products Leaderboard -->
-                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden max-w-3xl">
-                        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-trophy text-amber-500 text-sm"></i>
-                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800">Top Selling Products</h3>
-                            </div>
-                            <div class="flex gap-2">
-                                <select id="dash-top-month" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 outline-none"></select>
-                                <select id="dash-top-type" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 outline-none">
-                                    <option value="All">All Items</option>
-                                    <option value="Sale">Inventory</option>
-                                    <option value="Cosmetic Sale">Cosmetics</option>
-                                </select>
-                            </div>
-                        </div>
-                        <ul id="dash-top-list" class="divide-y divide-slate-100 p-2 text-xs"></ul>
+                <!-- Filters -->
+                <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">From Date</label>
+                        <input type="date" id="filter-trans-start" class="border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">To Date</label>
+                        <input type="date" id="filter-trans-end" class="border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <button id="btn-trans-filter" class="bg-primary hover:bg-primary-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">
+                        <i class="fa-solid fa-filter mr-1.5"></i> Filter Records
+                    </button>
+                    <button id="btn-trans-clear" class="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Table Card -->
+                <div class="bg-white dark:bg-[#14151c] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="table-transactions" class="min-w-full divide-y divide-slate-100 dark:divide-zinc-800 text-left text-xs">
+                            <thead class="bg-slate-50/80 dark:bg-zinc-800/50 uppercase tracking-wider text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
+                                <tr>
+                                    <th class="px-5 py-3.5">Date</th>
+                                    <th class="px-5 py-3.5">Type</th>
+                                    <th class="px-5 py-3.5">Item Name</th>
+                                    <th class="px-5 py-3.5">Quantity</th>
+                                    <th class="px-5 py-3.5">Total Amount</th>
+                                    <th class="px-5 py-3.5 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-zinc-800/80 text-slate-700 dark:text-zinc-300"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TAB 4: ADVANCED BUSINESS ANALYTICS -->
+            <!-- ============================================== -->
+            <div id="tab-analytics" class="tab max-w-7xl mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                        Analytics & SKU Intelligence
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">ABC classification, FSN velocity, and margin breakdown</p>
+                </div>
+
+                <!-- Date Range Filters -->
+                <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Start Date</label>
+                        <input type="date" id="ana-start" class="border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-1">End Date</label>
+                        <input type="date" id="ana-end" class="border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <button id="btn-ana-filter" class="bg-primary hover:bg-primary-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95 shadow-sm">
+                        Apply Analytics
+                    </button>
+                    <button id="btn-ana-today" class="bg-slate-800 hover:bg-slate-900 text-white dark:bg-zinc-700 dark:hover:bg-zinc-600 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        Today
+                    </button>
+                    <button id="btn-ana-clear" class="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Analytics Metrics -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Filtered Revenue</span>
+                        <p id="ana-revenue" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">₹0.00</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Filtered Profit</span>
+                        <p id="ana-profit" class="text-xl font-bold text-primary mt-1">₹0.00</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Gross Margin</span>
+                        <p id="ana-margin" class="text-xl font-bold text-amber-500 mt-1">0.0%</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Current Stock Units</span>
+                        <p id="ana-stock" class="text-xl font-bold text-purple-600 dark:text-purple-400 mt-1">0</p>
                     </div>
                 </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 2: TREND ENGINE                            -->
-                <!-- ============================================== -->
-                <div id="tab-trends" class="tab max-w-7xl mx-auto">
-                    <div id="trend-tab-container"></div>
+                <!-- Charts Matrix -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="xl:col-span-2 bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <canvas id="chart-monthly"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center">
+                        <canvas id="chart-abc"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center">
+                        <canvas id="chart-fsn"></canvas>
+                    </div>
                 </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 3: LEDGER AUDIT & RETURNS                 -->
-                <!-- ============================================== -->
-                <div id="tab-transactions" class="tab max-w-7xl mx-auto space-y-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Ledger Audit Trail</h2>
-                        <p class="text-xs text-slate-500">Live record of sales, purchases, and returns with instant reversal</p>
-                    </div>
-
-                    <!-- Filter Controls -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-wrap gap-3 items-end">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Start Date</label>
-                            <input type="date" id="filter-trans-start" class="border border-slate-200 bg-slate-50 text-slate-900 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500">
+                <!-- Side by Side Tables -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-sm font-bold">Top Performing Products</h3>
+                            <select id="filter-top-selling" class="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1">
+                                <option value="All">All Items</option>
+                                <option value="Top10">Top 10</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">End Date</label>
-                            <input type="date" id="filter-trans-end" class="border border-slate-200 bg-slate-50 text-slate-900 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-blue-500">
-                        </div>
-                        <button id="btn-trans-filter" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
-                            <i class="fa-solid fa-filter mr-1"></i> Apply Filter
-                        </button>
-                        <button id="btn-trans-clear" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
-                            Reset
-                        </button>
-                    </div>
-
-                    <!-- Ledger Table -->
-                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table id="table-transactions" class="min-w-full divide-y divide-slate-100 text-left text-xs">
-                                <thead class="bg-slate-50/80 uppercase tracking-wider text-[10px] font-bold text-slate-500">
-                                    <tr>
-                                        <th class="px-5 py-3">Date</th>
-                                        <th class="px-5 py-3">Type</th>
-                                        <th class="px-5 py-3">Item Particulars</th>
-                                        <th class="px-5 py-3">Qty</th>
-                                        <th class="px-5 py-3">Amount</th>
-                                        <th class="px-5 py-3 text-center">Action</th>
-                                    </tr>
+                        <div class="overflow-x-auto max-h-64">
+                            <table class="min-w-full text-xs text-left">
+                                <thead class="bg-slate-50 dark:bg-zinc-800/60 uppercase font-semibold text-slate-400">
+                                    <tr><th class="py-2.5 px-3">Item</th><th class="py-2.5 px-3 text-right">Sold</th></tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+                                <tbody id="tbody-top-selling" class="divide-y divide-slate-100 dark:divide-zinc-800"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-sm font-bold">Critical Stock Alert</h3>
+                            <select id="filter-inv-status" class="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 py-1">
+                                <option value="All">All Items</option>
+                                <option value="Low">Low (&le; 3 units)</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto max-h-64">
+                            <table class="min-w-full text-xs text-left">
+                                <thead class="bg-slate-50 dark:bg-zinc-800/60 uppercase font-semibold text-slate-400">
+                                    <tr><th class="py-2.5 px-3">Item</th><th class="py-2.5 px-3 text-right">Stock</th></tr>
+                                </thead>
+                                <tbody id="tbody-inv-status" class="divide-y divide-slate-100 dark:divide-zinc-800"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 4: ANALYTICS & ABC CLASSIFICATION          -->
-                <!-- ============================================== -->
-                <div id="tab-analytics" class="tab max-w-7xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Business Analytics & Matrix</h2>
-                        <p class="text-xs text-slate-500">ABC revenue contribution and FSN inventory velocity</p>
+                <!-- Deep Analytics Tables -->
+                <div class="space-y-4">
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft overflow-x-auto">
+                        <h3 class="text-sm font-bold">ABC Value Contribution Matrix</h3>
+                        <p class="text-xs text-slate-400 mb-4">A = Top 70% Value | B = Next 20% | C = Bottom 10%</p>
+                        <table id="table-abc" class="min-w-full text-xs text-left divide-y divide-slate-100 dark:divide-zinc-800">
+                            <thead class="bg-slate-50 dark:bg-zinc-800/60 font-semibold text-slate-400">
+                                <tr>
+                                    <th class="py-3 px-4">Item</th>
+                                    <th class="py-3 px-4">Value</th>
+                                    <th class="py-3 px-4">Cum. %</th>
+                                    <th class="py-3 px-4">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-zinc-800"></tbody>
+                        </table>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-wrap gap-3 items-end">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
-                            <input type="date" id="ana-start" class="border border-slate-200 bg-slate-50 rounded-lg px-3 py-1.5 text-xs text-slate-900 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">To Date</label>
-                            <input type="date" id="ana-end" class="border border-slate-200 bg-slate-50 rounded-lg px-3 py-1.5 text-xs text-slate-900 outline-none">
-                        </div>
-                        <button id="btn-ana-filter" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
-                            Analyze
-                        </button>
-                        <button id="btn-ana-today" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition active:scale-95">
-                            Today
-                        </button>
-                        <button id="btn-ana-clear" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition active:scale-95">
-                            Reset
-                        </button>
-                    </div>
-
-                    <!-- Analytics Metrics -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filtered Revenue</span>
-                            <p id="ana-revenue" class="text-xl font-bold font-mono text-emerald-600 mt-1">₹0.00</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filtered Profit</span>
-                            <p id="ana-profit" class="text-xl font-bold font-mono text-blue-600 mt-1">₹0.00</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gross Margin</span>
-                            <p id="ana-margin" class="text-xl font-bold font-mono text-amber-500 mt-1">0.0%</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stock Units</span>
-                            <p id="ana-stock" class="text-xl font-bold font-mono text-purple-600 mt-1">0</p>
-                        </div>
-                    </div>
-
-                    <!-- Charts Grid -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <div class="xl:col-span-2 bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <canvas id="chart-monthly" class="max-h-72"></canvas>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-col justify-center">
-                            <canvas id="chart-abc" class="max-h-60"></canvas>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card flex flex-col justify-center">
-                            <canvas id="chart-fsn" class="max-h-60"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Side-by-Side Tables -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-xs font-bold uppercase text-slate-700">Top Performing Products</h3>
-                                <select id="filter-top-selling" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1">
-                                    <option value="All">All Items</option>
-                                    <option value="Top10">Top 10</option>
-                                </select>
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft overflow-x-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="text-sm font-bold">FSN &times; HMV Velocity Matrix</h3>
+                                <p class="text-xs text-slate-400">Fast / Slow / Non-Moving mapped across High / Medium / Low Revenue</p>
                             </div>
-                            <div class="overflow-x-auto max-h-56">
-                                <table class="min-w-full text-xs text-left"><tbody id="tbody-top-selling" class="divide-y divide-slate-100"></tbody></table>
-                            </div>
+                            <select id="ana-class-filter" class="text-xs bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 font-medium">
+                                <option value="All">All Classes</option>
+                                <option value="⭐ Stars">⭐ Stars</option>
+                                <option value="💰 Cash Cows">💰 Cash Cows</option>
+                                <option value="🔥 Dead Weight">🔥 Dead Weight</option>
+                                <option value="🚀 Drivers">🚀 Drivers</option>
+                                <option value="🐢 Slugs">🐢 Slugs</option>
+                                <option value="💤 Sleepers">💤 Sleepers</option>
+                                <option value="🏃 Runners">🏃 Runners</option>
+                                <option value="📦 Basics">📦 Basics</option>
+                                <option value="🗑️ Dead Stock">🗑️ Dead Stock</option>
+                            </select>
                         </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-xs font-bold uppercase text-slate-700">Critical Stock Threshold</h3>
-                                <select id="filter-inv-status" class="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1">
-                                    <option value="All">All</option>
-                                    <option value="Low">Low (&le; 3 units)</option>
-                                </select>
-                            </div>
-                            <div class="overflow-x-auto max-h-56">
-                                <table class="min-w-full text-xs text-left"><tbody id="tbody-inv-status" class="divide-y divide-slate-100"></tbody></table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Deep Analytics Matrices -->
-                    <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card overflow-x-auto">
-                            <h3 class="text-xs font-bold uppercase text-slate-700 mb-1">ABC Inventory Valuation</h3>
-                            <p class="text-[11px] text-slate-400 mb-3">A = Top 70% Capital | B = Next 20% | C = Tail 10%</p>
-                            <table id="table-abc" class="min-w-full text-xs text-left divide-y divide-slate-100"><tbody class="divide-y divide-slate-100"></tbody></table>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card overflow-x-auto">
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-xs font-bold uppercase text-slate-700">FSN &times; HMV Velocity Matrix</h3>
-                                <select id="ana-class-filter" class="text-xs bg-slate-50 border border-slate-200 rounded px-2.5 py-1">
-                                    <option value="All">All Classes</option>
-                                    <option value="⭐ Stars">⭐ Stars</option>
-                                    <option value="💰 Cash Cows">💰 Cash Cows</option>
-                                    <option value="🔥 Dead Weight">🔥 Dead Weight</option>
-                                    <option value="🚀 Drivers">🚀 Drivers</option>
-                                    <option value="🐢 Slugs">🐢 Slugs</option>
-                                    <option value="💤 Sleepers">💤 Sleepers</option>
-                                    <option value="🏃 Runners">🏃 Runners</option>
-                                    <option value="📦 Basics">📦 Basics</option>
-                                    <option value="🗑️ Dead Stock">🗑️ Dead Stock</option>
-                                </select>
-                            </div>
-                            <table id="table-matrix" class="min-w-full text-xs text-left divide-y divide-slate-100"><tbody class="divide-y divide-slate-100"></tbody></table>
-                        </div>
+                        <table id="table-matrix" class="min-w-full text-xs text-left divide-y divide-slate-100 dark:divide-zinc-800">
+                            <thead class="bg-slate-50 dark:bg-zinc-800/60 font-semibold text-slate-400">
+                                <tr>
+                                    <th class="py-3 px-4">Item</th>
+                                    <th class="py-3 px-4">Stock</th>
+                                    <th class="py-3 px-4">Value</th>
+                                    <th class="py-3 px-4">Rev</th>
+                                    <th class="py-3 px-4">FSN</th>
+                                    <th class="py-3 px-4">HMV</th>
+                                    <th class="py-3 px-4">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-zinc-800"></tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 5: POINT OF SALE (CART-BASED BILLING)       -->
-                <!-- ============================================== -->
-                <div id="tab-sales" class="tab max-w-7xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Record Sales</h2>
-                        <p class="text-xs text-slate-500">Fast checkout cart with automatic inventory stock deductions</p>
-                    </div>
+            <!-- ============================================== -->
+            <!-- TAB 5: POINT OF SALE / SALES DESK -->
+            <!-- ============================================== -->
+            <div id="tab-sales" class="tab max-w-7xl mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Record Sales</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Create checkout carts with stock auto-deduction or record custom cosmetic sales</p>
+                </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Standard Cart Sale -->
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-card relative overflow-hidden">
-                            <div class="absolute top-0 right-0 bg-emerald-600 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
-                                Inventory Tracked
-                            </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Standard Sale Form -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft relative overflow-hidden flex flex-col justify-between">
+                        <div class="absolute top-0 right-0 bg-emerald-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
+                            <i class="fa-solid fa-boxes-stacked mr-1"></i> Stock Deducted
+                        </div>
 
-                            <h3 class="text-sm font-bold text-slate-900 mb-4">Standard POS Terminal</h3>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Standard Sale (Cart)</h3>
+                            <p class="text-xs text-slate-400 mb-5">Predictive inventory search with multi-item checkout</p>
+
                             <form id="form-sale" class="space-y-4">
                                 <div class="relative">
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Select Item</label>
-                                    <input type="text" id="sale-item" autocomplete="off" placeholder="Start typing SKU name..." 
-                                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition">
-                                    <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-dropdown max-h-56 overflow-y-auto"></div>
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Select Item</label>
+                                    <input type="text" id="sale-item" autocomplete="off" placeholder="Start typing item name..." 
+                                        class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none">
+                                    
+                                    <!-- Predictive Dropdown -->
+                                    <div id="sale-item-dropdown" class="hidden absolute z-50 w-full mt-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-60 overflow-y-auto"></div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Unit Cost (₹)</label>
-                                        <input type="number" id="sale-cost" placeholder="Auto" readonly class="w-full px-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs rounded-xl cursor-not-allowed">
+                                        <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Unit Cost (₹)</label>
+                                        <input type="number" id="sale-cost" placeholder="Auto" readonly 
+                                            class="w-full px-3.5 py-2 bg-slate-100 dark:bg-zinc-850 text-slate-500 dark:text-zinc-400 text-sm border border-slate-200 dark:border-zinc-700 rounded-xl opacity-75 cursor-not-allowed">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
-                                        <input type="number" id="sale-qty" step="any" placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                        <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Quantity</label>
+                                        <input type="number" id="sale-qty" step="any" placeholder="0" 
+                                            class="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none">
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Selling Rate (₹)</label>
-                                    <input type="number" id="sale-rate" step="0.01" placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-emerald-600 font-bold text-base rounded-xl font-mono focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate per Unit (₹)</label>
+                                    <input type="number" id="sale-rate" placeholder="0.00" step="0.01" 
+                                        class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 outline-none">
                                 </div>
 
-                                <button type="button" id="btn-add-to-cart" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-1.5">
+                                <button type="button" id="btn-add-to-cart" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2 active:scale-95">
                                     <i class="fa-solid fa-plus"></i> Add Item to Cart
                                 </button>
 
-                                <!-- POS Cart Manifest -->
-                                <div id="cart-container" class="hidden mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                                    <span class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Cart Items</span>
-                                    <ul id="cart-list" class="space-y-1.5 text-xs max-h-36 overflow-y-auto my-2"></ul>
-                                    <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
-                                        <span class="text-xs text-slate-500 font-medium">Grand Total</span>
-                                        <span class="text-base font-black font-mono text-slate-900">₹<span id="cart-total">0.00</span></span>
+                                <!-- Cart Container -->
+                                <div id="cart-container" class="hidden mt-4 bg-slate-50 dark:bg-zinc-850 border border-slate-200 dark:border-zinc-700/80 rounded-xl p-4">
+                                    <div class="text-xs font-bold uppercase text-slate-400 mb-2">Cart Items</div>
+                                    <ul id="cart-list" class="space-y-1.5 text-xs max-h-40 overflow-y-auto"></ul>
+                                    <div class="mt-3 pt-3 border-t border-slate-200 dark:border-zinc-700 flex justify-between items-center">
+                                        <span class="text-xs font-bold text-slate-500">Cart Total</span>
+                                        <span class="text-lg font-black text-slate-900 dark:text-white">₹<span id="cart-total">0.00</span></span>
                                     </div>
                                 </div>
 
-                                <button type="submit" id="btn-save-sale" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
+                                <button type="submit" id="btn-save-sale" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-emerald-600/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95 mt-4">
                                     <i class="fa-solid fa-circle-check"></i> Complete & Checkout
                                 </button>
                             </form>
                         </div>
+                    </div>
 
-                        <!-- Cosmetic Custom Sale -->
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-card relative overflow-hidden h-fit">
-                            <div class="absolute top-0 right-0 bg-pink-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
-                                Custom / Non-Stock
-                            </div>
-
-                            <h3 class="text-sm font-bold text-slate-900 mb-4">Cosmetic Sale Entry</h3>
-                            <form id="form-cosmetic" class="space-y-4">
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Item Description</label>
-                                    <input type="text" id="cosmetic-item" required placeholder="Custom sale..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
-                                        <input type="number" id="cosmetic-qty" step="any" required placeholder="0" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-600 mb-1">Estimated Cost (₹)</label>
-                                        <input type="number" id="cosmetic-cost" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Selling Rate (₹)</label>
-                                    <input type="number" id="cosmetic-rate" step="0.01" required placeholder="0.00" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-pink-600 font-bold font-mono text-base rounded-xl outline-none focus:ring-2 focus:ring-pink-500/20">
-                                </div>
-                                <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-bolt"></i> Instant Record Cosmetic Sale
-                                </button>
-                            </form>
+                    <!-- Cosmetic Sale Form -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft relative overflow-hidden h-fit">
+                        <div class="absolute top-0 right-0 bg-pink-500 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Custom / No Deduct
                         </div>
-                    </div>
-                </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 6: PURCHASES                               -->
-                <!-- ============================================== -->
-                <div id="tab-purchases" class="tab max-w-2xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Record Inbound Purchases</h2>
-                        <p class="text-xs text-slate-500">Adding new procurement automatically increments stock count</p>
-                    </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Cosmetic Sale</h3>
+                        <p class="text-xs text-slate-400 mb-5">Ad-hoc sales not tracked in physical inventory</p>
 
-                    <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-card">
-                        <form id="form-purchase" class="space-y-4">
-                            <div class="relative">
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Item Particulars</label>
-                                <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search existing or create new..." 
-                                    class="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none transition">
-                                <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-dropdown max-h-56 overflow-y-auto"></div>
+                        <form id="form-cosmetic" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Custom Item Name</label>
+                                <input type="text" id="cosmetic-item" required placeholder="e.g. Gift Wrap, Service..." 
+                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
+
+                            <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity Added</label>
-                                    <input type="number" id="purchase-qty" step="any" required placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Quantity</label>
+                                    <input type="number" id="cosmetic-qty" step="any" required placeholder="0" 
+                                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Total Paid (₹)</label>
-                                    <input type="number" id="purchase-amount" required placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-rose-600 font-bold font-mono text-base rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
+                                    <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Estimated Cost (₹)</label>
+                                    <input type="number" id="cosmetic-cost" required placeholder="0.00" step="0.01" 
+                                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
                                 </div>
                             </div>
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-xs transition active:scale-95 shadow-sm flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-arrow-down-to-bracket"></i> Save Inbound Purchase
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Selling Rate (₹)</label>
+                                <input type="number" id="cosmetic-rate" required placeholder="0.00" step="0.01" 
+                                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-800 text-pink-600 dark:text-pink-400 font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none">
+                            </div>
+
+                            <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-pink-600/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95">
+                                <i class="fa-solid fa-bolt"></i> Instant Record Cosmetic Sale
                             </button>
                         </form>
                     </div>
                 </div>
+            </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 7: INVENTORY MANAGEMENT                     -->
-                <!-- ============================================== -->
-                <div id="tab-inventory" class="tab max-w-7xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Stock Register</h2>
-                        <p class="text-xs text-slate-500">Live catalogue inventory counts, unit cost valuation, and thresholds</p>
-                    </div>
+            <!-- ============================================== -->
+            <!-- TAB 6: PURCHASES & INBOUND STOCK -->
+            <!-- ============================================== -->
+            <div id="tab-purchases" class="tab max-w-2xl mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Record Purchases</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Procurement receipt: inventory count increments automatically</p>
+                </div>
 
-                    <!-- Inventory Counter Cards -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Catalogue Items</span>
-                            <p id="stat-inv-total" class="text-xl font-bold font-mono text-slate-900 mt-1">0</p>
+                <div class="bg-white dark:bg-[#14151c] p-6 sm:p-8 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                    <form id="form-purchase" class="space-y-4">
+                        <div class="relative">
+                            <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Item Name</label>
+                            <input type="text" id="purchase-item" autocomplete="off" required placeholder="Search existing or type to create new..." 
+                                class="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 focus:border-danger outline-none">
+                            
+                            <!-- Dropdown -->
+                            <div id="purchase-item-dropdown" class="hidden absolute z-50 w-full mt-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-60 overflow-y-auto"></div>
                         </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Valuation</span>
-                            <p id="stat-inv-value" class="text-xl font-bold font-mono text-emerald-600 mt-1">₹0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stockouts</span>
-                            <p id="stat-inv-out" class="text-xl font-bold font-mono text-rose-600 mt-1">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Low Stock</span>
-                            <p id="stat-inv-low" class="text-xl font-bold font-mono text-amber-500 mt-1">0</p>
-                        </div>
-                    </div>
 
-                    <!-- Add / Edit Item Form -->
-                    <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-card">
-                        <h3 id="inv-form-title" class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3">Add new item</h3>
-                        <form id="form-inventory" class="flex flex-col md:flex-row gap-2.5 items-center">
-                            <input type="text" id="inv-name" required placeholder="SKU name..." class="flex-1 w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
-                            <input type="number" id="inv-qty" step="any" required placeholder="Qty" min="0" class="w-full md:w-28 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
-                            <input type="number" id="inv-price" required step="0.01" placeholder="Cost (₹)" min="0" class="w-full md:w-32 px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
-                            <div class="flex gap-2 w-full md:w-auto">
-                                <button type="submit" id="btn-inv-submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded-xl text-xs shadow-sm transition">Save</button>
-                                <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-xl text-xs">Cancel</button>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Quantity Added</label>
+                                <input type="number" id="purchase-qty" step="any" required placeholder="0" 
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white text-sm border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
                             </div>
-                        </form>
-                    </div>
-
-                    <!-- Inventory Table with Working Filter Tabs & Realtime Search -->
-                    <div class="bg-white rounded-xl border border-slate-200/90 shadow-card overflow-hidden">
-                        <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-700 uppercase">Catalogue</span>
-                                <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-                                    <button class="inv-tab active px-3 py-1 rounded-lg text-xs font-semibold" data-filter="all">All</button>
-                                    <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="out">Out of stock</button>
-                                    <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="low">Low stock</button>
-                                </div>
-                            </div>
-                            <div class="relative w-full sm:w-64">
-                                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" id="search-inventory" placeholder="Search inventory..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 text-slate-900 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1">Total Paid (₹)</label>
+                                <input type="number" id="purchase-amount" required placeholder="0.00" 
+                                    class="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 text-danger font-bold text-lg border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-danger/20 outline-none">
                             </div>
                         </div>
 
-                        <div class="overflow-x-auto">
-                            <table id="table-inventory" class="min-w-full divide-y divide-slate-100 text-left text-xs">
-                                <thead class="bg-slate-50/80 uppercase tracking-wider text-[10px] font-bold text-slate-500">
-                                    <tr>
-                                        <th class="px-5 py-3">Item</th>
-                                        <th class="px-5 py-3 text-right">Stock Qty</th>
-                                        <th class="px-5 py-3 text-right">Unit Cost</th>
-                                        <th class="px-5 py-3 text-right">Stock Value</th>
-                                        <th class="px-5 py-3 text-right">Status</th>
-                                        <th class="px-5 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
-                            </table>
-                        </div>
+                        <button type="submit" class="w-full bg-danger hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-danger/20 transition-all text-sm flex items-center justify-center gap-2 active:scale-95 mt-2">
+                            <i class="fa-solid fa-arrow-down-to-bracket"></i> Record Inbound Purchase
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TAB 7: INVENTORY STOCK MANAGEMENT -->
+            <!-- ============================================== -->
+            <div id="tab-inventory" class="tab max-w-7xl mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Inventory Management</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Live stock control, pricing benchmarks, and re-order thresholds</p>
+                </div>
+
+                <!-- 1. Stats Counter Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Total SKUs</span>
+                        <p id="stat-inv-total" class="text-2xl font-black text-slate-900 dark:text-white mt-1">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Stock Valuation</span>
+                        <p id="stat-inv-value" class="text-2xl font-black text-slate-900 dark:text-white mt-1">₹0</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Stockouts</span>
+                        <p id="stat-inv-out" class="text-2xl font-black text-danger mt-1">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Low Stock Warning</span>
+                        <p id="stat-inv-low" class="text-2xl font-black text-amber-500 mt-1">0</p>
                     </div>
                 </div>
 
-                <!-- ============================================== -->
-                <!-- TAB 8: SETTINGS & BACKUP                      -->
-                <!-- ============================================== -->
-                <div id="tab-settings" class="tab max-w-3xl mx-auto space-y-6">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Settings & Configuration</h2>
-                        <p class="text-xs text-slate-500">Fiscal year filters, database maintenance, and spreadsheets</p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <!-- Fiscal Year -->
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card flex items-center justify-between">
-                            <div>
-                                <h3 class="font-bold text-sm text-slate-900">Global Fiscal Year Filter</h3>
-                                <p class="text-xs text-slate-500">Filter all metrics and ledgers across a fiscal year</p>
-                            </div>
-                            <select id="global-year-filter" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-mono text-xs text-slate-900 outline-none cursor-pointer">
-                                <option value="All">All Fiscal Years</option>
-                            </select>
-                        </div>
-
-                        <!-- Appearance Toggle -->
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card flex items-center justify-between">
-                            <div>
-                                <h3 class="font-bold text-sm text-slate-900">Display Theme</h3>
-                                <p class="text-xs text-slate-500">Toggle between clean white and dark OLED theme</p>
-                            </div>
-                            <button id="btn-theme-toggle" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-xl text-xs transition">
-                                Toggle Mode
+                <!-- 2. Fast Inline Add / Edit Card -->
+                <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                    <h3 id="inv-form-title" class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Add new item</h3>
+                    <form id="form-inventory" class="flex flex-col md:flex-row gap-3 items-center">
+                        <input type="text" id="inv-name" required placeholder="Item name or description..." 
+                            class="flex-1 w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none">
+                        
+                        <input type="number" id="inv-qty" step="any" required placeholder="Quantity" min="0" 
+                            class="w-full md:w-32 px-4 py-2.5 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none">
+                        
+                        <input type="number" id="inv-price" required step="0.01" placeholder="Cost Price (₹)" min="0" 
+                            class="w-full md:w-36 px-4 py-2.5 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none">
+                        
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button type="submit" id="btn-inv-submit" class="bg-primary hover:bg-primary-700 text-white font-semibold py-2.5 px-6 rounded-xl transition text-xs whitespace-nowrap shadow-sm">
+                                Save
+                            </button>
+                            <button type="button" id="btn-inv-cancel" style="display:none;" class="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-semibold py-2.5 px-4 rounded-xl transition text-xs">
+                                Cancel
                             </button>
                         </div>
+                    </form>
+                </div>
 
-                        <!-- Data Management Actions -->
-                        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-card">
-                            <h3 class="font-bold text-sm text-slate-900 mb-1">Data Maintenance</h3>
-                            <p class="text-xs text-slate-500 mb-4">Bulk spreadsheet imports and SKU consolidation</p>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
-                                <button id="btn-trigger-excel" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-solid fa-file-excel text-emerald-600 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-800">Import Excel</span>
-                                </button>
-                                <button id="btn-sync-drive" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-brands fa-google-drive text-blue-600 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-800">Cloud Sync</span>
-                                </button>
-                                <button id="btn-merge-dup" class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl text-center flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500 text-xl"></i>
-                                    <span class="text-xs font-bold text-slate-800">Merge Duplicates</span>
-                                </button>
+                <!-- 3. Stock Register Table with Tabs & Search -->
+                <div class="bg-white dark:bg-[#14151c] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Inventory Register</h3>
+                            <div class="flex gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                                <button class="inv-tab active px-3 py-1 rounded-lg text-xs font-semibold" data-filter="all">All</button>
+                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="out">Out of stock</button>
+                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="low">Low stock</button>
                             </div>
+                        </div>
+
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="search-inventory" placeholder="Search product..." 
+                                class="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table id="table-inventory" class="min-w-full divide-y divide-slate-100 dark:divide-zinc-800 text-left text-xs">
+                            <thead class="bg-slate-50/80 dark:bg-zinc-800/50 uppercase tracking-wider text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
+                                <tr>
+                                    <th class="px-5 py-3.5">Item</th>
+                                    <th class="px-5 py-3.5 text-right">Stock Qty</th>
+                                    <th class="px-5 py-3.5 text-right">Unit Cost</th>
+                                    <th class="px-5 py-3.5 text-right">Stock Value</th>
+                                    <th class="px-5 py-3.5 text-right">Status</th>
+                                    <th class="px-5 py-3.5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-zinc-800 text-slate-700 dark:text-zinc-300"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TAB 8: SYSTEM SETTINGS & DATA TOOLS -->
+            <!-- ============================================== -->
+            <div id="tab-settings" class="tab max-w-3xl mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Settings & Configuration</h1>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Financial year parameters, theme preference, and data pipeline</p>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Global Year Filter -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-days text-amber-500"></i> Global Financial Year Filter
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Filter dashboards, matrices, and transaction tables across a specific fiscal year</p>
+                        </div>
+                        <select id="global-year-filter" class="w-full sm:w-44 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 font-bold text-xs text-slate-800 dark:text-white outline-none cursor-pointer">
+                            <option value="All">All Years</option>
+                        </select>
+                    </div>
+
+                    <!-- Appearance -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-moon text-indigo-500"></i> Appearance Mode
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Switch between daytime clarity and dark-mode OLED theme</p>
+                        </div>
+                        <button id="btn-theme-toggle" class="bg-slate-900 hover:bg-slate-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold py-2 px-5 rounded-xl transition text-xs shadow-sm">
+                            Switch Theme
+                        </button>
+                    </div>
+
+                    <!-- Data Management -->
+                    <div class="bg-white dark:bg-[#14151c] p-6 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-database text-primary"></i> Data Management & Maintenance
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mb-5">Batch upload inventory via Excel, backup records to drive, or cleanse duplicates</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                            <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" style="display: none;">
+                            
+                            <button id="btn-trigger-excel" class="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/40 p-4 rounded-xl transition flex flex-col items-center justify-center gap-2 text-center">
+                                <i class="fa-solid fa-file-excel text-2xl"></i>
+                                <span class="text-xs font-bold">Import Excel</span>
+                            </button>
+
+                            <button id="btn-sync-drive" class="bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/20 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/40 p-4 rounded-xl transition flex flex-col items-center justify-center gap-2 text-center">
+                                <i class="fa-brands fa-google-drive text-2xl"></i>
+                                <span class="text-xs font-bold">Sync to Drive</span>
+                            </button>
+
+                            <button id="btn-merge-dup" class="bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-amber-800/40 p-4 rounded-xl transition flex flex-col items-center justify-center gap-2 text-center">
+                                <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+                                <span class="text-xs font-bold">Merge Duplicates</span>
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
+            
+        </main>
 
-            </main>
-        </div>
+        <!-- MOBILE DOCKED BOTTOM NAVIGATION -->
+        <nav class="lg:hidden bg-white/90 dark:bg-[#121319]/90 backdrop-blur-xl border-t border-slate-200/80 dark:border-zinc-800 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
+            <button onclick="document.getElementById('btn-dashboard').click(); updateMobileNav(this);" class="mob-nav-btn text-primary flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-chart-line text-base mb-1"></i>Home
+            </button>
+            <button onclick="document.getElementById('btn-sales').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-cart-shopping text-base mb-1"></i>POS
+            </button>
+            <button onclick="document.getElementById('btn-inventory').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-boxes-stacked text-base mb-1"></i>Stock
+            </button>
+            <button onclick="document.getElementById('btn-transactions').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-receipt text-base mb-1"></i>Ledger
+            </button>
+            <button onclick="document.getElementById('btn-analytics').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-chart-pie text-base mb-1"></i>Analytics
+            </button>
+            <button onclick="document.getElementById('btn-trends').click(); updateMobileNav(this);" class="mob-nav-btn text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
+                <i class="fa-solid fa-fire text-base mb-1"></i>Trends
+            </button>
+        </nav>
     </div>
 
-    <!-- Mobile Bottom Bar -->
-    <nav class="lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200 w-full fixed bottom-0 left-0 z-50 px-2 py-1 flex items-center justify-between overflow-x-auto no-scrollbar">
-        <button onclick="document.getElementById('btn-dashboard').click();" class="text-blue-600 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-chart-pie text-sm mb-0.5"></i>Home
-        </button>
-        <button onclick="document.getElementById('btn-sales').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-cart-shopping text-sm mb-0.5"></i>POS
-        </button>
-        <button onclick="document.getElementById('btn-inventory').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-cubes-stacked text-sm mb-0.5"></i>Stock
-        </button>
-        <button onclick="document.getElementById('btn-transactions').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-receipt text-sm mb-0.5"></i>Ledger
-        </button>
-        <button onclick="document.getElementById('btn-analytics').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-chart-line text-sm mb-0.5"></i>Analytics
-        </button>
-        <button onclick="document.getElementById('btn-trends').click();" class="text-slate-400 flex flex-col items-center p-2 min-w-[55px] text-[10px] font-medium">
-            <i class="fa-solid fa-fire text-sm mb-0.5"></i>Trends
-        </button>
-    </nav>
-
-    <!-- Core App Logic -->
+    <!-- Mobile Nav Active Synchronizer -->
+    <script>
+        function updateMobileNav(activeBtn) {
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+                btn.classList.remove('text-primary');
+                btn.classList.add('text-slate-400');
+            });
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('text-primary');
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+    
+    <!-- ERP Core Logic Modules -->
     <script type="module" src="app.js"></script>
     <script src="trend-engine.js"></script>
 </body>
