@@ -55,6 +55,12 @@
                             500: '#ef4444',
                             600: '#dc2626',
                         },
+                        purple: {
+                            DEFAULT: '#8b5cf6',
+                            50: '#f5f3ff',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        },
                         cosmetic: {
                             DEFAULT: '#ec4899',
                             50: '#fdf2f8',
@@ -162,6 +168,58 @@
             </div>
             <h2 id="success-msg" class="text-lg font-bold text-slate-900 dark:text-white tracking-tight text-center">Action Completed</h2>
             <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">Changes updated in real-time</p>
+        </div>
+    </div>
+
+    <!-- MODAL: INTERACTIVE CHART SLICE DRILLDOWN -->
+    <div id="chart-drilldown-modal" class="fixed inset-0 z-[900] hidden items-center justify-center bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm p-4 opacity-0 transition-opacity duration-200">
+        <div id="chart-drilldown-panel" class="bg-white dark:bg-[#14151c] w-full max-w-4xl max-h-[85vh] rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden transform scale-95 transition-transform duration-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-4.5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-slate-50/50 dark:bg-zinc-850/50">
+                <div class="flex items-center gap-3">
+                    <div id="drilldown-badge" class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-primary/10 text-primary">Category</div>
+                    <div>
+                        <h3 id="drilldown-title" class="text-base font-bold text-slate-900 dark:text-white">Segment Products Breakdown</h3>
+                        <p id="drilldown-subtitle" class="text-[11px] text-slate-400 dark:text-zinc-400 mt-0.5">Click-through segment audit</p>
+                    </div>
+                </div>
+                <button onclick="window.closeChartDrilldownModal();" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-sm transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Search & Counter -->
+            <div class="px-6 py-3 border-b border-slate-100 dark:border-zinc-800/80 bg-white dark:bg-[#14151c] flex items-center justify-between gap-4">
+                <div class="relative flex-1 max-w-sm">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="drilldown-search" placeholder="Filter items in this category..." 
+                        class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-primary">
+                </div>
+                <div id="drilldown-count" class="text-xs font-semibold text-slate-500 dark:text-zinc-400">0 SKUs listed</div>
+            </div>
+
+            <!-- Modal Table Content -->
+            <div class="overflow-y-auto flex-1 p-0">
+                <table id="drilldown-table" class="min-w-full text-xs text-left divide-y divide-slate-100 dark:divide-zinc-800">
+                    <thead class="bg-slate-50/80 dark:bg-zinc-800/60 uppercase font-bold text-slate-400 text-[10px] tracking-wider sticky top-0 backdrop-blur-sm z-10">
+                        <tr>
+                            <th class="py-3 px-5">Item Name</th>
+                            <th class="py-3 px-4 text-right">Units Sold</th>
+                            <th class="py-3 px-4 text-right">Revenue Generated</th>
+                            <th class="py-3 px-4 text-right">Current Stock</th>
+                            <th class="py-3 px-4 text-right">Stock Valuation</th>
+                            <th class="py-3 px-4 text-center">Velocity Classification</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drilldown-tbody" class="divide-y divide-slate-100 dark:divide-zinc-800/80 text-slate-700 dark:text-zinc-300"></tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-850/50 flex items-center justify-between text-xs text-slate-400">
+                <span>Real-time classification based on selected date ranges</span>
+                <button onclick="window.closeChartDrilldownModal();" class="px-4 py-1.5 bg-slate-200 dark:bg-zinc-700 hover:bg-slate-300 text-slate-800 dark:text-white rounded-lg font-bold text-xs transition">Done</button>
+            </div>
         </div>
     </div>
 
@@ -529,11 +587,17 @@
             <!-- TAB 4: ADVANCED BUSINESS ANALYTICS -->
             <!-- ============================================== -->
             <div id="tab-analytics" class="tab max-w-7xl mx-auto space-y-6">
-                <div>
-                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                        Analytics & SKU Intelligence
-                    </h1>
-                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">ABC classification, FSN velocity, and margin breakdown</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            Analytics & SKU Intelligence
+                        </h1>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">ABC classification, FSN velocity, and margin breakdown</p>
+                    </div>
+                    <div class="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/50 px-3 py-1.5 rounded-xl text-primary text-xs font-semibold">
+                        <i class="fa-solid fa-arrow-pointer animate-bounce text-xs"></i>
+                        <span>Click any doughnut / pie chart slice to inspect matching items</span>
+                    </div>
                 </div>
 
                 <!-- Date Range Filters -->
@@ -577,16 +641,28 @@
                     </div>
                 </div>
 
-                <!-- Charts Matrix -->
+                <!-- Charts Matrix (Interactive Slices) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div class="xl:col-span-2 bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
                         <canvas id="chart-monthly"></canvas>
                     </div>
-                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center">
-                        <canvas id="chart-abc"></canvas>
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center relative group">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">ABC Segment Breakdown</span>
+                            <span class="text-[10px] bg-slate-100 dark:bg-zinc-800 text-slate-500 px-2 py-0.5 rounded-full"><i class="fa-solid fa-arrow-pointer mr-1"></i>Click Slice</span>
+                        </div>
+                        <div class="relative h-60 w-full flex items-center justify-center">
+                            <canvas id="chart-abc"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center">
-                        <canvas id="chart-fsn"></canvas>
+                    <div class="bg-white dark:bg-[#14151c] p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft flex flex-col justify-center relative group">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">FSN Velocity Units</span>
+                            <span class="text-[10px] bg-slate-100 dark:bg-zinc-800 text-slate-500 px-2 py-0.5 rounded-full"><i class="fa-solid fa-arrow-pointer mr-1"></i>Click Slice</span>
+                        </div>
+                        <div class="relative h-60 w-full flex items-center justify-center">
+                            <canvas id="chart-fsn"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -889,31 +965,42 @@
             </div>
 
             <!-- ============================================== -->
-            <!-- TAB 7: INVENTORY STOCK MANAGEMENT -->
+            <!-- TAB 7: INVENTORY & STOCK VELOCITY HEALTH      -->
             <!-- ============================================== -->
             <div id="tab-inventory" class="tab max-w-7xl mx-auto space-y-6">
-                <div>
-                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Inventory Management</h1>
-                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Live stock control, pricing benchmarks, and re-order thresholds</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Inventory Health & Valuation</h1>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Velocity-based re-order warnings, overstock capital identification, and stock register</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/50">
+                            <i class="fa-solid fa-brain text-[11px]"></i> Run-Rate Intelligent
+                        </span>
+                    </div>
                 </div>
 
-                <!-- 1. Stats Counter Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                <!-- 1. Stats Counter Grid (With Dynamic Velocity Health) -->
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
                         <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Total SKUs</span>
                         <p id="stat-inv-total" class="text-2xl font-black text-slate-900 dark:text-white mt-1">0</p>
                     </div>
-                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
                         <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Stock Valuation</span>
                         <p id="stat-inv-value" class="text-2xl font-black text-slate-900 dark:text-white mt-1">₹0</p>
                     </div>
-                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Stockouts</span>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Out of Stock</span>
                         <p id="stat-inv-out" class="text-2xl font-black text-danger mt-1">0</p>
                     </div>
-                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
-                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Low Stock Warning</span>
+                    <div class="bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Stockout Risk (Velocity)</span>
                         <p id="stat-inv-low" class="text-2xl font-black text-amber-500 mt-1">0</p>
+                    </div>
+                    <div class="col-span-2 lg:col-span-1 bg-white dark:bg-[#14151c] p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft">
+                        <span class="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Overstocked SKUs</span>
+                        <p id="stat-inv-overstock" class="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">0</p>
                     </div>
                 </div>
 
@@ -941,19 +1028,21 @@
                     </form>
                 </div>
 
-                <!-- 3. Stock Register Table with Tabs & Search -->
+                <!-- 3. Stock Register Table with Velocity Insights & Overstock Detection -->
                 <div class="bg-white dark:bg-[#14151c] rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-soft overflow-hidden">
-                    <div class="p-4 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Inventory Register</h3>
-                            <div class="flex gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
+                    <div class="p-4 border-b border-slate-100 dark:border-zinc-800 flex flex-col md:flex-row justify-between md:items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Inventory Register</h3>
+                            <div class="flex flex-wrap gap-1 bg-slate-100 dark:bg-zinc-800/80 p-1 rounded-xl">
                                 <button class="inv-tab active px-3 py-1 rounded-lg text-xs font-semibold" data-filter="all">All</button>
+                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="risk">Stockout Risk / Low</button>
+                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="overstock">Overstocked</button>
                                 <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="out">Out of stock</button>
-                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="low">Low stock</button>
+                                <button class="inv-tab px-3 py-1 rounded-lg text-xs font-semibold" data-filter="optimal">Optimal</button>
                             </div>
                         </div>
 
-                        <div class="relative w-full sm:w-64">
+                        <div class="relative w-full md:w-64">
                             <i class="fa-solid fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                             <input type="text" id="search-inventory" placeholder="Search product..." 
                                 class="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-white border border-slate-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none">
@@ -964,11 +1053,13 @@
                         <table id="table-inventory" class="min-w-full divide-y divide-slate-100 dark:divide-zinc-800 text-left text-xs">
                             <thead class="bg-slate-50/80 dark:bg-zinc-800/50 uppercase tracking-wider text-[11px] font-semibold text-slate-500 dark:text-zinc-400">
                                 <tr>
-                                    <th class="px-5 py-3.5">Item</th>
-                                    <th class="px-5 py-3.5 text-right">Stock Qty</th>
+                                    <th class="px-5 py-3.5">Product Item</th>
+                                    <th class="px-5 py-3.5 text-right">Current Stock</th>
+                                    <th class="px-5 py-3.5 text-right">Daily Velocity</th>
+                                    <th class="px-5 py-3.5 text-right">Runway (Est. Days)</th>
                                     <th class="px-5 py-3.5 text-right">Unit Cost</th>
                                     <th class="px-5 py-3.5 text-right">Stock Value</th>
-                                    <th class="px-5 py-3.5 text-right">Status</th>
+                                    <th class="px-5 py-3.5 text-center">Stock Health</th>
                                     <th class="px-5 py-3.5 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -1181,6 +1272,25 @@
                 if (activeSpan) activeSpan.className = 'text-[10px] font-bold';
             }
         }
+
+        // Chart drilldown modal helper
+        window.closeChartDrilldownModal = function() {
+            const modal = document.getElementById('chart-drilldown-modal');
+            const panel = document.getElementById('chart-drilldown-panel');
+            if (!modal || !panel) return;
+            modal.classList.add('opacity-0');
+            panel.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        };
+
+        // Close drilldown modal if clicking outside backdrop
+        document.getElementById('chart-drilldown-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'chart-drilldown-modal') {
+                window.closeChartDrilldownModal();
+            }
+        });
     </script>
     
     <!-- ERP Core Logic Modules -->
