@@ -94,6 +94,8 @@ if (globalYearSelect) {
         updateDashboardMetrics();
         renderTransactionsTable();
         renderDashboardTopItems();
+        updateInventoryStats();
+        renderInventoryTable();
         if (document.getElementById('tab-analytics')?.classList.contains('active')) runAnalytics();
     });
 }
@@ -203,6 +205,7 @@ tabs.forEach(tab => {
             document.getElementById(`btn-${tab}`)?.classList.add('active');
             
             if(tab === 'analytics') setTimeout(runAnalytics, 10); 
+            if(tab === 'inventory') { updateInventoryStats(); renderInventoryTable(); }
             
             if(tab === 'trends' && window.TrendEngine) {
                 if(!document.getElementById('te-root')) {
@@ -253,6 +256,8 @@ function startDatabaseListeners() {
         updateDashboardMonths(allTransactions);
         renderDashboardTopItems();
         updateDashboardMetrics();
+        updateInventoryStats();
+        renderInventoryTable();
         
         if (document.getElementById('tab-analytics')?.classList.contains('active')) runAnalytics();
         
@@ -632,7 +637,6 @@ document.querySelector('#table-transactions tbody')?.addEventListener('click', a
                     
                     if(newStock < 0) newStock = 0;
                     
-                    // Clear zeroStockSince if returning stock puts inventory > 0
                     batch.update(doc(db, "inventory", localInvItem.id), { 
                         qty: newStock,
                         ...(newStock > 0 ? { zeroStockSince: null } : { zeroStockSince: new Date().toISOString() })
@@ -667,7 +671,12 @@ document.getElementById('ana-class-filter')?.addEventListener('change', runAnaly
 document.getElementById('filter-top-selling')?.addEventListener('change', runAnalytics);
 document.getElementById('filter-inv-status')?.addEventListener('change', runAnalytics);
 
-let lastMonthlyData = {}; let lastAbcTotals = {}; let lastFsnTotals = {};
+let lastMonthlyData = {}; 
+let lastAbcTotals = {}; 
+let lastFsnTotals = {};
+let lastAnalyticsItemStats = {};
+let lastAnalyticsAbcArray = [];
+let lastAnalyticsMatrixRows = [];
 
 function runAnalytics() {
     if(!document.getElementById('tab-analytics')?.classList.contains('active')) return;
@@ -732,17 +741,37 @@ function runAnalytics() {
 
     let totalInvValue = 0; let abcArray = [];
     for (const[name, data] of Object.entries(itemStats)) {
-        totalInvValue += data.invValue; abcArray.push({ name, value: data.invValue });
+        totalInvValue += data.invValue; 
+        abcArray.push({ 
+            name, 
+            value: data.invValue, 
+            stock: data.stock, 
+            qtySold: data.qtySold, 
+            totalRevenue: data.totalRevenue 
+        });
     }
     abcArray.sort((a,b) => b.value - a.value);
     
     let cumValue = 0; let abcTotals = { A: 0, B: 0, C: 0 }; let abcHtml = [];
     abcArray.forEach(item => {
-        cumValue += item.value; let pct = totalInvValue > 0 ? cumValue / totalInvValue : 0; let category = 'C';
+        cumValue += item.value; 
+        let pct = totalInvValue > 0 ? cumValue / totalInvValue : 0; 
+        let category = 'C';
         let catClass = 'text-danger font-bold';
-        if(pct <= 0.70) { abcTotals.A += item.value; category = 'A'; catClass = 'text-emerald-600 dark:text-emerald-400 font-bold'; }
-        else if (pct <= 0.90) { abcTotals.B += item.value; category = 'B'; catClass = 'text-amber-500 font-bold'; }
-        else { abcTotals.C += item.value; category = 'C'; }
+        if(pct <= 0.70) { 
+            abcTotals.A += item.value; 
+            category = 'A'; 
+            catClass = 'text-emerald-600 dark:text-emerald-400 font-bold'; 
+        } else if (pct <= 0.90) { 
+            abcTotals.B += item.value; 
+            category = 'B'; 
+            catClass = 'text-amber-500 font-bold'; 
+        } else { 
+            abcTotals.C += item.value; 
+            category = 'C'; 
+        }
+        item.category = category;
+        item.cumPct = pct;
         
         abcHtml.push(`<tr><td class="py-2.5 px-4 font-semibold text-slate-800 dark:text-zinc-200">${item.name}</td><td class="py-2.5 px-4">₹${item.value.toFixed(2)}</td><td class="py-2.5 px-4">${(pct * 100).toFixed(1)}%</td><td class="py-2.5 px-4 ${catClass}">${category}</td></tr>`);
     });
@@ -774,16 +803,34 @@ function runAnalytics() {
     let maxRev = Math.max(...Object.values(itemStats).map(i => i.totalRevenue), 0);
 
     for (const[name, data] of Object.entries(itemStats)) {
-        let FSN = 'N'; if (data.qtySold > 0) FSN = data.qtySold >= (maxQtySold * 0.5) ? 'F' : 'S'; 
+        let FSN = 'N'; 
+        if (data.qtySold > 0) FSN = data.qtySold >= (maxQtySold * 0.5) ? 'F' : 'S'; 
         fsnTotals[FSN] += data.stock;
-        let HMV = 'V'; if (data.totalRevenue > 0) HMV = data.totalRevenue >= (maxRev * 0.5) ? 'H' : 'M'; 
+        
+        let HMV = 'V'; 
+        if (data.totalRevenue > 0) HMV = data.totalRevenue >= (maxRev * 0.5) ? 'H' : 'M'; 
+        
         let actClass = "";
-        if(FSN==='F' && HMV==='H') actClass = "⭐ Stars"; else if(FSN==='S' && HMV==='H') actClass = "💰 Cash Cows";
-        else if(FSN==='N' && HMV==='H') actClass = "🔥 Dead Weight"; else if(FSN==='F' && HMV==='M') actClass = "🚀 Drivers";
-        else if(FSN==='S' && HMV==='M') actClass = "🐢 Slugs"; else if(FSN==='N' && HMV==='M') actClass = "💤 Sleepers";
-        else if(FSN==='F' && HMV==='V') actClass = "🏃 Runners"; else if(FSN==='S' && HMV==='V') actClass = "📦 Basics";
+        if(FSN==='F' && HMV==='H') actClass = "⭐ Stars"; 
+        else if(FSN==='S' && HMV==='H') actClass = "💰 Cash Cows";
+        else if(FSN==='N' && HMV==='H') actClass = "🔥 Dead Weight"; 
+        else if(FSN==='F' && HMV==='M') actClass = "🚀 Drivers";
+        else if(FSN==='S' && HMV==='M') actClass = "🐢 Slugs"; 
+        else if(FSN==='N' && HMV==='M') actClass = "💤 Sleepers";
+        else if(FSN==='F' && HMV==='V') actClass = "🏃 Runners"; 
+        else if(FSN==='S' && HMV==='V') actClass = "📦 Basics";
         else if(FSN==='N' && HMV==='V') actClass = "🗑️ Dead Stock";
-        matrixRows.push({ name, stock: data.stock, invValue: data.invValue, rev: data.totalRevenue, FSN, HMV, actClass });
+        
+        matrixRows.push({ 
+            name, 
+            stock: data.stock, 
+            invValue: data.invValue, 
+            rev: data.totalRevenue, 
+            qtySold: data.qtySold,
+            FSN, 
+            HMV, 
+            actClass 
+        });
     }
 
     const filterClass = document.getElementById('ana-class-filter')?.value; let matrixHtml = [];
@@ -796,12 +843,21 @@ function runAnalytics() {
     const matrixTbody = document.querySelector('#table-matrix tbody');
     if (matrixTbody) matrixTbody.innerHTML = matrixHtml.join('');
 
-    lastMonthlyData = monthlyData; lastAbcTotals = abcTotals; lastFsnTotals = fsnTotals;
+    lastMonthlyData = monthlyData; 
+    lastAbcTotals = abcTotals; 
+    lastFsnTotals = fsnTotals;
+    lastAnalyticsItemStats = itemStats;
+    lastAnalyticsAbcArray = abcArray;
+    lastAnalyticsMatrixRows = matrixRows;
+
     renderCharts(monthlyData, abcTotals, fsnTotals);
 }
 
 function renderCharts(monthlyData, abcTotals, fsnTotals) {
-    if(myChartMonthly) myChartMonthly.destroy(); if(myChartABC) myChartABC.destroy(); if(myChartFSN) myChartFSN.destroy();
+    if(myChartMonthly) myChartMonthly.destroy(); 
+    if(myChartABC) myChartABC.destroy(); 
+    if(myChartFSN) myChartFSN.destroy();
+
     const labelsMonth = Object.keys(monthlyData).reverse();
     const dataSales = labelsMonth.map(m => monthlyData[m].sales);
     const dataProfit = labelsMonth.map(m => monthlyData[m].profit);
@@ -821,7 +877,13 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
                     { label: 'Profit (₹)', data: dataProfit, backgroundColor: '#10b981', borderRadius: 6 }
                 ] 
             },
-            options: { responsive: true, plugins: { title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } }, animation: { duration: 0 } }
+            options: { 
+                responsive: true, 
+                plugins: { 
+                    title: { display: true, text: 'Monthly Sales vs Profit', color: chartTextColor } 
+                }, 
+                animation: { duration: 0 } 
+            }
         });
     }
 
@@ -829,8 +891,30 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
     if (canvasAbc) {
         myChartABC = new Chart(canvasAbc, {
             type: 'doughnut', 
-            data: { labels:['A (Top 70%)', 'B (Next 20%)', 'C (Bottom 10%)'], datasets:[{ data:[abcTotals.A, abcTotals.B, abcTotals.C], backgroundColor:['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
-            options: { responsive: true, plugins: { title: { display: true, text: 'Inventory Value by ABC', color: chartTextColor } }, animation: { duration: 0 } }
+            data: { 
+                labels: ['A (Top 70%)', 'B (Next 20%)', 'C (Bottom 10%)'], 
+                datasets: [{ 
+                    data: [abcTotals.A, abcTotals.B, abcTotals.C], 
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], 
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    title: { display: true, text: 'Inventory Value by ABC (Click Slice)', color: chartTextColor } 
+                }, 
+                animation: { duration: 0 },
+                onClick: (event, elements) => {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const categories = ['A', 'B', 'C'];
+                        openAbcSliceDrilldown(categories[index]);
+                    }
+                }
+            }
         });
     }
 
@@ -838,20 +922,147 @@ function renderCharts(monthlyData, abcTotals, fsnTotals) {
     if (canvasFsn) {
         myChartFSN = new Chart(canvasFsn, {
             type: 'pie', 
-            data: { labels:['Fast Moving', 'Slow Moving', 'Non-Moving'], datasets:[{ data:[fsnTotals.F, fsnTotals.S, fsnTotals.N], backgroundColor:['#3b82f6', '#f59e0b', '#94a3b8'], borderWidth: 0 }] },
-            options: { responsive: true, plugins: { title: { display: true, text: 'Stock Units by FSN', color: chartTextColor } }, animation: { duration: 0 } }
+            data: { 
+                labels: ['Fast Moving', 'Slow Moving', 'Non-Moving'], 
+                datasets: [{ 
+                    data: [fsnTotals.F, fsnTotals.S, fsnTotals.N], 
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#94a3b8'], 
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    title: { display: true, text: 'Stock Units by FSN (Click Slice)', color: chartTextColor } 
+                }, 
+                animation: { duration: 0 },
+                onClick: (event, elements) => {
+                    if (elements && elements.length > 0) {
+                        const index = elements[0].index;
+                        const fsnKeys = ['F', 'S', 'N'];
+                        openFsnSliceDrilldown(fsnKeys[index]);
+                    }
+                }
+            }
         });
     }
 }
 
 
 // ==========================================
+// ====== CHART DRILLDOWN MODAL INSPECTOR ===
+// ==========================================
+let currentDrilldownList = [];
+
+function openAbcSliceDrilldown(category) {
+    const badgeText = `Class ${category}`;
+    const desc = category === 'A' 
+        ? "Top 70% of inventory value (High financial importance)" 
+        : (category === 'B' ? "Intermediate 20% of value contribution" : "Bottom 10% of total inventory valuation");
+    
+    const items = lastAnalyticsAbcArray
+        .filter(item => item.category === category)
+        .map(item => ({
+            name: item.name,
+            qtySold: item.qtySold || 0,
+            revenue: item.totalRevenue || 0,
+            stock: item.stock || 0,
+            value: item.value || 0,
+            tag: `Class ${category}`,
+            tagClass: category === 'A' ? 'bg-emerald-500/10 text-emerald-600' : (category === 'B' ? 'bg-amber-500/10 text-amber-600' : 'bg-red-500/10 text-red-600')
+        }));
+
+    launchDrilldownModal(badgeText, `ABC Segment: Category ${category} Products`, desc, items);
+}
+
+function openFsnSliceDrilldown(fsnCode) {
+    const names = { F: 'Fast Moving', S: 'Slow Moving', N: 'Non-Moving' };
+    const badgeText = names[fsnCode] || fsnCode;
+    const desc = fsnCode === 'F' 
+        ? "High velocity SKUs requiring regular replenishment" 
+        : (fsnCode === 'S' ? "Moderate velocity items with steady demand" : "Dormant / zero movement stock tying up working capital");
+
+    const items = lastAnalyticsMatrixRows
+        .filter(row => row.FSN === fsnCode)
+        .map(row => ({
+            name: row.name,
+            qtySold: row.qtySold || 0,
+            revenue: row.rev || 0,
+            stock: row.stock || 0,
+            value: row.invValue || 0,
+            tag: row.actClass || names[fsnCode],
+            tagClass: fsnCode === 'F' ? 'bg-blue-500/10 text-primary' : (fsnCode === 'S' ? 'bg-amber-500/10 text-amber-600' : 'bg-slate-500/10 text-slate-500')
+        }));
+
+    launchDrilldownModal(badgeText, `FSN Velocity: ${names[fsnCode]} SKUs`, desc, items);
+}
+
+function launchDrilldownModal(badge, title, subtitle, items) {
+    const modal = document.getElementById('chart-drilldown-modal');
+    const panel = document.getElementById('chart-drilldown-panel');
+    if (!modal || !panel) return;
+
+    document.getElementById('drilldown-badge').innerText = badge;
+    document.getElementById('drilldown-title').innerText = title;
+    document.getElementById('drilldown-subtitle').innerText = subtitle;
+
+    currentDrilldownList = items;
+    const searchInput = document.getElementById('drilldown-search');
+    if (searchInput) searchInput.value = '';
+
+    renderDrilldownRows(items);
+
+    modal.classList.remove('hidden');
+    void modal.offsetWidth;
+    modal.classList.remove('opacity-0');
+    panel.classList.remove('scale-95');
+}
+
+function renderDrilldownRows(items) {
+    const tbody = document.getElementById('drilldown-tbody');
+    const countEl = document.getElementById('drilldown-count');
+    if (!tbody) return;
+
+    if (countEl) countEl.innerText = `${items.length} SKUs listed`;
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-12 text-center text-xs text-slate-400">No products match this slice query.</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    items.forEach(i => {
+        html += `
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors">
+            <td class="py-3 px-5 font-semibold text-slate-900 dark:text-white">${i.name}</td>
+            <td class="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">${Number(i.qtySold).toLocaleString('en-IN')}</td>
+            <td class="py-3 px-4 text-right font-medium">₹${Number(i.revenue).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="py-3 px-4 text-right font-semibold">${Number(i.stock).toLocaleString('en-IN')}</td>
+            <td class="py-3 px-4 text-right font-medium text-slate-600 dark:text-zinc-400">₹${Number(i.value).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="py-3 px-4 text-center">
+                <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${i.tagClass}">${i.tag}</span>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+}
+
+document.getElementById('drilldown-search')?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const filtered = currentDrilldownList.filter(item => item.name.toLowerCase().includes(query));
+    renderDrilldownRows(filtered);
+});
+
+
+// ==========================================
 // ====== DUAL ENTRY MODES & SETTINGS =======
 // ==========================================
-
-let currentSaleMode = localStorage.getItem('pref_sale_mode') || 'unit'; // 'unit' | 'total'
+let currentSaleMode = localStorage.getItem('pref_sale_mode') || 'unit'; 
 let currentCosmeticMode = localStorage.getItem('pref_sale_mode') || 'unit';
-let currentPurchaseMode = localStorage.getItem('pref_purchase_mode') || 'total'; // 'total' | 'unit'
+let currentPurchaseMode = localStorage.getItem('pref_purchase_mode') || 'total';
 
 function updatePillStyles(unitBtnId, totalBtnId, activeMode) {
     const btnUnit = document.getElementById(unitBtnId);
@@ -1000,8 +1211,6 @@ setPurchaseMode(currentPurchaseMode);
 // ==========================================
 // ====== ADD SALES & PURCHASES FORMS =======
 // ==========================================
-
-// CART LOGIC FOR STANDARD SALE 
 let saleCart = []; 
 
 function updateCartUI() {
@@ -1047,7 +1256,6 @@ document.getElementById('btn-add-to-cart')?.addEventListener('click', () => {
     let rate = parseFloat(rateStr);
     let amount = parseFloat(amountStr);
 
-    // Auto-calculate if only one of rate or amount was typed
     if ((isNaN(rate) || rate === 0) && !isNaN(amount) && qty > 0) {
         rate = amount / qty;
     } else if (!isNaN(rate) && (isNaN(amount) || amount === 0) && qty > 0) {
@@ -1081,7 +1289,6 @@ document.getElementById('btn-add-to-cart')?.addEventListener('click', () => {
     
     updateCartUI();
 });
-
 
 // INSTANT MULTI-SALE SAVE
 const saleForm = document.getElementById('form-sale');
@@ -1124,7 +1331,6 @@ saleForm?.addEventListener('submit', async (e) => {
                 let newQty = Number(localInvItem.qty) - cartItem.qty;
                 localInvItem.qty = newQty < 0 ? 0 : newQty;
                 
-                // Stamp zeroStockSince if item drops to zero stock
                 batch.update(doc(db, "inventory", localInvItem.id), { 
                     qty: localInvItem.qty,
                     ...(localInvItem.qty === 0 ? { zeroStockSince: new Date().toISOString() } : {})
@@ -1152,7 +1358,6 @@ saleForm?.addEventListener('submit', async (e) => {
     }
 });
 
-
 // COSMETIC SALE 
 const cosmeticForm = document.getElementById('form-cosmetic');
 cosmeticForm?.addEventListener('submit', async (e) => {
@@ -1172,7 +1377,6 @@ cosmeticForm?.addEventListener('submit', async (e) => {
     let rate = parseFloat(document.getElementById('cosmetic-rate').value);
     let amount = parseFloat(document.getElementById('cosmetic-final-amount').value);
 
-    // Auto resolve dual fields
     if ((isNaN(rate) || rate === 0) && !isNaN(amount) && qty > 0) rate = amount / qty;
     if ((isNaN(amount) || amount === 0) && !isNaN(rate)) amount = qty * rate;
 
@@ -1192,7 +1396,6 @@ cosmeticForm?.addEventListener('submit', async (e) => {
     }
 });
 
-
 // INSTANT PURCHASE SAVE
 const purchaseForm = document.getElementById('form-purchase');
 purchaseForm?.addEventListener('submit', async (e) => {
@@ -1211,7 +1414,6 @@ purchaseForm?.addEventListener('submit', async (e) => {
     let rate = parseFloat(document.getElementById('purchase-rate').value);
     let amount = parseFloat(document.getElementById('purchase-amount').value);
 
-    // Auto resolve dual fields for purchase
     if ((isNaN(amount) || amount === 0) && !isNaN(rate) && qty > 0) {
         amount = qty * rate;
     }
@@ -1258,72 +1460,182 @@ purchaseForm?.addEventListener('submit', async (e) => {
 
 
 // ==========================================
-// ====== INVENTORY MANAGEMENT LOGIC ========
+// ====== INTELLIGENT VELOCITY & INVENTORY ==
 // ==========================================
 
-function updateInventoryStats() {
-    let totalItems = allInventory.length;
-    let outCount = 0;
-    let lowCount = 0;
-    let totalValue = 0;
+/**
+ * Calculates selling velocity (units/day) over recent 60-day window
+ * and projects inventory runway (days of supply remaining).
+ */
+function getInventoryIntelligence() {
+    const now = Date.now();
+    const WINDOW_DAYS = 60;
+    const windowStartMs = now - (WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
-    allInventory.forEach(item => {
+    const itemSalesInWindow = {};
+    const itemLifetimeSales = {};
+
+    allTransactions.forEach(t => {
+        if (!t.item || !t.type.includes('Sale') || !t.date) return;
+        const tTime = new Date(t.date).getTime();
+        const qty = Number(t.qty) || 0;
+        const netQty = t.type.includes('Return') ? -qty : qty;
+
+        itemLifetimeSales[t.item] = (itemLifetimeSales[t.item] || 0) + netQty;
+
+        if (tTime >= windowStartMs) {
+            itemSalesInWindow[t.item] = (itemSalesInWindow[t.item] || 0) + netQty;
+        }
+    });
+
+    const analyzed = allInventory.map(item => {
         const qty = Number(item.qty) || 0;
         const price = Number(item.price) || 0;
-        
-        totalValue += (qty * price);
-        if (qty === 0) outCount++;
-        else if (qty <= 2) lowCount++;
+        const stockValue = qty * price;
+
+        const windowUnits = Math.max(0, itemSalesInWindow[item.name] || 0);
+        const dailyVelocity = parseFloat((windowUnits / WINDOW_DAYS).toFixed(2));
+        const lifetimeUnits = Math.max(0, itemLifetimeSales[item.name] || 0);
+
+        let runwayDays = 0;
+        if (dailyVelocity > 0) {
+            runwayDays = Math.round(qty / dailyVelocity);
+        } else {
+            runwayDays = qty > 0 ? 999 : 0;
+        }
+
+        // HEALTH CLASSIFICATION:
+        // 1. stockout: qty <= 0
+        // 2. risk: runway <= 14 days OR (dailyVelocity > 0 && runway <= 21) OR (qty <= 3 && dailyVelocity > 0)
+        // 3. overstock: (dailyVelocity > 0 && runwayDays >= 90) OR (qty >= 15 && dailyVelocity === 0 && lifetimeUnits === 0) OR (qty >= 25 && dailyVelocity <= 0.05)
+        // 4. dead: qty > 0 && dailyVelocity === 0 && lifetimeUnits === 0 (or no activity)
+        // 5. optimal: balanced steady runway (15 - 89 days)
+
+        let healthCategory = 'optimal'; 
+        let badgeHtml = '';
+
+        if (qty <= 0) {
+            healthCategory = 'out';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 rounded-full whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Out of Stock
+            </span>`;
+        } else if (dailyVelocity > 0 && runwayDays <= 7) {
+            healthCategory = 'risk';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 rounded-full whitespace-nowrap shadow-sm">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping"></span> Critical (${runwayDays}d left)
+            </span>`;
+        } else if (dailyVelocity > 0 && runwayDays <= 20) {
+            healthCategory = 'risk';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-full whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Reorder (${runwayDays}d)
+            </span>`;
+        } else if (qty <= 3 && dailyVelocity === 0) {
+            healthCategory = 'risk';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-full whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Low (${qty} left)
+            </span>`;
+        } else if ((dailyVelocity > 0 && runwayDays >= 90) || (qty >= 20 && dailyVelocity <= 0.05)) {
+            healthCategory = 'overstock';
+            const displayRunway = runwayDays >= 999 ? 'No movement' : `${runwayDays}d runway`;
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 rounded-full whitespace-nowrap">
+                <i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Overstock (${displayRunway})
+            </span>`;
+        } else if (qty >= 10 && dailyVelocity === 0 && lifetimeUnits === 0) {
+            healthCategory = 'overstock';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 rounded-full whitespace-nowrap">
+                <i class="fa-solid fa-box-archive text-[10px]"></i> Dormant Capital (${qty})
+            </span>`;
+        } else {
+            healthCategory = 'optimal';
+            badgeHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full whitespace-nowrap">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Optimal (${runwayDays >= 999 ? 'Stable' : `${runwayDays}d`})
+            </span>`;
+        }
+
+        return {
+            ...item,
+            qty,
+            price,
+            stockValue,
+            dailyVelocity,
+            runwayDays,
+            healthCategory,
+            badgeHtml
+        };
+    });
+
+    return analyzed;
+}
+
+function updateInventoryStats() {
+    const analyzed = getInventoryIntelligence();
+    let totalItems = analyzed.length;
+    let outCount = 0;
+    let riskCount = 0;
+    let overstockCount = 0;
+    let totalValue = 0;
+
+    analyzed.forEach(item => {
+        totalValue += item.stockValue;
+        if (item.healthCategory === 'out') outCount++;
+        else if (item.healthCategory === 'risk') riskCount++;
+        else if (item.healthCategory === 'overstock') overstockCount++;
     });
 
     if (document.getElementById('stat-inv-total')) {
         document.getElementById('stat-inv-total').innerText = totalItems;
         document.getElementById('stat-inv-value').innerText = `₹${totalValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('stat-inv-out').innerText = outCount;
-        document.getElementById('stat-inv-low').innerText = lowCount;
+        document.getElementById('stat-inv-low').innerText = riskCount;
+        if (document.getElementById('stat-inv-overstock')) {
+            document.getElementById('stat-inv-overstock').innerText = overstockCount;
+        }
     }
 }
 
 function renderInventoryTable() {
+    const analyzed = getInventoryIntelligence();
     let rowsHtml = [];
     const query = currentInventorySearch.toLowerCase().trim();
 
-    let filtered = allInventory.filter(item => {
+    let filtered = analyzed.filter(item => {
         const itemName = (item.name || "").toLowerCase();
-        const qty = Number(item.qty) || 0;
         
         if (query && !itemName.includes(query)) return false;
         
-        if (currentInventoryFilter === 'out' && qty !== 0) return false;
-        if (currentInventoryFilter === 'low' && (qty === 0 || qty > 2)) return false;
+        if (currentInventoryFilter === 'out' && item.healthCategory !== 'out') return false;
+        if (currentInventoryFilter === 'risk' && item.healthCategory !== 'risk') return false;
+        if (currentInventoryFilter === 'overstock' && item.healthCategory !== 'overstock') return false;
+        if (currentInventoryFilter === 'optimal' && item.healthCategory !== 'optimal') return false;
         
         return true;
     });
 
     filtered.forEach((item) => {
         const itemName = item.name || "Unknown";
-        const itemQty = Number(item.qty) || 0;
-        const itemPrice = Number(item.price) || 0;
-        const stockValue = itemQty * itemPrice;
+        const itemQty = item.qty;
+        const itemPrice = item.price;
+        const stockValue = item.stockValue;
 
-        let badgeHtml = "";
-        if (itemQty === 0) {
-            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 rounded-full whitespace-nowrap">Out of stock</span>`;
-        } else if (itemQty <= 2) {
-            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 rounded-full whitespace-nowrap">Low &mdash; ${itemQty} left</span>`;
-        } else {
-            badgeHtml = `<span class="px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 rounded-full whitespace-nowrap">${itemQty} in stock</span>`;
-        }
+        const velocityStr = item.dailyVelocity > 0 ? `${item.dailyVelocity}/day` : `0/day`;
+        let runwayStr = "";
+        if (itemQty <= 0) runwayStr = `<span class="text-slate-400">0 days</span>`;
+        else if (item.runwayDays >= 999) runwayStr = `<span class="text-slate-400">&infin; (No recent sales)</span>`;
+        else if (item.runwayDays <= 7) runwayStr = `<span class="text-rose-600 dark:text-rose-400 font-bold">${item.runwayDays} days</span>`;
+        else if (item.runwayDays <= 20) runwayStr = `<span class="text-amber-500 font-semibold">${item.runwayDays} days</span>`;
+        else runwayStr = `<span class="text-slate-600 dark:text-zinc-300">${item.runwayDays} days</span>`;
 
         rowsHtml.push(`
         <tr class="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors">
             <td class="px-5 py-3">
                 <div class="font-semibold text-slate-900 dark:text-white">${itemName}</div>
             </td>
-            <td class="px-5 py-3 text-right font-medium">${itemQty}</td>
+            <td class="px-5 py-3 text-right font-bold text-slate-800 dark:text-zinc-100">${itemQty}</td>
+            <td class="px-5 py-3 text-right font-medium text-slate-600 dark:text-zinc-400">${velocityStr}</td>
+            <td class="px-5 py-3 text-right font-semibold">${runwayStr}</td>
             <td class="px-5 py-3 text-right">₹${itemPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="px-5 py-3 text-right text-slate-600 dark:text-zinc-400 font-semibold">₹${stockValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-            <td class="px-5 py-3 text-right">${badgeHtml}</td>
+            <td class="px-5 py-3 text-right text-slate-900 dark:text-white font-bold">₹${stockValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            <td class="px-5 py-3 text-center">${item.badgeHtml}</td>
             <td class="px-5 py-3 text-right">
                 <div class="flex justify-end gap-1.5">
                     <button class="btn-edit w-7 h-7 rounded-lg border border-slate-200 dark:border-zinc-700 flex items-center justify-center text-slate-500 hover:text-primary hover:border-primary transition-colors" data-id="${item.id}" data-name="${itemName}" data-qty="${itemQty}" data-price="${itemPrice}" title="Edit">
@@ -1338,7 +1650,7 @@ function renderInventoryTable() {
     });
 
     if (filtered.length === 0) {
-        rowsHtml.push(`<tr><td colspan="6" class="px-5 py-10 text-center text-xs text-slate-400">No items found.</td></tr>`);
+        rowsHtml.push(`<tr><td colspan="8" class="px-5 py-10 text-center text-xs text-slate-400">No items found matching the selected filter criteria.</td></tr>`);
     }
 
     const tbody = document.querySelector('#table-inventory tbody');
@@ -1438,8 +1750,7 @@ document.querySelector('#table-inventory tbody')?.addEventListener('click', asyn
 // ==========================================
 // ====== AUTO-PURGE 6-MONTH DEAD STOCK =====
 // ==========================================
-
-const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000; // 180 Days (~6 Months)
+const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
 
 async function purgeDeadStock(silent = false) {
     if (!allInventory || !allTransactions || allInventory.length === 0) return;
@@ -1450,16 +1761,12 @@ async function purgeDeadStock(silent = false) {
     allInventory.forEach(inv => {
         const qty = Number(inv.qty) || 0;
         
-        // Only target items that are currently 0 or negative
         if (qty <= 0) {
-            // Find all transaction records for this item
             const itemTrans = allTransactions.filter(t => t.item === inv.name && t.date);
 
             if (itemTrans.length > 0) {
-                // Find timestamp of the most recent sale or purchase
                 const lastTransTime = Math.max(...itemTrans.map(t => new Date(t.date).getTime()));
                 
-                // If last movement was 6+ months ago, it is dead stock
                 if ((now - lastTransTime) >= SIX_MONTHS_MS) {
                     deadItemsToDelete.push({
                         id: inv.id,
@@ -1468,7 +1775,6 @@ async function purgeDeadStock(silent = false) {
                     });
                 }
             } else if (inv.zeroStockSince) {
-                // For items with no recorded transactions, check when it was flagged at 0
                 const zeroSince = new Date(inv.zeroStockSince).getTime();
                 if ((now - zeroSince) >= SIX_MONTHS_MS) {
                     deadItemsToDelete.push({
@@ -1512,10 +1818,8 @@ async function purgeDeadStock(silent = false) {
 // ==========================================
 // ====== SETTINGS & DATA MANAGEMENT ========
 // ==========================================
-
-// Manual purge button listener
 document.getElementById('btn-purge-dead-stock')?.addEventListener('click', () => {
-    purgeDeadStock(false); // false = shows confirmation prompt & summary
+    purgeDeadStock(false);
 });
 
 document.getElementById('btn-trigger-excel')?.addEventListener('click', () => { 
